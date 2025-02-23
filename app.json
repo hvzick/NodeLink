@@ -1,15 +1,18 @@
 {
   "expo": {
-    "name": "NodeLink",
+    "name": "Node Link",
     "slug": "NodeLink",
+    "scheme": "NodeLink",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "We use Face ID for authentication."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,7 +35,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
