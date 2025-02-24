@@ -8,10 +8,15 @@ module.exports = (() => {
     ...transformer,
     babelTransformerPath: require.resolve("react-native-svg-transformer"),
   };
+
   config.resolver = {
     ...resolver,
     assetExts: resolver.assetExts.filter((ext) => ext !== "svg"),
     sourceExts: [...resolver.sourceExts, "svg"],
+    extraNodeModules: {
+      crypto: require.resolve("react-native-polyfill-globals"),
+      stream: require.resolve("stream-browserify"),
+    },
   };
 
   return config;

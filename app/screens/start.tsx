@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   staticText: {
     position: 'absolute',
     bottom: 70,
-    fontSize: 30,
+    fontSize: 25,
     fontWeight: 'bold',
     fontFamily: 'MontserratAlternates-Regular',
   },

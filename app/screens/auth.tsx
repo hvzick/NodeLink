@@ -1,16 +1,17 @@
-import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Alert, BackHandler, Linking, Platform } from "react-native";
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../App'; // Adjust path
+import { RootStackParamList } from '../App';
+import React, { useState, useEffect } from 'react';
+import { initializeWalletConnect, connectWallet } from "../../utils/WalletConnect";
+import SignClient from "@walletconnect/sign-client";
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
 const AuthScreen = () => {
   const theme = useColorScheme(); // Detect system theme (light/dark)
-
   // Choose the correct support icon based on the theme
   const supportIcon = theme === 'dark' 
     ? require('../../assets/images/support-logo-white.png')  // Dark Mode
@@ -42,10 +43,31 @@ const AuthScreen = () => {
 
   const navigation = useNavigation<AuthScreenNavigationProp>();     // This gets access to the navigation object in a React Native app that uses React Navigation. The navigation object allows screen transitions (e.g., navigating between pages).
 
-  const handleConnectMetaMask = () => {
-    console.log('Connect MetaMask Pressed');
-    // Implement MetaMask connection logic here
-  };
+
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [connector, setConnector] = useState<InstanceType<typeof SignClient> | null>(null);
+
+  useEffect(() => {
+    initializeWalletConnect(setWalletAddress, setConnector, setLoading, navigation);
+  }, []);
+
+
+
+  const handleConnectPress = async () => {
+    //console.log("Connector state:", connector); // Debugging
+    if (!connector) {
+        Alert.alert("Error", "WalletConnect is not initialized yet. Please try again.");
+        return;
+    }
+    await connectWallet(setLoading, navigation);
+};
+
+
+
+
+
+
 
   // Close app on Android but not on iOS (against Apple policy)
   const handleExit = () => {
@@ -83,7 +105,7 @@ const AuthScreen = () => {
         <Text style={styles.headerButton} onPress={handleExit}>Exit</Text>
 
         {/* Support Icon - Sends mail to the creators */}
-        <TouchableOpacity style={styles.supportButton} onPress={handleSupport}>
+        <TouchableOpacity onPress={handleSupport}>
 
           {/*imported support logo here*/}
           <Image source={supportIcon} style={styles.supportIcon}/>
@@ -102,11 +124,12 @@ const AuthScreen = () => {
       </Text>
 
       {/* MetaMask Connect Button */}
-      <TouchableOpacity style={styles.connectButton} onPress={handleConnectMetaMask}>
+      <TouchableOpacity style={styles.connectButton} onPress={handleConnectPress}>
         <Image source={require('../../assets/images/metamask.png')} style={styles.icon} />
         <Text style={styles.connectButtonText}>Connect Metamask</Text>
       </TouchableOpacity>
-
+      {walletAddress && <Text style={styles.connectedText}>Connected: {walletAddress}</Text>}
+  
       {/* Terms and Privacy Policy */}
       <Text style={[styles.termsText, theme === 'dark' ? styles.darkText : styles.lightText]}>
         By connecting your wallet, you agree to our {' '}
@@ -144,6 +167,11 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 21,
   },
+  connectedText: { 
+    marginTop: 20, 
+    fontSize: 14, 
+    color: '#0FA958' 
+  },
   logo: {
     width: 130,
     height: 130,
@@ -171,9 +199,6 @@ const styles = StyleSheet.create({
   },
   darkText: {
     color: '#FFFFFF',
-  },
-  supportButton: {
-    padding: 5, 
   },
   connectButton: {
     flexDirection: 'row',

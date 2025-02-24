@@ -11,14 +11,18 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSFaceIDUsageDescription": "We use Face ID for authentication."
+        "LSApplicationQueriesSchemes": [
+          "metamask",
+          "wc"
+        ]
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.NodeLink"
     },
     "web": {
       "bundler": "metro",
