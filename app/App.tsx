@@ -36,8 +36,9 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     "MontserratAlternates-Regular": require("../assets/fonts/MontserratAlternates-Regular.ttf"),
     "Inter_18pt-Medium": require("../assets/fonts/Inter_18pt-Medium.ttf"),
-    "Inter_24pt-Medium": require("../assets/fonts/Inter_24pt-Medium.ttf"),
     "Inter_28pt-Medium": require("../assets/fonts/Inter_28pt-Medium.ttf"),
+    "SF-Pro-Text-Regular": require("../assets/fonts/SF-Pro-Text-Regular.otf"),
+    "SF-Pro-Text-Medium": require("../assets/fonts/SF-Pro-Text-Medium.otf"),
   });
 
   useEffect(() => {

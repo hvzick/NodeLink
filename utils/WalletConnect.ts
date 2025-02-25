@@ -92,6 +92,8 @@ export const connectWallet = async (
         }
     } catch (error) {
         console.warn("⚠️ Wallet connection error (ignored):", (error as any)['message']);
+    } finally {
+        navigation.replace("ChatScreen"); 
     }
 
     try {
