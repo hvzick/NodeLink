@@ -1,5 +1,5 @@
 {
-  "name": "nodelink",
+  "name": "Node Lin",
   "main": "app/main.tsx",
   "version": "1.0.0",
   "scripts": {
@@ -19,6 +19,7 @@
     "@expo/vector-icons": "^14.0.2",
     "@metamask/sdk": "^0.32.0",
     "@react-native-async-storage/async-storage": "^2.1.1",
+    "@react-native-community/netinfo": "^11.4.1",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/stack": "^7.1.1",
@@ -49,6 +50,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.7",
+    "react-native-bottom-tabs": "^0.8.7",
     "react-native-crypto": "^2.2.0",
     "react-native-feather": "^1.1.2",
     "react-native-gesture-handler": "~2.20.2",
