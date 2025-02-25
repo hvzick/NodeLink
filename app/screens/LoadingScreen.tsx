@@ -8,9 +8,9 @@ import { RootStackParamList } from '../App';
 import SvgLogoDark from '../../assets/images/logo-white.svg';
 import SvgLogoLight from '../../assets/images/logo-black.svg';
 
-type NavigationProp = StackNavigationProp<RootStackParamList, 'Start'>;
+type NavigationProp = StackNavigationProp<RootStackParamList, 'LoadingScreen'>;
 
-export default function StartScreen() {
+export default function LoadingScreen() {
   const navigation = useNavigation<NavigationProp>();
   const logoScaleAnim = useRef(new Animated.Value(1)).current;
   const colorScheme = useColorScheme();
@@ -18,7 +18,7 @@ export default function StartScreen() {
   useEffect(() => {
     Animated.timing(logoScaleAnim, {
       toValue: 1.5,
-      duration: 3000,
+      duration: 1500,
       useNativeDriver: true,
     }).start(() => {
       navigation.replace('Auth'); // Navigate to Auth screen after animation
