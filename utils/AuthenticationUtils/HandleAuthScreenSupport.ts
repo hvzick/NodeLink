@@ -1,4 +1,4 @@
-import { Alert, Linking, BackHandler } from "react-native";
+import { Alert, Linking } from "react-native";
 
 export const handleSupport = async () => {
   const recipients = ['faik15748@gmail.com', 'ishazzeyfr@icloud.com'];

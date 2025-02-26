@@ -112,7 +112,7 @@ export const connectWallet = async (
     });
 
     if (uri) {
-      await extraDelay(2000);
+      await extraDelay(0);
       const deepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
       console.log("🔹 Opening MetaMask with deep link:", deepLink);
       Linking.openURL(deepLink).catch(err =>

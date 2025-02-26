@@ -1,4 +1,4 @@
-import { ChatItemType } from "./ChatItems"; 
+import { ChatItemType } from "./ChatItemsTypes"; 
 
 export const handlePin = (
   id: string,

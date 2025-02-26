@@ -1,32 +1,14 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, RefreshControl } from "react-native";
 import React, { useRef, memo, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  Image,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, FlatList, TextInput, Image, TouchableOpacity } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReanimatedSwipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  interpolate,
-  useAnimatedStyle,
-  SharedValue,
-} from "react-native-reanimated";
+import { interpolate, useAnimatedStyle, SharedValue } from "react-native-reanimated";
 import Animated from "react-native-reanimated";
 import { useColorScheme } from "react-native";
+import { ChatItemType } from "@/utils/ChatUtils/ChatItemsTypes";
 
-interface ChatItemType {
-  id: string;
-  name: string;
-  message: string;
-  time: string;
-  unread?: number;
-  avatar: any;
-}
 
 const chats: ChatItemType[] = [
   {
@@ -152,11 +134,10 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: isPinned ? "#999" : "#1EBE1E" }]}
           onPress={() => {
-                onPin();
-                handleAction("Pin")
-              }
-            }
-           >
+            onPin();
+            handleAction("Pin");
+          }}
+        >
           <Image 
             source={require("../../assets/images/pin.png")} 
             style={{ width: 30, height: 30, resizeMode: "contain" }} 
@@ -189,19 +170,17 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
           <Text style={styles.chatName}>{item.name}</Text>
           <Text style={styles.chatMessage}>{item.message}</Text>
         </View>
-
         <View style={{ alignItems: "flex-end" }}>
-        <Text style={styles.chatTime}>{item.time}</Text>
-        {isPinned && (
-          <Image 
-            source={require("../../assets/images/pinned-logo-white.png")} 
-            style={[styles.pinned]}
-            resizeMode="contain"
-          />
-        )}
+          <Text style={styles.chatTime}>{item.time}</Text>
+          {isPinned && (
+            <Image 
+              source={require("../../assets/images/pinned-logo-white.png")} 
+              style={[styles.pinned]}
+              resizeMode="contain"
+            />
+          )}
+        </View>
       </View>
-      </View>
-      
     </ReanimatedSwipeable>
   );
 });
@@ -212,6 +191,7 @@ const Chats = () => {
   const styles = createStyles(isDarkMode);
 
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleSwipe = (id: string) => {
     Object.keys(swipeRefs.current).forEach((key) => {
@@ -228,8 +208,18 @@ const Chats = () => {
         : [...prevPinnedChats, id]
     );
   };
-  const sortedChats = [...chats].sort((a, b) => (pinnedChats.includes(b.id) ? 1 : 0) - (pinnedChats.includes(a.id) ? 1 : 0));
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Refresh logic goes here (e.g., fetch new chats)
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
+
+  const sortedChats = [...chats].sort(
+    (a, b) => (pinnedChats.includes(b.id) ? 1 : 0) - (pinnedChats.includes(a.id) ? 1 : 0)
+  );
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -258,6 +248,9 @@ const Chats = () => {
             <TextInput placeholder="Search for messages or users" style={styles.searchInput} />
           </View>
         }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </GestureHandlerRootView>
   );
@@ -267,18 +260,16 @@ const createStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
     container: { 
       flex: 1, 
-      backgroundColor: isDarkMode ? "#121212" : "#fff",
+      backgroundColor: isDarkMode ? "#1C1C1D" : "#F1F1F1",
     },
-
     headerContainer: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "center", // Center the NodeLink text
+      justifyContent: "center",
       marginTop: 55,
       marginBottom: 10,
       position: "relative",
     },
-
     chatAppLogo: {
       width: 45,
       height: 45,
@@ -286,14 +277,12 @@ const createStyles = (isDarkMode: boolean) =>
       position: "absolute",
       left: 20, 
     },
-
     nodeLinkName: {
       fontSize: 25,
       fontWeight: "bold",
       fontFamily: "MontserratAlternates-Regular",
       color: isDarkMode ? "#FFFFFF" : "#000",
     },
-
     searchContainer: {
       flexDirection: "row",
       alignItems: "center",
@@ -306,7 +295,6 @@ const createStyles = (isDarkMode: boolean) =>
       marginLeft: 20,
       marginRight: 20,
     },
-
     searchInput: { 
       fontSize: 17,
       flex: 1, 
@@ -314,7 +302,6 @@ const createStyles = (isDarkMode: boolean) =>
       marginLeft: 15, 
       color: isDarkMode ? "#fff" : "#999",
     },
-
     chatItem: {
       flexDirection: "row",
       alignItems: "center",
@@ -326,8 +313,7 @@ const createStyles = (isDarkMode: boolean) =>
       minHeight: 80,
       maxHeight: 80,
     },
-
-    avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
+    avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 12 },
     chatContent: { flex: 1 },
     chatName: { 
       fontWeight: "bold", 
@@ -348,7 +334,6 @@ const createStyles = (isDarkMode: boolean) =>
       marginBottom: 30,
       top: 5
     },
-
     rightActions: { flexDirection: "row", alignItems: "center" },
     actionButton: {
       width: 75,
@@ -367,11 +352,8 @@ const createStyles = (isDarkMode: boolean) =>
       fontSize: 12,
       fontWeight: "bold",
       marginTop: -5,
-      bottom: -10  // 🔹 Moves text down without affecting the icon
+      bottom: -10
     },
-    
   });
 
-
-  
 export default Chats;

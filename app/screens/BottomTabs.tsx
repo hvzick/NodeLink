@@ -18,7 +18,7 @@ export default function BottomTabs() {
         headerShown: false,
         tabBarStyle: { 
           height: 85, 
-          backgroundColor: colorScheme === "dark" ? "#121212" : "#fff",
+          backgroundColor: colorScheme === "dark" ? "#1C1C1D" : "#EAEAEA",
           borderTopWidth: 1,
           borderTopColor: colorScheme === "dark" ? "#333" : "#ccc",
           elevation: 0,
