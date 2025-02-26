@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   header: {
     position: 'absolute',
-    top: 50,
+    top: 40,
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -159,7 +159,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   termsText: {
-    fontSize: 12,
+    marginLeft: 20,
+    marginRight: 20,
+    fontSize: 11,
     textAlign: 'center',
     marginTop: 10,
   },
