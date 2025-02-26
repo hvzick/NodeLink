@@ -15,7 +15,6 @@ import {
   interpolate,
   useAnimatedStyle,
   SharedValue,
-  withDecay,
 } from "react-native-reanimated";
 import Animated from "react-native-reanimated";
 import { useColorScheme } from "react-native";

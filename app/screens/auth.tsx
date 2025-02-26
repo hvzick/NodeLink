@@ -4,9 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../App';
 import React, { useState } from 'react';
-import { handleConnectPress} from "../../utils/WalletConnect";
-import { handleSupport } from "../../utils/HandleAuthScreenSupport";
-import { handleExit } from "../../utils/HandleAuthScreenExit";
+import { handleConnectPress} from "../../utils/AuthenticationUtils/WalletConnect";
+import { handleSupport } from "../../utils/AuthenticationUtils/HandleAuthScreenSupport";
+import { handleExit } from "../../utils/AuthenticationUtils/HandleAuthScreenExit";
 import SignClient from "@walletconnect/sign-client";
 import { triggerHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
 
@@ -35,10 +35,10 @@ const AuthScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         {/* Exit Button*/}
-        <Text style={styles.headerButton} onPress={handleExit}>Exit</Text>
+        <Text style={styles.headerButton} onPress={() => {handleExit(), triggerHapticFeedback()}}>Exit</Text>
 
         {/* Support Icon */}
-        <TouchableOpacity onPress={handleSupport}>
+        <TouchableOpacity onPress={() => {handleSupport(), triggerHapticFeedback()}}>
           <Image source={supportIcon} style={styles.supportIcon}/>
         </TouchableOpacity>
       </View>

@@ -1,4 +1,4 @@
-import { Alert, Linking } from "react-native";
+import { Alert, Linking, BackHandler } from "react-native";
 
 export const handleSupport = async () => {
   const recipients = ['faik15748@gmail.com', 'ishazzeyfr@icloud.com'];
@@ -9,7 +9,15 @@ export const handleSupport = async () => {
   try {
     const supported = await Linking.canOpenURL(mailtoURL);
     if (supported) {
-      Linking.openURL(mailtoURL);
+          Alert.alert(
+            "Contact Support",
+            "Press Yes to send email to Support",
+            [
+              { text: "Cancel", style: "cancel" },
+              { text: "Yes", onPress: () => Linking.openURL(mailtoURL) }, // opens useers email app to send email to us
+            ]
+          );
+      
     } else {
       Alert.alert('Error', 'Email app is not available');
     }

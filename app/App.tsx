@@ -10,7 +10,7 @@ import AuthScreen from "./screens/Auth";
 import TermsOfServiceScreen from "./screens/TermsOfService";
 import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
 import Chats from "./screens/ChatScreen"; // Add ChatScreen import
-import { initializeWalletConnect } from "../utils/WalletConnect"; // Correct import
+import { initializeWalletConnect } from "../utils/AuthenticationUtils/WalletConnect"; // Correct import
 
 import '@ethersproject/shims'; // Helps with WalletConnect compatibility
 import { Buffer } from "buffer";
