@@ -47,7 +47,7 @@ export default function BottomTabs() {
             <Image
               source={iconSource}
               style={{
-                marginTop: 0,
+                marginTop:-5,
                 width: size,
                 height: size,
                 // Optionally, you can use tintColor if you want to apply a color overlay.

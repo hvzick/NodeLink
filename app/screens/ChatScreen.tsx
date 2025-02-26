@@ -32,7 +32,7 @@ interface ChatItemType {
 const chats: ChatItemType[] = [
   {
     id: "1",
-    name: "one",
+    name: "Saved Messages",
     message: "image.jpeg",
     time: "Fri",
     avatar: require("../../assets/images/fc.jpg"),
@@ -40,7 +40,7 @@ const chats: ChatItemType[] = [
   {
     id: "2",
     name: "two",
-    message: "Hasan Web\nGIF",
+    message: "Hasan Web",
     time: "9/29",
     avatar: require("../../assets/images/fc.jpg"),
   },
@@ -54,7 +54,7 @@ const chats: ChatItemType[] = [
   {
     id: "4",
     name: "four",
-    message: "Hasan Web\nGIF",
+    message: "Hasan Web",
     time: "9/29",
     avatar: require("../../assets/images/fc.jpg"),
   },  {
@@ -67,7 +67,7 @@ const chats: ChatItemType[] = [
   {
     id: "6",
     name: "two",
-    message: "Hasan Web\nGIF",
+    message: "Hasan Web",
     time: "9/29",
     avatar: require("../../assets/images/fc.jpg"),
   },
@@ -81,7 +81,7 @@ const chats: ChatItemType[] = [
   {
     id: "8",
     name: "four",
-    message: "Hasan Web\nGIF",
+    message: "Hasan Web",
     time: "9/29",
     avatar: require("../../assets/images/fc.jpg"),
   },  {
@@ -94,7 +94,7 @@ const chats: ChatItemType[] = [
   {
     id: "10",
     name: "two",
-    message: "Hasan Web\nGIF",
+    message: "Hasan Web",
     time: "9/29",
     avatar: require("../../assets/images/fc.jpg"),
   },
@@ -108,7 +108,7 @@ const chats: ChatItemType[] = [
   {
     id: "12",
     name: "four",
-    message: "Hasan Web\nGIF",
+    message: "Hasan Web",
     time: "9/29",
     avatar: require("../../assets/images/fc.jpg"),
   },
@@ -312,7 +312,7 @@ const createStyles = (isDarkMode: boolean) =>
       borderBottomWidth: 1,
       borderColor: isDarkMode ? "#333" : "#ddd",
       backgroundColor: isDarkMode ? "#121212" : "#fff",
-      minHeight: 80,
+      minHeight: 75,
     },
 
     avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
@@ -321,16 +321,18 @@ const createStyles = (isDarkMode: boolean) =>
       fontWeight: "bold", 
       fontSize: 18, 
       fontFamily: "SF-Pro-Text-Medium",
-      bottom: 3,
+      bottom: 7,
       color: isDarkMode ? "#fff" : "#000" 
     },
     chatMessage: { 
       color: isDarkMode ? "#aaa" : "#777",
       fontFamily: "SF-Pro-Text-Regular",
+      fontSize: 15,
+      bottom: 4
     },
     chatTime: { 
       color: isDarkMode ? "#aaa" : "#777", 
-      fontSize: 12,
+      fontSize: 14,
       marginBottom: 30,
     },
 
