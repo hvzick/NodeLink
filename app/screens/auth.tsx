@@ -8,6 +8,7 @@ import { handleConnectPress} from "../../utils/WalletConnect";
 import { handleSupport } from "../../utils/HandleAuthScreenSupport";
 import { handleExit } from "../../utils/HandleAuthScreenExit";
 import SignClient from "@walletconnect/sign-client";
+import { triggerHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
@@ -58,14 +59,15 @@ const AuthScreen = () => {
       <TouchableOpacity 
         style={styles.connectButton} 
         onPress={() => // In your App.tsx or wherever you call handleConnectPress:
-          handleConnectPress(
+          {handleConnectPress(
             setLoading,
             setWalletAddress,
             setConnector,
             navigation,
             setIsAuthenticated,// pass this function to update auth state
-          )
-          } // Use the imported function here
+          );
+          triggerHapticFeedback();
+          }} // Use the imported function here
       >
         <Image source={require('../../assets/images/metamask.png')} style={styles.icon} />
         <Text style={styles.connectButtonText}>Connect Metamask</Text>

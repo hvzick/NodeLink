@@ -17,7 +17,7 @@ export default function LoadingScreen() {
 
   useEffect(() => {
     Animated.timing(logoScaleAnim, {
-      toValue: 1.5,
+      toValue: 1.3,
       duration: 1500,
       useNativeDriver: true,
     }).start(() => {
@@ -29,6 +29,7 @@ export default function LoadingScreen() {
 
   return (
     <View style={[styles.container, colorScheme === 'dark' ? darkStyles.container : lightStyles.container]}>
+      
       <Animated.View style={{ transform: [{ scale: logoScaleAnim }] }}>
         <LogoComponent width={200} height={200} />
       </Animated.View>

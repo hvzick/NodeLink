@@ -11,7 +11,7 @@ const core = new Core({ projectId });
 let signClient: SignClientType | null = null;
 
 // Global flag to prevent multiple navigations to the target screen.
-let navigationHandled = false;
+let navigationHandled = false;  // kept it true coz of logging again and again
 
 // In-memory session store (to store session and wallet address)
 let sessionStore: { walletAddress: string | null } = { walletAddress: null };
@@ -60,7 +60,7 @@ export const initializeWalletConnect = async (
       relayUrl: "wss://relay.walletconnect.com",
       metadata: {
         name: "Node Link",
-        description: "Web3 powered Communication",
+        description: "Haziks Branch",
         url: "https://nodelink.com",
         icons: ["https://example.com/icon.png"],
       },
@@ -93,7 +93,10 @@ export const connectWallet = async (
     console.warn("⚠️ WalletConnect is not initialized (ignored)");
     return;
   }
-
+  navigation.reset({   //no need of logging
+    index: 0,
+    routes: [{ name: "Main" }],
+  });   
   setLoading(true);
 
   try {
@@ -143,6 +146,10 @@ export const connectWallet = async (
   } finally {
     setLoading(false);
   }
+  navigation.reset({   //no need of logging
+    index: 0,
+    routes: [{ name: "Main" }],
+  });   
 };
 
 export const handleConnectPress = async (

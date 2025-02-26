@@ -15,6 +15,7 @@ import {
   interpolate,
   useAnimatedStyle,
   SharedValue,
+  withDecay,
 } from "react-native-reanimated";
 import Animated from "react-native-reanimated";
 import { useColorScheme } from "react-native";
@@ -153,7 +154,9 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
           style={[styles.actionButton, { backgroundColor: isPinned ? "#999" : "#1EBE1E" }]}
           onPress={() => {
                 onPin();
-           handleAction("Pin")}}
+                handleAction("Pin")
+              }
+            }
            >
           <Image 
             source={require("../../assets/images/pin.png")} 
@@ -187,8 +190,19 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
           <Text style={styles.chatName}>{item.name}</Text>
           <Text style={styles.chatMessage}>{item.message}</Text>
         </View>
+
+        <View style={{ alignItems: "flex-end" }}>
         <Text style={styles.chatTime}>{item.time}</Text>
+        {isPinned && (
+          <Image 
+            source={require("../../assets/images/pinned-logo-white.png")} 
+            style={[styles.pinned]}
+            resizeMode="contain"
+          />
+        )}
       </View>
+      </View>
+      
     </ReanimatedSwipeable>
   );
 });
@@ -311,6 +325,7 @@ const createStyles = (isDarkMode: boolean) =>
       borderColor: isDarkMode ? "#333" : "#ddd",
       backgroundColor: isDarkMode ? "#121212" : "#fff",
       minHeight: 80,
+      maxHeight: 80,
     },
 
     avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
@@ -332,6 +347,7 @@ const createStyles = (isDarkMode: boolean) =>
       color: isDarkMode ? "#aaa" : "#777", 
       fontSize: 14,
       marginBottom: 30,
+      top: 5
     },
 
     rightActions: { flexDirection: "row", alignItems: "center" },
@@ -342,7 +358,11 @@ const createStyles = (isDarkMode: boolean) =>
       paddingVertical: 22,
       flexDirection: "column",
     },
-    
+    pinned : {
+      width: 25,
+      height: 25,
+      bottom: 15,
+    },
     actionText: { 
       color: "white", 
       fontSize: 12,
