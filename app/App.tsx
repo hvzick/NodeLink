@@ -6,9 +6,9 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { useFonts } from "expo-font";
 import { View, Text } from "react-native";
 import LoadingScreen from "./screens/LoadingScreen";
-import AuthScreen from "./screens/auth";
-import TermsOfServiceScreen from "./screens/tos";
-import PrivacyPolicyScreen from "./screens/privacypolicy";
+import AuthScreen from "./screens/Auth";
+import TermsOfServiceScreen from "./screens/TermsOfService";
+import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
 import ChatScreen from "./screens/ChatScreen"; // Add ChatScreen import
 import { initializeWalletConnect } from "../utils/WalletConnect"; // Correct import
 
@@ -26,7 +26,7 @@ export type RootStackParamList = {
   Auth: undefined;
   TOS: undefined;
   PrivacyPolicy: undefined;
-  ChatScreen: undefined; // Add Chat screen to type list
+  ChatScreen: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();

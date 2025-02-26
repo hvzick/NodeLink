@@ -1,8 +1,7 @@
 import { ChatItemType } from "./ChatItems"; 
 
 export const handlePin = (
-  id: string, 
-  pinnedChats: string[], 
+  id: string,
   setPinnedChats: React.Dispatch<React.SetStateAction<string[]>>, 
   setChatList: React.Dispatch<React.SetStateAction<ChatItemType[]>>
 ) => {
