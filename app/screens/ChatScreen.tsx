@@ -1,4 +1,4 @@
-import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
+import { StyleSheet } from "react-native";
 import React, { useRef, memo, useState } from "react";
 import {
   View,
@@ -14,7 +14,6 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   interpolate,
   useAnimatedStyle,
-  useDerivedValue,
   SharedValue,
 } from "react-native-reanimated";
 import Animated from "react-native-reanimated";
@@ -141,7 +140,7 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
     return (
       <Animated.View style={[styles.rightActions, animatedStyle]}>
         <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: "#CD7800" }]}
+          style={[styles.actionButton, { backgroundColor: "#F09A37" }]}
           onPress={() => handleAction("Mute")}
         >
           <Image 
@@ -151,7 +150,7 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
           <Text style={styles.actionText}>Mute</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: isPinned ? "#999" : "#1C9130" }]}
+          style={[styles.actionButton, { backgroundColor: isPinned ? "#999" : "#1EBE1E" }]}
           onPress={() => {
                 onPin();
            handleAction("Pin")}}
@@ -163,7 +162,7 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
           <Text style={styles.actionText}>{isPinned ? "Unpin" : "Pin"}</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: "#C60C0C" }]}
+          style={[styles.actionButton, { backgroundColor: "#FE3B30" }]}
           onPress={() => handleAction("Delete")}
         >
           <Image 
@@ -194,7 +193,7 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
   );
 });
 
-const ChatScreen = () => {
+const Chats = () => {
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
   const isDarkMode = useColorScheme() === "dark";
   const styles = createStyles(isDarkMode);
@@ -256,7 +255,6 @@ const createStyles = (isDarkMode: boolean) =>
     container: { 
       flex: 1, 
       backgroundColor: isDarkMode ? "#121212" : "#fff",
-      paddingBottom: 20, // Extra padding for iPhone swipe-up area
     },
 
     headerContainer: {
@@ -312,7 +310,7 @@ const createStyles = (isDarkMode: boolean) =>
       borderBottomWidth: 1,
       borderColor: isDarkMode ? "#333" : "#ddd",
       backgroundColor: isDarkMode ? "#121212" : "#fff",
-      minHeight: 75,
+      minHeight: 80,
     },
 
     avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
@@ -357,4 +355,4 @@ const createStyles = (isDarkMode: boolean) =>
 
 
   
-export default ChatScreen;
+export default Chats;

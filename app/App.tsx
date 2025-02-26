@@ -9,7 +9,7 @@ import LoadingScreen from "./screens/LoadingScreen";
 import AuthScreen from "./screens/Auth";
 import TermsOfServiceScreen from "./screens/TermsOfService";
 import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
-import ChatScreen from "./screens/ChatScreen"; // Add ChatScreen import
+import Chats from "./screens/ChatScreen"; // Add ChatScreen import
 import { initializeWalletConnect } from "../utils/WalletConnect"; // Correct import
 
 import '@ethersproject/shims'; // Helps with WalletConnect compatibility
@@ -17,8 +17,8 @@ import { Buffer } from "buffer";
 import crypto from "react-native-polyfill-globals"; 
 import "react-native-polyfill-globals/auto";
 import BottomTabs from "./screens/BottomTabs"; 
-import WalletScreen from './screens/WalletScreen';
-import ProfileScreen from './screens/ProfileScreen'
+import Wallet from './screens/WalletScreen';
+import Profile from './screens/ProfileScreen'
 
 
 // Polyfill global objects
@@ -30,9 +30,9 @@ export type RootStackParamList = {
   Auth: undefined;
   TOS: undefined;
   PrivacyPolicy: undefined;
-  ChatScreen: undefined;
-  ProfileScreen: undefined;
-  WalletScreen: undefined;
+  Chats: undefined;
+  Profile: undefined;
+  Wallet: undefined;
   Main: undefined;
 };
 
@@ -80,15 +80,15 @@ export default function App() {
         
         {/* Ensure ChatScreen is part of the stack, even if not authenticated */}
         <Stack.Screen 
-          name="ChatScreen" 
-          component={ChatScreen} 
+          name="Chats" 
+          component={Chats} 
           listeners={({ navigation }) => ({
             focus: () => {
               // Reset navigation stack when navigating to ChatScreen
               if (isAuthenticated) {
                 navigation.reset({
                   index: 0,
-                  routes: [{ name: 'ChatScreen' }],
+                  routes: [{ name: 'Chats' }],
                 });
               }
             }
@@ -102,8 +102,8 @@ export default function App() {
         <Stack.Screen name="TOS" component={TermsOfServiceScreen} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         <Stack.Screen name="Main" component={BottomTabs} />
-        <Stack.Screen name="WalletScreen" component={WalletScreen} />
-        <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+        <Stack.Screen name="Wallet" component={Wallet} />
+        <Stack.Screen name="Profile" component={Profile} />
 
       </Stack.Navigator>
     </NavigationContainer>

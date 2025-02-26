@@ -60,7 +60,7 @@ export const initializeWalletConnect = async (
       relayUrl: "wss://relay.walletconnect.com",
       metadata: {
         name: "Node Link",
-        description: "Web3 powered Communi",
+        description: "Web3 powered Communication",
         url: "https://nodelink.com",
         icons: ["https://example.com/icon.png"],
       },

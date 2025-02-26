@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Button } from "react-native";
 
-export default function WalletScreen() {
+export default function Wallet() {
   // Dummy data
   const walletAddress = "0x1234...abcd";
   const balance = "1.2345 ETH";
