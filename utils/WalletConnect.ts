@@ -16,10 +16,6 @@ let navigationHandled = false;
 // In-memory session store (to store session and wallet address)
 let sessionStore: { walletAddress: string | null } = { walletAddress: null };
 
-/**
- * Returns a promise that resolves when the app state becomes active.
- * Includes a fallback timeout (default 20 seconds) in case the app does not regain focus.
- */
 const waitForActive = (timeoutMs = 20000) => {
   return new Promise<void>(resolve => {
     if (AppState.currentState === 'active') {
@@ -33,7 +29,6 @@ const waitForActive = (timeoutMs = 20000) => {
           resolve();
         }
       });
-      // Fallback timeout: if the app does not return to active within timeoutMs, then resolve.
       setTimeout(() => {
         if (!didResolve) {
           didResolve = true;
@@ -46,9 +41,6 @@ const waitForActive = (timeoutMs = 20000) => {
   });
 };
 
-/**
- * Waits for an additional delay (in milliseconds). Useful for delaying the deep link prompt.
- */
 const extraDelay = (delayMs: number) => {
   return new Promise<void>(resolve => setTimeout(resolve, delayMs));
 };
@@ -78,8 +70,8 @@ export const initializeWalletConnect = async (
 
     signClient.on("session_delete", () => {
       console.log("🔹 Session deleted");
-      setWalletAddress(null); // Clear wallet address when session is deleted
-      sessionStore.walletAddress = null; // Clear session from memory
+      setWalletAddress(null);
+      sessionStore.walletAddress = null;
     });
 
     setConnector(signClient);
@@ -94,7 +86,8 @@ export const initializeWalletConnect = async (
 export const connectWallet = async (
   setLoading: React.Dispatch<React.SetStateAction<boolean>>,
   navigation: any,
-  setWalletAddress: (address: string | null) => void
+  setWalletAddress: (address: string | null) => void,
+  setIsAuthenticated: (auth: boolean) => void
 ) => {
   if (!signClient) {
     console.warn("⚠️ WalletConnect is not initialized (ignored)");
@@ -116,25 +109,16 @@ export const connectWallet = async (
     });
 
     if (uri) {
-      // Add a delay before prompting MetaMask. This delay happens while still in Expo.
-      await extraDelay(2000); // Adjust this delay (in ms) as needed
-
+      await extraDelay(2000);
       const deepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
       console.log("🔹 Opening MetaMask with deep link:", deepLink);
-
-      // Open MetaMask using the deep link
       Linking.openURL(deepLink).catch(err =>
         console.warn("Error opening MetaMask deep link", err)
       );
-
-      // Await user approval in MetaMask
       await approval();
       console.log("✅ Wallet connected");
-
-      // Wait until the app returns to the foreground (Expo active)
       await waitForActive();
 
-      // Retrieve and store wallet address
       const session = signClient.session.getAll()[0];
       if (session) {
         const walletAddress = session.namespaces.eip155.accounts[0].replace('eip155:1:', '');
@@ -142,10 +126,15 @@ export const connectWallet = async (
         setWalletAddress(walletAddress);
       }
 
-      // Navigate only if not already handled
       if (!navigationHandled) {
         navigationHandled = true;
-        navigation.replace("ChatScreen");
+        // Update authentication state
+        setIsAuthenticated(true);
+        // Reset navigation state to show the Main (BottomTabs) screen.
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Main" }],
+        });        
       }
     }
   } catch (error) {
@@ -160,9 +149,9 @@ export const handleConnectPress = async (
   setLoading: React.Dispatch<React.SetStateAction<boolean>>,
   setWalletAddress: (address: string | null) => void,
   setConnector: (connector: SignClientType | null) => void,
-  navigation: any
+  navigation: any,
+  setIsAuthenticated: (auth: boolean) => void
 ) => {
-  // Reset the navigation flag for each new connection attempt.
   navigationHandled = false;
   setLoading(true);
 
@@ -173,7 +162,7 @@ export const handleConnectPress = async (
 
   if (signClient) {
     console.log("WalletConnect initialized, proceeding to connect...");
-    await connectWallet(setLoading, navigation, setWalletAddress);
+    await connectWallet(setLoading, navigation, setWalletAddress, setIsAuthenticated);
   } else {
     console.log("WalletConnect initialization failed");
     setLoading(false);

@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Node Link",
-    "slug": "NodeLink",
-    "scheme": "NodeLink",
+    "slug": "node-link",
+    "scheme": "nodelink",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

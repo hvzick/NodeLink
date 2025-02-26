@@ -26,6 +26,7 @@ const AuthScreen = () => {
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [connector, setConnector] = useState<InstanceType<typeof SignClient> | null>(null);
 
   return (
@@ -56,7 +57,15 @@ const AuthScreen = () => {
       {/* MetaMask Connect Button */}
       <TouchableOpacity 
         style={styles.connectButton} 
-        onPress={() => handleConnectPress(setLoading, setWalletAddress, setConnector, navigation)} // Use the imported function here
+        onPress={() => // In your App.tsx or wherever you call handleConnectPress:
+          handleConnectPress(
+            setLoading,
+            setWalletAddress,
+            setConnector,
+            navigation,
+            setIsAuthenticated,// pass this function to update auth state
+          )
+          } // Use the imported function here
       >
         <Image source={require('../../assets/images/metamask.png')} style={styles.icon} />
         <Text style={styles.connectButtonText}>Connect Metamask</Text>

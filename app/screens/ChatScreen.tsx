@@ -57,6 +57,60 @@ const chats: ChatItemType[] = [
     message: "Hasan Web\nGIF",
     time: "9/29",
     avatar: require("../../assets/images/fc.jpg"),
+  },  {
+    id: "5",
+    name: "one",
+    message: "image.jpeg",
+    time: "Fri",
+    avatar: require("../../assets/images/fc.jpg"),
+  },
+  {
+    id: "6",
+    name: "two",
+    message: "Hasan Web\nGIF",
+    time: "9/29",
+    avatar: require("../../assets/images/fc.jpg"),
+  },
+  {
+    id: "7",
+    name: "three",
+    message: "image.jpeg",
+    time: "Fri",
+    avatar: require("../../assets/images/fc.jpg"),
+  },
+  {
+    id: "8",
+    name: "four",
+    message: "Hasan Web\nGIF",
+    time: "9/29",
+    avatar: require("../../assets/images/fc.jpg"),
+  },  {
+    id: "9",
+    name: "one",
+    message: "image.jpeg",
+    time: "Fri",
+    avatar: require("../../assets/images/fc.jpg"),
+  },
+  {
+    id: "10",
+    name: "two",
+    message: "Hasan Web\nGIF",
+    time: "9/29",
+    avatar: require("../../assets/images/fc.jpg"),
+  },
+  {
+    id: "11",
+    name: "three",
+    message: "image.jpeg",
+    time: "Fri",
+    avatar: require("../../assets/images/fc.jpg"),
+  },
+  {
+    id: "12",
+    name: "four",
+    message: "Hasan Web\nGIF",
+    time: "9/29",
+    avatar: require("../../assets/images/fc.jpg"),
   },
   // More chat items...
 ];
@@ -209,8 +263,8 @@ const createStyles = (isDarkMode: boolean) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center", // Center the NodeLink text
-      marginTop: 50,
-      marginBottom: 20,
+      marginTop: 55,
+      marginBottom: 10,
       position: "relative",
     },
 
@@ -248,13 +302,13 @@ const createStyles = (isDarkMode: boolean) =>
       fontFamily: "SF-Pro-Text-Regular",
       marginLeft: 15, 
       color: isDarkMode ? "#fff" : "#999",
-      textAlign: "center",
     },
 
     chatItem: {
       flexDirection: "row",
       alignItems: "center",
       padding: 12,
+      paddingLeft: 15,
       borderBottomWidth: 1,
       borderColor: isDarkMode ? "#333" : "#ddd",
       backgroundColor: isDarkMode ? "#121212" : "#fff",
