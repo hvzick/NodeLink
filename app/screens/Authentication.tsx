@@ -8,7 +8,7 @@ import { handleConnectPress} from "../../utils/AuthenticationUtils/WalletConnect
 import { handleSupport } from "../../utils/AuthenticationUtils/HandleAuthScreenSupport";
 import { handleExit } from "../../utils/AuthenticationUtils/HandleAuthScreenExit";
 import SignClient from "@walletconnect/sign-client";
-import { triggerHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
+import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
@@ -22,9 +22,7 @@ const AuthScreen = () => {
     ? require('../../assets/images/logo-white.png')  
     : require('../../assets/images/logo-black.png'); 
 
-
-  const navigation = useNavigation<AuthScreenNavigationProp>();  
-
+  const navigation = useNavigation<AuthScreenNavigationProp>();
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,10 +33,10 @@ const AuthScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         {/* Exit Button*/}
-        <Text style={styles.headerButton} onPress={() => {handleExit(), triggerHapticFeedback()}}>Exit</Text>
+        <Text style={styles.headerButton} onPress={() => {handleExit(), triggerLightHapticFeedback()}}>Exit</Text>
 
         {/* Support Icon */}
-        <TouchableOpacity onPress={() => {handleSupport(), triggerHapticFeedback()}}>
+        <TouchableOpacity onPress={() => {handleSupport(), triggerLightHapticFeedback()}}>
           <Image source={supportIcon} style={styles.supportIcon}/>
         </TouchableOpacity>
       </View>
@@ -66,7 +64,7 @@ const AuthScreen = () => {
             navigation,
             setIsAuthenticated,// pass this function to update auth state
           );
-          triggerHapticFeedback();
+          triggerLightHapticFeedback();
           }} // Use the imported function here
       >
         <Image source={require('../../assets/images/metamask.png')} style={styles.icon} />

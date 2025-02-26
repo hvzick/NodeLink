@@ -1,9 +1,9 @@
 // HapticFeedback.ts
 import * as Haptics from "expo-haptics";
 
-export const triggerHapticFeedback = () => {
+export const triggerLightHapticFeedback = () => {
   const hapticFeedbackEnabled = true;
   if (hapticFeedbackEnabled) {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   }
 };

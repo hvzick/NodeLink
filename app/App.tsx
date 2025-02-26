@@ -6,7 +6,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { useFonts } from "expo-font";
 import { View, Text } from "react-native";
 import LoadingScreen from "./screens/LoadingScreen";
-import AuthScreen from "./screens/Auth";
+import AuthScreen from "./screens/Authentication";
 import TermsOfServiceScreen from "./screens/TermsOfService";
 import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
 import Chats from "./screens/ChatScreen"; // Add ChatScreen import
@@ -18,8 +18,7 @@ import crypto from "react-native-polyfill-globals";
 import "react-native-polyfill-globals/auto";
 import BottomTabs from "./screens/BottomTabs"; 
 import Wallet from './screens/WalletScreen';
-import Profile from './screens/ProfileScreen'
-
+import Settings from './screens/SettingsScreen'
 
 // Polyfill global objects
 global.Buffer = Buffer;
@@ -31,7 +30,7 @@ export type RootStackParamList = {
   TOS: undefined;
   PrivacyPolicy: undefined;
   Chats: undefined;
-  Profile: undefined;
+  Settings: undefined;
   Wallet: undefined;
   Main: undefined;
 };
@@ -103,7 +102,7 @@ export default function App() {
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         <Stack.Screen name="Main" component={BottomTabs} />
         <Stack.Screen name="Wallet" component={Wallet} />
-        <Stack.Screen name="Profile" component={Profile} />
+        <Stack.Screen name="Settings" component={Settings} />
 
       </Stack.Navigator>
     </NavigationContainer>

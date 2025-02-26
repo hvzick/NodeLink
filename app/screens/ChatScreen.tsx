@@ -8,7 +8,7 @@ import { interpolate, useAnimatedStyle, SharedValue } from "react-native-reanima
 import Animated from "react-native-reanimated";
 import { useColorScheme } from "react-native";
 import { ChatItemType } from "@/utils/ChatUtils/ChatItemsTypes";
-
+import { onRefresh } from "@/utils/ChatUtils/RefreshChats";
 
 const chats: ChatItemType[] = [
   {
@@ -189,7 +189,6 @@ const Chats = () => {
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
   const isDarkMode = useColorScheme() === "dark";
   const styles = createStyles(isDarkMode);
-
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -209,14 +208,6 @@ const Chats = () => {
     );
   };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    // Refresh logic goes here (e.g., fetch new chats)
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
-  };
-
   const sortedChats = [...chats].sort(
     (a, b) => (pinnedChats.includes(b.id) ? 1 : 0) - (pinnedChats.includes(a.id) ? 1 : 0)
   );
@@ -229,6 +220,13 @@ const Chats = () => {
           style={styles.chatAppLogo} 
         />
         <Text style={styles.nodeLinkName}>NodeLink</Text>
+        {/* Theme toggle icon that logs current mode when pressed */}
+        <TouchableOpacity onPress={() => console.log(isDarkMode ? "Dark mode active" : "Light mode active")} style={styles.themeIconContainer}>
+
+          {/*Add Mode chsnge functionality to this later*/}
+
+          <Ionicons name={isDarkMode ? "moon" : "sunny"} size={24} color={isDarkMode ? "#FFF" : "#000"}/>
+        </TouchableOpacity>
       </View>
       <FlatList
         data={sortedChats}
@@ -249,7 +247,7 @@ const Chats = () => {
           </View>
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> // functionality later
         }
       />
     </GestureHandlerRootView>
@@ -283,6 +281,10 @@ const createStyles = (isDarkMode: boolean) =>
       fontFamily: "MontserratAlternates-Regular",
       color: isDarkMode ? "#FFFFFF" : "#000",
     },
+    themeIconContainer: {
+      position: "absolute",
+      right: 20,
+    },
     searchContainer: {
       flexDirection: "row",
       alignItems: "center",
@@ -300,7 +302,7 @@ const createStyles = (isDarkMode: boolean) =>
       flex: 1, 
       fontFamily: "SF-Pro-Text-Regular",
       marginLeft: 15, 
-      color: isDarkMode ? "#fff" : "#999",
+      color: isDarkMode ? "#fff" : "#000",
     },
     chatItem: {
       flexDirection: "row",
