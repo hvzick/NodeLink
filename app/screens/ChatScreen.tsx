@@ -1,12 +1,12 @@
-import { StyleSheet, RefreshControl } from "react-native";
 import React, { useRef, memo, useState } from "react";
-import { View, Text, FlatList, TextInput, Image, TouchableOpacity } from "react-native";
+import { StyleSheet, RefreshControl, View, Text, FlatList, TextInput, Image, TouchableOpacity } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReanimatedSwipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Ionicons } from "@expo/vector-icons";
 import { interpolate, useAnimatedStyle, SharedValue } from "react-native-reanimated";
 import Animated from "react-native-reanimated";
-import { useColorScheme } from "react-native";
+import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider"; // Updated import
+
 import { ChatItemType } from "@/utils/ChatUtils/ChatItemsTypes";
 import { onRefresh } from "@/utils/ChatUtils/RefreshChats";
 
@@ -38,7 +38,8 @@ const chats: ChatItemType[] = [
     message: "Hasan Web",
     time: "9/29",
     avatar: require("../../assets/images/fc.jpg"),
-  },  {
+  },
+  {
     id: "5",
     name: "one",
     message: "image.jpeg",
@@ -65,7 +66,8 @@ const chats: ChatItemType[] = [
     message: "Hasan Web",
     time: "9/29",
     avatar: require("../../assets/images/fc.jpg"),
-  },  {
+  },
+  {
     id: "9",
     name: "one",
     message: "image.jpeg",
@@ -96,14 +98,18 @@ const chats: ChatItemType[] = [
   // More chat items...
 ];
 
-const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: { 
-  item: ChatItemType; 
-  swipeRefs: React.MutableRefObject<{ [key: string]: SwipeableMethods | null }>; 
-  onSwipe: (id: string) => void; 
+interface ChatItemProps {
+  item: ChatItemType;
+  swipeRefs: React.MutableRefObject<{ [key: string]: SwipeableMethods | null }>;
+  onSwipe: (id: string) => void;
   onPin: () => void;
   isPinned: boolean;
-}) => {
-  const isDarkMode = useColorScheme() === "dark";
+}
+
+const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: ChatItemProps) => {
+  // Use the global theme instead of local useColorScheme.
+  const { currentTheme } = useThemeToggle();
+  const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
 
   const renderRightActions = (progress: SharedValue<number>) => {
@@ -113,7 +119,7 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
       });
       return { transform: [{ translateX: animatedTranslateX }] };
     });
-    
+
     const handleAction = (action: string) => {
       swipeRefs.current[item.id]?.close?.();
       console.log(`Action: ${action} performed on ${item.name}`);
@@ -175,7 +181,7 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
           {isPinned && (
             <Image 
               source={require("../../assets/images/pinned-logo-white.png")} 
-              style={[styles.pinned]}
+              style={styles.pinned}
               resizeMode="contain"
             />
           )}
@@ -187,7 +193,9 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: {
 
 const Chats = () => {
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
-  const isDarkMode = useColorScheme() === "dark";
+  // Use the global theme hook here as well.
+  const { currentTheme } = useThemeToggle();
+  const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -220,11 +228,10 @@ const Chats = () => {
           style={styles.chatAppLogo} 
         />
         <Text style={styles.nodeLinkName}>NodeLink</Text>
-        {/* Theme toggle icon that logs current mode when pressed */}
-        <TouchableOpacity onPress={() => console.log(isDarkMode ? "Dark mode active" : "Light mode active")} style={styles.themeIconContainer}>
-
-          {/*Add Mode chsnge functionality to this later*/}
-
+        <TouchableOpacity 
+          onPress={() => console.log(isDarkMode ? "Dark mode active" : "Light mode active")} 
+          style={styles.themeIconContainer}
+        >
           <Ionicons name={isDarkMode ? "moon" : "sunny"} size={24} color={isDarkMode ? "#FFF" : "#000"}/>
         </TouchableOpacity>
       </View>
@@ -247,7 +254,7 @@ const Chats = () => {
           </View>
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> // functionality later
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
     </GestureHandlerRootView>
