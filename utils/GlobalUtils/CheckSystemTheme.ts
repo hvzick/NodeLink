@@ -1,37 +1,43 @@
-// useThemeToggle.ts
-import { useState } from "react";
-import { useColorScheme } from "react-native";
+import { useState } from 'react';
+import { useColorScheme } from 'react-native';
 
-export type ThemeOption = "system" | "light" | "dark";
+// Define the available theme options
+export type ThemeOption = 'system' | 'light' | 'dark';
 
+// Custom hook for toggling and managing the theme
 export const useThemeToggle = () => {
-  // Get the system theme ("light" or "dark")
+  // Get the device's current theme ('light' or 'dark')
   const systemTheme = useColorScheme();
-  // State to hold user's selection; defaults to "system"
-  const [userTheme, setUserTheme] = useState<ThemeOption>("system");
 
-  // The current theme is either the override or the system theme
-  const currentTheme = userTheme === "system" ? systemTheme : userTheme;
+  // Store the user's selected theme; default is 'system'
+  const [userTheme, setUserTheme] = useState<ThemeOption>('system');
 
-  // Function to explicitly set the theme
+  // Determine the effective current theme:
+  // If userTheme is 'system', fall back to the system theme; otherwise, use userTheme
+  const currentTheme = userTheme === 'system' ? systemTheme : userTheme;
+
+  // Function to set the theme explicitly
   const setTheme = (theme: ThemeOption) => {
     setUserTheme(theme);
     console.log(`Theme set to ${theme}`);
   };
 
-  // Optional: Toggle between light and dark (if not using "system")
+  // Function to toggle between light and dark themes
+  // If in system mode, it toggles based on the device's current theme
+  // Otherwise, it simply toggles between 'light' and 'dark'
   const toggleTheme = () => {
-    if (userTheme === "system") {
-      // If system mode, toggle based on systemTheme value
-      const newTheme = systemTheme === "light" ? "dark" : "light";
-      setUserTheme(newTheme);
-      console.log(`Theme overridden to ${newTheme}`);
-    } else {
-      const newTheme = userTheme === "light" ? "dark" : "light";
-      setUserTheme(newTheme);
-      console.log(`Theme overridden to ${newTheme}`);
-    }
+    const newTheme =
+      userTheme === 'system'
+        ? systemTheme === 'light'
+          ? 'dark'
+          : 'light'
+        : userTheme === 'light'
+        ? 'dark'
+        : 'light';
+    setUserTheme(newTheme);
+    console.log(`Theme overridden to ${newTheme}`);
   };
 
+  // Return the current theme and the functions to change it
   return { currentTheme, userTheme, setTheme, toggleTheme };
 };
