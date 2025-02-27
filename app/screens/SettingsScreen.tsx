@@ -19,6 +19,10 @@ const lockIcon = require('../../assets/images/fc.jpg');
 const paintIcon = require('../../assets/images/fc.jpg');
 const hapticIcon = require('../../assets/images/fc.jpg');
 
+// Import SVG arrow components
+import ArrowSVG from '../../assets/images/arrow-icon.svg';
+import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
+
 export default function SettingsScreeimages() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -26,17 +30,22 @@ export default function SettingsScreeimages() {
     setIsDarkMode(!isDarkMode);
   };
 
-  // Reusable right arrow component
+  // Reusable right arrow component for settings items using the imported SVG
   const RightArrow = () => (
-    <Image
-      source={require('../../assets/images/Arrow.png')}
-      style={styles.arrowIcon}
+    <ArrowSVG width={styles.arrowIcon.width} height={styles.arrowIcon.height} />
+  );
+
+  // Reusable right arrow component for profile container (bigger arrow)
+  const ProfileRightArrow = () => (
+    <ProfileArrowSvg
+      width={styles.profileArrowIcon.width}
+      height={styles.profileArrowIcon.height}
     />
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/* Header (Outside profile container) with no background color */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
         <TouchableOpacity>
@@ -45,7 +54,7 @@ export default function SettingsScreeimages() {
       </View>
 
       <ScrollView style={styles.scrollContainer}>
-        {/* Profile Section */}
+        {/* Profile Section (Name and Avatar container) with a bigger arrow */}
         <View style={styles.profileContainer}>
           <Image
             source={{ uri: 'https://placehold.co/56x56' }}
@@ -57,6 +66,7 @@ export default function SettingsScreeimages() {
               0xe65EAC370d1079688fe1e4B9a35A41aac2bac
             </Text>
           </View>
+          <ProfileRightArrow />
         </View>
 
         {/* Settings List */}
@@ -154,7 +164,7 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 60,
-    backgroundColor: '#FFFFFF',
+    // No backgroundColor so the "Settings" text appears without its own colored box
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -235,6 +245,12 @@ const styles = StyleSheet.create({
   arrowIcon: {
     width: 7,
     height: 12,
+    marginLeft: 8,
+    tintColor: '#3C3C43',
+  },
+  profileArrowIcon: {
+    width: 12, // Bigger than arrowIcon
+    height: 18, // Bigger than arrowIcon
     marginLeft: 8,
     tintColor: '#3C3C43',
   },
