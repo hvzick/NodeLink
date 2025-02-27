@@ -5,8 +5,8 @@ import ReanimatedSwipeable, { SwipeableMethods } from "react-native-gesture-hand
 import { Ionicons } from "@expo/vector-icons";
 import { interpolate, useAnimatedStyle, SharedValue } from "react-native-reanimated";
 import Animated from "react-native-reanimated";
-import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider"; // Updated import
-
+import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
+import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
 import { ChatItemType } from "@/utils/ChatUtils/ChatItemsTypes";
 import { onRefresh } from "@/utils/ChatUtils/RefreshChats";
 
@@ -194,7 +194,7 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: ChatItemPr
 const Chats = () => {
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
   // Use the global theme hook here as well.
-  const { currentTheme } = useThemeToggle();
+  const { currentTheme, toggleTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
@@ -229,7 +229,10 @@ const Chats = () => {
         />
         <Text style={styles.nodeLinkName}>NodeLink</Text>
         <TouchableOpacity 
-          onPress={() => console.log(isDarkMode ? "Dark mode active" : "Light mode active")} 
+          // Toggle the theme on press without passing an argument.
+          onPress={() => {toggleTheme();
+            triggerLightHapticFeedback();
+          }}
           style={styles.themeIconContainer}
         >
           <Ionicons name={isDarkMode ? "moon" : "sunny"} size={24} color={isDarkMode ? "#FFF" : "#000"}/>
@@ -351,7 +354,7 @@ const createStyles = (isDarkMode: boolean) =>
       paddingVertical: 22,
       flexDirection: "column",
     },
-    pinned : {
+    pinned: {
       width: 25,
       height: 25,
       bottom: 15,
