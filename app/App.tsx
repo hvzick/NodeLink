@@ -1,3 +1,4 @@
+// App.tsx
 import 'react-native-get-random-values'; // Ensures crypto.getRandomValues is available
 import "react-native-gesture-handler";
 import React, { useEffect, useState } from "react";
@@ -9,16 +10,14 @@ import LoadingScreen from "./screens/LoadingScreen";
 import AuthScreen from "./screens/Authentication";
 import TermsOfServiceScreen from "./screens/TermsOfService";
 import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
-import Chats from "./screens/ChatScreen"; // Add ChatScreen import
-import { initializeWalletConnect } from "../utils/AuthenticationUtils/WalletConnect"; // Correct import
+import Chats from "./screens/ChatScreen";
+import { initializeWalletConnect } from "../utils/AuthenticationUtils/WalletConnect";
+import BottomTabs from "./screens/BottomTabs";
 
 import '@ethersproject/shims'; // Helps with WalletConnect compatibility
 import { Buffer } from "buffer";
 import crypto from "react-native-polyfill-globals"; 
 import "react-native-polyfill-globals/auto";
-import BottomTabs from "./screens/BottomTabs"; 
-import Wallet from './screens/WalletScreen';
-import Settings from './screens/SettingsScreen'
 
 // Polyfill global objects
 global.Buffer = Buffer;
@@ -30,15 +29,13 @@ export type RootStackParamList = {
   TOS: undefined;
   PrivacyPolicy: undefined;
   Chats: undefined;
-  Settings: undefined;
-  Wallet: undefined;
   Main: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [fontsLoaded] = useFonts({
     "MontserratAlternates-Regular": require("../assets/fonts/MontserratAlternates-Regular.ttf"),
     "Inter_18pt-Medium": require("../assets/fonts/Inter_18pt-Medium.ttf"),
@@ -49,19 +46,18 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-        initializeWalletConnect(
-            (walletAddress) => {
-                if (walletAddress) {
-                    setIsAuthenticated(true);
-                }
-            },
-            () => setIsAuthenticated(false),
-            () => setIsAuthenticated(false),
-            null
-        );
+      initializeWalletConnect(
+        (walletAddress) => {
+          if (walletAddress) {
+            setIsAuthenticated(true);
+          }
+        },
+        () => setIsAuthenticated(false),
+        () => setIsAuthenticated(false),
+        null
+      );
     }
-}, [isAuthenticated]); // Only run when `isAuthenticated` changes
-
+  }, [isAuthenticated]);
 
   if (!fontsLoaded) {
     return (
@@ -74,16 +70,12 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* If authenticated, redirect to the Chat screen, else go to Auth */}
         <Stack.Screen name="LoadingScreen" component={LoadingScreen} />
-        
-        {/* Ensure ChatScreen is part of the stack, even if not authenticated */}
         <Stack.Screen 
           name="Chats" 
           component={Chats} 
           listeners={({ navigation }) => ({
             focus: () => {
-              // Reset navigation stack when navigating to ChatScreen
               if (isAuthenticated) {
                 navigation.reset({
                   index: 0,
@@ -93,17 +85,12 @@ export default function App() {
             }
           })}
         />
-
-        {!isAuthenticated ? (
+        {!isAuthenticated && (
           <Stack.Screen name="Auth" component={AuthScreen} />
-        ) : null}
-
+        )}
         <Stack.Screen name="TOS" component={TermsOfServiceScreen} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         <Stack.Screen name="Main" component={BottomTabs} />
-        <Stack.Screen name="Wallet" component={Wallet} />
-        <Stack.Screen name="Settings" component={Settings} />
-
       </Stack.Navigator>
     </NavigationContainer>
   );

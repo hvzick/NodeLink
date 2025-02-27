@@ -1,25 +1,25 @@
+// BottomTabs.tsx
 import React, { useEffect, useRef } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Image, useColorScheme, View, Animated, ImageSourcePropType, StyleSheet } from "react-native";
 import WalletScreen from "./WalletScreen";
 import ChatScreen from "./ChatScreen";
-import SettingsScreen from "./SettingsScreen";
+// Import the nested settings stack
+import SettingsStackScreen from "./SettingStackScreen";
 import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
 import { triggerHoldHapticFeedback } from "../../utils/GlobalUtils/HoldHapticFeedback";
 
 const Tab = createBottomTabNavigator();
 
-
 interface AnimatedTabIconProps {
   source: ImageSourcePropType;
-  focused: boolean;
+  focused: boolean
   size: number;
   tintColor: string;
 }
 
 const AnimatedTabIcon: React.FC<AnimatedTabIconProps> = ({ source, focused, size, tintColor }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-
   return (
     <Animated.View style={[styles.iconContainer, { transform: [{ scale: scaleAnim }] }]}>
       <Image
@@ -33,13 +33,12 @@ const AnimatedTabIcon: React.FC<AnimatedTabIconProps> = ({ source, focused, size
 
 const styles = StyleSheet.create({
   iconContainer: {
-    // aage k liye if i change my mind
+    // Additional styling if needed
   },
 });
 
 export default function BottomTabs() {
   const colorScheme = useColorScheme();
-
   return (
     <Tab.Navigator
       initialRouteName="Chats"
@@ -59,11 +58,9 @@ export default function BottomTabs() {
           let iconSource;
           if (route.name === "Wallet") {
             iconSource = require("../../assets/images/wallet-icon-black-active.png");
-          } 
-          else if (route.name === "Chats") {
+          } else if (route.name === "Chats") {
             iconSource = require("../../assets/images/chat-icon-black-active.png");
-          } 
-          else if (route.name === "Settings") {
+          } else if (route.name === "Settings") {
             iconSource = require("../../assets/images/settings-icon-black-active.png");
           }
           return (
@@ -72,13 +69,7 @@ export default function BottomTabs() {
                 source={iconSource}
                 focused={focused}
                 size={size}
-                tintColor={
-                  focused
-                    ? colorScheme === "light"
-                      ? "black"
-                      : "white"
-                    : "gray"
-                }
+                tintColor={focused ? (colorScheme === "light" ? "black" : "white") : "gray"}
               />
             </View>
           );
@@ -93,7 +84,7 @@ export default function BottomTabs() {
         name="Wallet" 
         component={WalletScreen} 
         listeners={{
-          tabLongPress: async (e) => {
+          tabLongPress: async () => {
             await triggerHoldHapticFeedback();
             console.log("Wallet tab Hold pressed");
           },
@@ -107,7 +98,7 @@ export default function BottomTabs() {
         name="Chats" 
         component={ChatScreen} 
         listeners={{
-          tabLongPress: async (e) => {
+          tabLongPress: async () => {
             await triggerHoldHapticFeedback();
             console.log("Chats tab Hold pressed");
           },
@@ -119,9 +110,9 @@ export default function BottomTabs() {
       />
       <Tab.Screen 
         name="Settings"
-        component={SettingsScreen} 
+        component={SettingsStackScreen}
         listeners={{
-          tabLongPress: async (e) => {
+          tabLongPress: async () => {
             await triggerHoldHapticFeedback();
             console.log("Settings tab Hold pressed");
           },

@@ -1,3 +1,4 @@
+// SettingsScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -9,8 +10,16 @@ import {
   Switch,
   TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-// Example placeholder icon imports (replace with your own)
+export type SettingsStackParamList = {
+  SettingsMain: undefined;
+  Appearance: undefined;
+};
+
+type SettingsNavigationProp = StackNavigationProp<SettingsStackParamList, 'SettingsMain'>;
+
 const trashIcon = require('../../assets/images/fc.jpg');
 const phoneIcon = require('../../assets/images/fc.jpg');
 const moonIcon = require('../../assets/images/fc.jpg');
@@ -19,23 +28,21 @@ const lockIcon = require('../../assets/images/fc.jpg');
 const paintIcon = require('../../assets/images/fc.jpg');
 const hapticIcon = require('../../assets/images/fc.jpg');
 
-// Import SVG arrow components
 import ArrowSVG from '../../assets/images/arrow-icon.svg';
 import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
 
-export default function SettingsScreeimages() {
+export default function SettingsScreen() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const navigation = useNavigation<SettingsNavigationProp>();
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
   };
 
-  // Reusable right arrow component for settings items using the imported SVG
   const RightArrow = () => (
     <ArrowSVG width={styles.arrowIcon.width} height={styles.arrowIcon.height} />
   );
 
-  // Reusable right arrow component for profile container (bigger arrow)
   const ProfileRightArrow = () => (
     <ProfileArrowSvg
       width={styles.profileArrowIcon.width}
@@ -45,16 +52,13 @@ export default function SettingsScreeimages() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header (Outside profile container) with no background color */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
         <TouchableOpacity>
           <Text style={styles.editButton}>Edit</Text>
         </TouchableOpacity>
       </View>
-
       <ScrollView style={styles.scrollContainer}>
-        {/* Profile Section (Name and Avatar container) with a bigger arrow */}
         <View style={styles.profileContainer}>
           <Image
             source={{ uri: 'https://placehold.co/56x56' }}
@@ -68,9 +72,6 @@ export default function SettingsScreeimages() {
           </View>
           <ProfileRightArrow />
         </View>
-
-        {/* Settings List */}
-        {/* 1) Delete Chats */}
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#FF3B30' }]}>
@@ -80,8 +81,6 @@ export default function SettingsScreeimages() {
           </View>
           <RightArrow />
         </View>
-
-        {/* 2) Recent Calls */}
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#4CD964' }]}>
@@ -91,8 +90,6 @@ export default function SettingsScreeimages() {
           </View>
           <RightArrow />
         </View>
-
-        {/* 3) Dark Mode (No arrow, just a Switch) */}
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#000' }]}>
@@ -102,8 +99,6 @@ export default function SettingsScreeimages() {
           </View>
           <Switch value={isDarkMode} onValueChange={toggleDarkMode} />
         </View>
-
-        {/* 4) Notifications and Sounds */}
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#FF9500' }]}>
@@ -113,8 +108,6 @@ export default function SettingsScreeimages() {
           </View>
           <RightArrow />
         </View>
-
-        {/* 5) Privacy and Security */}
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#8E8E93' }]}>
@@ -124,19 +117,18 @@ export default function SettingsScreeimages() {
           </View>
           <RightArrow />
         </View>
-
-        {/* 6) Appearance */}
-        <View style={styles.settingsItem}>
-          <View style={styles.itemLeft}>
-            <View style={[styles.iconBackground, { backgroundColor: '#AF52DE' }]}>
-              <Image source={paintIcon} style={styles.icon} />
+        {/* Appearance option navigates to the Appearance screen */}
+        <TouchableOpacity onPress={() => navigation.navigate('Appearance')}>
+          <View style={styles.settingsItem}>
+            <View style={styles.itemLeft}>
+              <View style={[styles.iconBackground, { backgroundColor: '#AF52DE' }]}>
+                <Image source={paintIcon} style={styles.icon} />
+              </View>
+              <Text style={styles.itemTitle}>Appearance</Text>
             </View>
-            <Text style={styles.itemTitle}>Appearance</Text>
+            <RightArrow />
           </View>
-          <RightArrow />
-        </View>
-
-        {/* 7) Turn on Haptic Feedback */}
+        </TouchableOpacity>
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#5AC8FA' }]}>
@@ -146,8 +138,6 @@ export default function SettingsScreeimages() {
           </View>
           <RightArrow />
         </View>
-
-        {/* 8) Delete Account */}
         <View style={[styles.settingsItem, styles.deleteAccountItem]}>
           <Text style={[styles.itemTitle, { color: 'red' }]}>Delete Account</Text>
           <RightArrow />
@@ -164,7 +154,6 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 60,
-    // No backgroundColor so the "Settings" text appears without its own colored box
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -249,8 +238,8 @@ const styles = StyleSheet.create({
     tintColor: '#3C3C43',
   },
   profileArrowIcon: {
-    width: 12, // Bigger than arrowIcon
-    height: 18, // Bigger than arrowIcon
+    width: 12,
+    height: 18,
     marginLeft: 8,
     tintColor: '#3C3C43',
   },
