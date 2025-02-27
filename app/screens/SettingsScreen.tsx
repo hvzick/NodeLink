@@ -95,7 +95,7 @@ export default function SettingsScreen() {
             <View style={[styles.iconBackground, { backgroundColor: '#000' }]}>
               <Image source={moonIcon} style={styles.icon} />
             </View>
-            <Text style={styles.itemTitle}>Dark Mode</Text>
+            <Text style={styles.itemTitle}>Change Theme</Text>
           </View>
           <Switch value={isDarkMode} onValueChange={toggleDarkMode} />
         </View>

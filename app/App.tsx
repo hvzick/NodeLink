@@ -18,6 +18,7 @@ import '@ethersproject/shims'; // Helps with WalletConnect compatibility
 import { Buffer } from "buffer";
 import crypto from "react-native-polyfill-globals"; 
 import "react-native-polyfill-globals/auto";
+import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider"; // Adjust path as needed
 
 // Polyfill global objects
 global.Buffer = Buffer;
@@ -68,30 +69,32 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="LoadingScreen" component={LoadingScreen} />
-        <Stack.Screen 
-          name="Chats" 
-          component={Chats} 
-          listeners={({ navigation }) => ({
-            focus: () => {
-              if (isAuthenticated) {
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'Chats' }],
-                });
+    <ThemeProvider>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="LoadingScreen" component={LoadingScreen} />
+          <Stack.Screen 
+            name="Chats" 
+            component={Chats} 
+            listeners={({ navigation }) => ({
+              focus: () => {
+                if (isAuthenticated) {
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Chats' }],
+                  });
+                }
               }
-            }
-          })}
-        />
-        {!isAuthenticated && (
-          <Stack.Screen name="Auth" component={AuthScreen} />
-        )}
-        <Stack.Screen name="TOS" component={TermsOfServiceScreen} />
-        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-        <Stack.Screen name="Main" component={BottomTabs} />
-      </Stack.Navigator>
-    </NavigationContainer>
+            })}
+          />
+          {!isAuthenticated && (
+            <Stack.Screen name="Auth" component={AuthScreen} />
+          )}
+          <Stack.Screen name="TOS" component={TermsOfServiceScreen} />
+          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+          <Stack.Screen name="Main" component={BottomTabs} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ThemeProvider>
   );
 }

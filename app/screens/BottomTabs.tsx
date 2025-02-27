@@ -1,19 +1,19 @@
-// BottomTabs.tsx
 import React, { useEffect, useRef } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Image, useColorScheme, View, Animated, ImageSourcePropType, StyleSheet } from "react-native";
+import { Image, View, Animated, ImageSourcePropType, StyleSheet } from "react-native";
 import WalletScreen from "./WalletScreen";
 import ChatScreen from "./ChatScreen";
-// Import the nested settings stack
 import SettingsStackScreen from "./SettingStackScreen";
 import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
 import { triggerHoldHapticFeedback } from "../../utils/GlobalUtils/HoldHapticFeedback";
+// IMPORTANT: Import from ThemeProvider instead of CheckSystemTheme
+import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 
 const Tab = createBottomTabNavigator();
 
 interface AnimatedTabIconProps {
   source: ImageSourcePropType;
-  focused: boolean
+  focused: boolean;
   size: number;
   tintColor: string;
 }
@@ -38,7 +38,10 @@ const styles = StyleSheet.create({
 });
 
 export default function BottomTabs() {
-  const colorScheme = useColorScheme();
+  const { currentTheme } = useThemeToggle();
+  console.log("BottomTabs currentTheme:", currentTheme); // Should log "light" or "dark"
+  const isDarkMode = currentTheme === "dark";
+
   return (
     <Tab.Navigator
       initialRouteName="Chats"
@@ -46,13 +49,13 @@ export default function BottomTabs() {
         headerShown: false,
         tabBarStyle: {
           height: 85,
-          backgroundColor: colorScheme === "dark" ? "#1C1C1D" : "#EAEAEA",
+          backgroundColor: isDarkMode ? "#1C1C1D" : "#EAEAEA",
           borderTopWidth: 1,
-          borderTopColor: colorScheme === "dark" ? "#333" : "#ccc",
+          borderTopColor: isDarkMode ? "#333" : "#ccc",
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarActiveTintColor: colorScheme === "light" ? "#000" : "white",
+        tabBarActiveTintColor: isDarkMode ? "white" : "black",
         tabBarInactiveTintColor: "gray",
         tabBarIcon: ({ focused, size }) => {
           let iconSource;
@@ -69,7 +72,7 @@ export default function BottomTabs() {
                 source={iconSource}
                 focused={focused}
                 size={size}
-                tintColor={focused ? (colorScheme === "light" ? "black" : "white") : "gray"}
+                tintColor={focused ? (isDarkMode ? "white" : "black") : "gray"}
               />
             </View>
           );
@@ -80,9 +83,9 @@ export default function BottomTabs() {
         },
       })}
     >
-      <Tab.Screen 
-        name="Wallet" 
-        component={WalletScreen} 
+      <Tab.Screen
+        name="Wallet"
+        component={WalletScreen}
         listeners={{
           tabLongPress: async () => {
             await triggerHoldHapticFeedback();
@@ -91,12 +94,12 @@ export default function BottomTabs() {
           tabPress: () => {
             triggerLightHapticFeedback();
             console.log("Wallet tab Pressed");
-          }
+          },
         }}
       />
-      <Tab.Screen 
-        name="Chats" 
-        component={ChatScreen} 
+      <Tab.Screen
+        name="Chats"
+        component={ChatScreen}
         listeners={{
           tabLongPress: async () => {
             await triggerHoldHapticFeedback();
@@ -105,10 +108,10 @@ export default function BottomTabs() {
           tabPress: () => {
             triggerLightHapticFeedback();
             console.log("Chats tab Pressed");
-          }
+          },
         }}
       />
-      <Tab.Screen 
+      <Tab.Screen
         name="Settings"
         component={SettingsStackScreen}
         listeners={{
@@ -119,7 +122,7 @@ export default function BottomTabs() {
           tabPress: () => {
             triggerLightHapticFeedback();
             console.log("Settings tab Pressed");
-          }
+          },
         }}
       />
     </Tab.Navigator>
