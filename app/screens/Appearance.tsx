@@ -1,5 +1,5 @@
 // AppearanceScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,8 +10,13 @@ type LocalThemeOption = 'automatic' | 'dark' | 'light';
 
 export default function AppearanceScreen() {
   const navigation = useNavigation();
-  const [selectedTheme, setSelectedTheme] = useState<LocalThemeOption>('automatic');
   const { currentTheme, setTheme } = useThemeToggle();
+  const [selectedTheme, setSelectedTheme] = useState<LocalThemeOption>('automatic');
+
+  // Sync local state with the global theme
+  useEffect(() => {
+    setSelectedTheme(currentTheme === 'system' ? 'automatic' : (currentTheme as LocalThemeOption));
+  }, [currentTheme]);
 
   const handleSelect = (option: LocalThemeOption) => {
     setSelectedTheme(option);
