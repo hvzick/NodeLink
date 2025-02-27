@@ -4,7 +4,7 @@ import { Image, useColorScheme, View, Animated, ImageSourcePropType, StyleSheet 
 import WalletScreen from "./WalletScreen";
 import ChatScreen from "./ChatScreen";
 import SettingsScreen from "./SettingsScreen";
-import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback"; // Import haptic feedback function
+import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
 import { triggerHoldHapticFeedback } from "../../utils/GlobalUtils/HoldHapticFeedback";
 
 const Tab = createBottomTabNavigator();
@@ -33,7 +33,7 @@ const AnimatedTabIcon: React.FC<AnimatedTabIconProps> = ({ source, focused, size
 
 const styles = StyleSheet.create({
   iconContainer: {
-    // Additional styling if needed
+    // aage k liye if i change my mind
   },
 });
 
