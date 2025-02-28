@@ -175,28 +175,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     padding: 16,
+    height: 120,
     marginBottom: 35,
   },
   profileImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 75,
+    height: 75,
+    borderRadius: 40,
     marginRight: 12,
     backgroundColor: '#ccc',
   },
   profileTextContainer: {
     flex: 1,
+    paddingRight: 10
   },
   profileName: {
     fontSize: 19,
     fontFamily: 'SF-Pro-Text-Medium',
     fontWeight: '600',
-    bottom: 10
+    bottom: 7
   },
   profileAddress: {
-    fontSize: 12,
-    color: '#888',
+    fontSize: 13,
+    color: '#1E90FF',
     marginTop: 4,
+    bottom: 3
   },
   settingsItem: {
     flexDirection: 'row',
