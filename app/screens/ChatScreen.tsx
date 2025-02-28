@@ -279,8 +279,8 @@ const createStyles = (isDarkMode: boolean) =>
       position: "relative",
     },
     chatAppLogo: {
-      width: 45,
-      height: 45,
+      width: 40,
+      height: 40,
       resizeMode: "contain",
       position: "absolute",
       left: 20, 

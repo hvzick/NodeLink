@@ -37,7 +37,6 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
-    // Example: add padding and a background to give icons a "button" look
     padding: 5,
     borderRadius: 10,
   },

@@ -61,7 +61,7 @@ export default function SettingsScreen() {
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.profileContainer}>
           <Image
-            source={{ uri: 'https://placehold.co/56x56' }}
+            source={{ uri: '../../assets/images/profile-picture.png' }}
             style={styles.profileImage}
           />
           <View style={styles.profileTextContainer}>
@@ -188,8 +188,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileName: {
-    fontSize: 16,
+    fontSize: 19,
+    fontFamily: 'SF-Pro-Text-Medium',
     fontWeight: '600',
+    bottom: 10
   },
   profileAddress: {
     fontSize: 12,
