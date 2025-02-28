@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Image, View, Animated, ImageSourcePropType, StyleSheet } from "react-native";
+import { Image, View, Animated, ImageSourcePropType, StyleSheet, Pressable } from "react-native";
 import WalletScreen from "./WalletScreen";
 import ChatScreen from "./ChatScreen";
 import SettingsStackScreen from "./SettingStackScreen";
@@ -19,23 +19,74 @@ interface AnimatedTabIconProps {
 }
 
 const AnimatedTabIcon: React.FC<AnimatedTabIconProps> = ({ source, focused, size, tintColor }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
   return (
-    <Animated.View style={[styles.iconContainer, { transform: [{ scale: scaleAnim }] }]}>
+    <View style={styles.iconContainer}>
       <Image
         source={source}
-        style={{ width: size, height: size, marginTop: 10, tintColor }}
+        style={[
+          styles.icon,
+          { width: size, height: size, tintColor }
+        ]}
         resizeMode="contain"
       />
-    </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   iconContainer: {
-    // Additional styling if needed
+    alignItems: "center",
+    justifyContent: "center",
+    // Example: add padding and a background to give icons a "button" look
+    padding: 5,
+    borderRadius: 10,
+  },
+  icon: {
+    marginTop: 10,
   },
 });
+
+// Custom TabBarButton that wraps the default button and applies a scale animation
+const AnimatedTabBarButton = (props: any) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const { onPress, children, style } = props;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.9,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 10,
+    }).start();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={style} // preserve any style passed by the navigator
+    >
+      <Animated.View
+        style={[
+          { transform: [{ scale: scaleAnim }] },
+          { flex: 1, alignItems: "center", justifyContent: "center" },
+        ]}
+      >
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
 
 export default function BottomTabs() {
   const { currentTheme } = useThemeToggle();
@@ -47,6 +98,8 @@ export default function BottomTabs() {
       initialRouteName="Chats"
       screenOptions={({ route }) => ({
         headerShown: false,
+        // Use the custom AnimatedTabBarButton for a scale animation on press.
+        tabBarButton: (props) => <AnimatedTabBarButton {...props} />,
         tabBarStyle: {
           height: 85,
           backgroundColor: isDarkMode ? "#1C1C1D" : "#EAEAEA",
@@ -72,13 +125,13 @@ export default function BottomTabs() {
                 source={iconSource}
                 focused={focused}
                 size={size}
-                tintColor={focused ? (isDarkMode ? "white" : "black") : "gray"}
+                tintColor={focused ? (isDarkMode ? "white" : "#333") : "gray"}
               />
             </View>
           );
         },
         tabBarLabelStyle: {
-          marginTop: 10,
+          top: 13, // to change text position if needed
           fontSize: 12,
         },
       })}
