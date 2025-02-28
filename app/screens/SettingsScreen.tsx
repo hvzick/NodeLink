@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-
+import { copyToClipboard } from '../../utils/GlobalUtils/Copy'; // Import your utility
 export type SettingsStackParamList = {
   SettingsMain: undefined;
   Appearance: undefined;
@@ -54,7 +54,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={copyToClipboard}>
           <Text style={styles.editButton}>Copy Address</Text>
         </TouchableOpacity>
       </View>
@@ -65,7 +65,7 @@ export default function SettingsScreen() {
             style={styles.profileImage}
           />
           <View style={styles.profileTextContainer}>
-            <Text style={styles.profileName}>Hazik</Text>
+            <Text style={styles.profileName}>Hazik</Text> {/* dont let it exceed 25 characters */}
             <Text style={styles.profileAddress}>
               0xe65EAC370d1079688fe1e4B9a35A41aac2bac
             </Text>
