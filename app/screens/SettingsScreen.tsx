@@ -10,9 +10,11 @@ import {
   Switch,
   TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { copyToClipboard } from '../../utils/GlobalUtils/Copy'; // Import your utility
+import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard'; // Import your utility
+
 export type SettingsStackParamList = {
   SettingsMain: undefined;
   Appearance: undefined;
@@ -33,10 +35,21 @@ import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
 
 export default function SettingsScreen() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [copied, setCopied] = useState(false);
   const navigation = useNavigation<SettingsNavigationProp>();
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
+  };
+
+  const handleCopyAddress = async () => {
+    const address = '0xe65EAC370d1079688fe1e4B9a35A41aac2bac';
+    const success = await copyToClipboard(address);
+    console.log('Address copied:', address);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const RightArrow = () => (
@@ -54,8 +67,20 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
-        <TouchableOpacity onPress={copyToClipboard}>
-          <Text style={styles.editButton}>Copy Address</Text>
+        <TouchableOpacity onPress={handleCopyAddress}>
+          {copied ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.editButton}>Copied</Text>
+              <Ionicons
+                name="checkmark"
+                size={20}
+                color="#007AFF"
+                style={{ marginLeft: 5 }}
+              />
+            </View>
+          ) : (
+            <Text style={styles.editButton}>Copy Address</Text>
+          )}
         </TouchableOpacity>
       </View>
       <ScrollView style={styles.scrollContainer}>
@@ -65,7 +90,9 @@ export default function SettingsScreen() {
             style={styles.profileImage}
           />
           <View style={styles.profileTextContainer}>
-            <Text style={styles.profileName}>Hazik</Text> {/* dont let it exceed 25 characters */}
+            <Text style={styles.profileName}>
+              {'Hazik'.length > 25 ? 'Hazik'.slice(0, 25) + '...' : 'Hazik'}
+            </Text>
             <Text style={styles.profileAddress}>
               0xe65EAC370d1079688fe1e4B9a35A41aac2bac
             </Text>
@@ -117,7 +144,6 @@ export default function SettingsScreen() {
           </View>
           <RightArrow />
         </View>
-        {/* Appearance option navigates to the Appearance screen */}
         <TouchableOpacity onPress={() => navigation.navigate('Appearance')}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
@@ -188,19 +214,19 @@ const styles = StyleSheet.create({
   profileTextContainer: {
     flex: 1,
     paddingRight: 15,
-    paddingLeft: 5
+    paddingLeft: 5,
   },
   profileName: {
     fontSize: 19,
     fontFamily: 'SF-Pro-Text-Medium',
     fontWeight: '600',
-    bottom: 7
+    bottom: 7,
   },
   profileAddress: {
     fontSize: 13,
     color: '#1E90FF',
     marginTop: 4,
-    bottom: 3
+    bottom: 3,
   },
   settingsItem: {
     flexDirection: 'row',
