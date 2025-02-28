@@ -1,7 +1,6 @@
 // utils/GlobalUtils/ThemeProvider.tsx
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ThemeOption = 'system' | 'light' | 'dark';
 
@@ -20,55 +19,29 @@ interface ThemeProviderProps {
 
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const systemTheme = useColorScheme() || 'light';
+  // Always start with 'system' so that the app resets to automatic on exit.
   const [userTheme, setUserTheme] = useState<ThemeOption>('system');
 
-  // Load the saved theme from AsyncStorage when the provider mounts.
-  useEffect(() => {
-    const loadTheme = async () => {
-      try {
-        const savedTheme = await AsyncStorage.getItem('appTheme');
-        if (savedTheme) {
-          setUserTheme(savedTheme as ThemeOption);
-        }
-      } catch (error) {
-        console.log('Failed to load theme:', error);
-      }
-    };
-    loadTheme();
-  }, []);
-
-  // Determine the effective theme.
+  // Determine the effective theme based on the system and user choice.
   const currentTheme: 'light' | 'dark' =
     userTheme === 'system' ? systemTheme : userTheme;
 
-  // Function to set the theme and persist it.
+  // Set the theme without persisting it.
   const setTheme = async (theme: ThemeOption) => {
-    try {
-      setUserTheme(theme);
-      await AsyncStorage.setItem('appTheme', theme);
-      console.log(`Theme set to ${theme}`);
-    } catch (error) {
-      console.log('Failed to set theme:', error);
-    }
+    setUserTheme(theme);
+    console.log(`Theme set to ${theme}`);
   };
 
-  // Function to toggle between light and dark modes.
+  // Toggle between light and dark modes (if user has not selected 'system').
   const toggleTheme = async () => {
-    try {
-      const newTheme =
-        userTheme === 'system'
-          ? systemTheme === 'light'
-            ? 'dark'
-            : 'light'
-          : userTheme === 'light'
-          ? 'dark'
-          : 'light';
-      setUserTheme(newTheme);
-      await AsyncStorage.setItem('appTheme', newTheme);
-      console.log(`Theme toggled to ${newTheme}`);
-    } catch (error) {
-      console.log('Failed to toggle theme:', error);
-    }
+    const newTheme =
+      userTheme === 'system'
+        ? (systemTheme === 'light' ? 'dark' : 'light')
+        : userTheme === 'light'
+        ? 'dark'
+        : 'light';
+    setUserTheme(newTheme);
+    console.log(`Theme toggled to ${newTheme}`);
   };
 
   return (

@@ -10,20 +10,20 @@ type LocalThemeOption = 'automatic' | 'dark' | 'light';
 
 export default function AppearanceScreen() {
   const navigation = useNavigation();
-  const { currentTheme, setTheme } = useThemeToggle();
+  const { currentTheme, userTheme, setTheme } = useThemeToggle();
   const [selectedTheme, setSelectedTheme] = useState<LocalThemeOption>('automatic');
 
-  // Sync local state with the global theme
+  // Sync local state with the userTheme (mapping 'system' to 'automatic')
   useEffect(() => {
-    setSelectedTheme(currentTheme === 'system' ? 'automatic' : (currentTheme as LocalThemeOption));
-  }, [currentTheme]);
+    setSelectedTheme(userTheme === 'system' ? 'automatic' : userTheme);
+  }, [userTheme]);
 
   const handleSelect = (option: LocalThemeOption) => {
     setSelectedTheme(option);
     const themeToSet: GlobalThemeOption = option === 'automatic' ? 'system' : option;
     setTheme(themeToSet);
     triggerLightHapticFeedback();
-    console.log(`Theme selected: ${option}`, currentTheme);
+    console.log(`Theme selected: ${option}`, userTheme);
   };
 
   // Dynamic colors based on currentTheme
@@ -44,19 +44,28 @@ export default function AppearanceScreen() {
         <Text style={[styles.headerTitle, { color: headerTitleColor }]}>Appearance</Text>
       </View>
       <View style={[styles.listContainer, { backgroundColor: listContainerBackground }]}>
-        <TouchableOpacity style={[styles.listItem, { borderBottomColor: listItemBorderColor }]} onPress={() => handleSelect('automatic')}>
+        <TouchableOpacity
+          style={[styles.listItem, { borderBottomColor: listItemBorderColor }]}
+          onPress={() => handleSelect('automatic')}
+        >
           <Text style={[styles.optionText, { color: optionTextColor }]}>Automatic</Text>
           {selectedTheme === 'automatic' && (
             <Ionicons name="checkmark" size={22} color="#007AFF" />
           )}
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.listItem, { borderBottomColor: listItemBorderColor }]} onPress={() => handleSelect('dark')}>
+        <TouchableOpacity
+          style={[styles.listItem, { borderBottomColor: listItemBorderColor }]}
+          onPress={() => handleSelect('dark')}
+        >
           <Text style={[styles.optionText, { color: optionTextColor }]}>Dark</Text>
           {selectedTheme === 'dark' && (
             <Ionicons name="checkmark" size={22} color="#007AFF" />
           )}
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.listItem, { borderBottomWidth: 0 }]} onPress={() => handleSelect('light')}>
+        <TouchableOpacity
+          style={[styles.listItem, { borderBottomWidth: 0 }]}
+          onPress={() => handleSelect('light')}
+        >
           <Text style={[styles.optionText, { color: optionTextColor }]}>Light</Text>
           {selectedTheme === 'light' && (
             <Ionicons name="checkmark" size={22} color="#007AFF" />
