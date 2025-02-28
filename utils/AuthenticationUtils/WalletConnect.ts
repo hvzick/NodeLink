@@ -146,10 +146,6 @@ export const connectWallet = async (
   } finally {
     setLoading(false);
   }
-  navigation.reset({   //no need of logging
-    index: 0,
-    routes: [{ name: "Main" }],
-  });   
 };
 
 export const handleConnectPress = async (
