@@ -55,7 +55,7 @@ export default function SettingsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
         <TouchableOpacity>
-          <Text style={styles.editButton}>Edit</Text>
+          <Text style={styles.editButton}>Copy Address</Text>
         </TouchableOpacity>
       </View>
       <ScrollView style={styles.scrollContainer}>
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 25,
     fontWeight: '600',
   },
   editButton: {
@@ -187,7 +187,8 @@ const styles = StyleSheet.create({
   },
   profileTextContainer: {
     flex: 1,
-    paddingRight: 10
+    paddingRight: 15,
+    paddingLeft: 5
   },
   profileName: {
     fontSize: 19,
