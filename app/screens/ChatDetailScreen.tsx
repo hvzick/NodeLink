@@ -12,11 +12,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  PanResponder,
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import handleAttachment, { Message as AttachmentMessage } from '../../utils/ChatUtils/InsertAttachment';
+import { Video } from 'expo-av';
+import handleAttachment from '../../utils/ChatUtils/InsertAttachment';
 import { triggerHoldHapticFeedback } from '@/utils/GlobalUtils/HoldHapticFeedback';
 import { triggerLightHapticFeedback } from '@/utils/GlobalUtils/HapticFeedback';
 
@@ -70,9 +72,23 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [newMessage, setNewMessage] = useState('');
   // State to hold selected attachment (if any)
   const [attachment, setAttachment] = useState<Omit<Message, 'id'> | null>(null);
-  // State to hold selected image uri for full screen preview
+  // State to hold selected image/video URI for full screen preview
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  // PanResponder to enable swipe down to close the modal
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => Math.abs(gestureState.dy) > 20,
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dy > 100) {
+          if (selectedImage) setSelectedImage(null);
+          if (selectedVideo) setSelectedVideo(null);
+        }
+      },
+    })
+  ).current;
 
   /** Send a new message when Send is pressed */
   const handleSendMessage = () => {
@@ -113,14 +129,20 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           )}
           {item.imageUrl && (
             <TouchableOpacity onPress={() => setSelectedImage(item.imageUrl ?? null)}>
-
               <View style={styles.imageBubble}>
                 <Image source={{ uri: item.imageUrl }} style={styles.chatImage} />
-                {item.fileName && (
-                  <Text style={styles.fileText}>
-                    {item.fileName} {item.fileSize ? `(${item.fileSize})` : ''}
-                  </Text>
-                )}
+              </View>
+            </TouchableOpacity>
+          )}
+          {item.videoUrl && (
+            <TouchableOpacity onPress={() => setSelectedVideo(item.videoUrl ?? null)}>
+              <View style={styles.videoBubble}>
+                <Video
+                  source={{ uri: item.videoUrl }}
+                  style={styles.chatVideo}
+                  useNativeControls
+                  resizeMode={"contain" as any}
+                />
               </View>
             </TouchableOpacity>
           )}
@@ -173,10 +195,10 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
 
-          {/* Display attachment preview if any */}
+          {/* Display attachment preview if any (now without file name) */}
           {attachment && (
             <View style={styles.previewContainer}>
-              <Text style={styles.previewText}>Attachment: {attachment.fileName}</Text>
+              <Text style={styles.previewText}>Attachment selected</Text>
             </View>
           )}
 
@@ -210,18 +232,39 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </ImageBackground>
 
-        {/* Modal for full-screen image preview */}
+        {/* Modal for full-screen image preview with swipe down to close */}
         <Modal
           visible={!!selectedImage}
           transparent={true}
           onRequestClose={() => setSelectedImage(null)}
         >
-          <View style={styles.modalContainer}>
+          <View style={styles.modalContainer} {...panResponder.panHandlers}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
               <Ionicons name="close" size={32} color="#fff" />
             </TouchableOpacity>
             {selectedImage && (
               <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} />
+            )}
+          </View>
+        </Modal>
+
+        {/* Modal for full-screen video preview with swipe down to close */}
+        <Modal
+          visible={!!selectedVideo}
+          transparent={true}
+          onRequestClose={() => setSelectedVideo(null)}
+        >
+          <View style={styles.modalContainer} {...panResponder.panHandlers}>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedVideo(null)}>
+              <Ionicons name="close" size={32} color="#fff" />
+            </TouchableOpacity>
+            {selectedVideo && (
+              <Video
+                source={{ uri: selectedVideo }}
+                style={styles.fullScreenVideo}
+                useNativeControls
+                resizeMode={"contain" as any}
+              />
             )}
           </View>
         </Modal>
@@ -288,6 +331,14 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   fileText: { color: '#333', fontSize: 14 },
+  // VIDEO BUBBLE
+  videoBubble: { marginBottom: 5 },
+  chatVideo: {
+    width: 200,
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 5,
+  },
   // BOTTOM INPUT BAR
   bottomBar: {
     flexDirection: 'row',
@@ -316,7 +367,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'SF-Pro-Text-Regular',
   },
-  // Attachment preview
+  // Attachment preview (file name removed)
   previewContainer: {
     padding: 8,
     backgroundColor: '#fff',
@@ -333,6 +384,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullScreenImage: {
+    width: '90%',
+    height: '70%',
+    resizeMode: 'contain',
+  },
+  fullScreenVideo: {
     width: '90%',
     height: '70%',
     resizeMode: 'contain',
