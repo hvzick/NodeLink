@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Animated,
   FlatList,
@@ -23,6 +23,9 @@ import { Video } from 'expo-av';
 import handleAttachment from '../../utils/ChatUtils/InsertAttachment';
 import { triggerLightHapticFeedback } from '@/utils/GlobalUtils/HapticFeedback';
 
+// Import database functions from your separate file.
+import { initializeDatabase, insertMessage, fetchMessages } from '../../backend/database/SaveMessages';
+
 type RootStackParamList = {
   ChatDetail: { conversationId: string; name: string; avatar: any };
 };
@@ -45,7 +48,7 @@ export type Message = {
   fileSize?: string;
   videoUrl?: string;
   audioUrl?: string;
-  replyTo?: Message;
+  replyTo?: Message | null; // Optional field (can be undefined)
 };
 
 type MessageBubbleProps = {
@@ -70,20 +73,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const panResponder = useRef(
     PanResponder.create({
-      // Start pan responder after 5 pixels of horizontal movement
       onMoveShouldSetPanResponder: (evt, gestureState) =>
         Math.abs(gestureState.dx) > 5 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
       onPanResponderGrant: () => {
         Keyboard.dismiss();
       },
       onPanResponderMove: (evt, gestureState) => {
-        // Allow movement up to 30 pixels to the right
         if (gestureState.dx > 0) {
           translateX.setValue(Math.min(gestureState.dx, 30));
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
-        // Trigger reply and haptic feedback if swipe exceeds 10 pixels
         if (gestureState.dx > 10) {
           onReply(message);
           triggerLightHapticFeedback();
@@ -116,9 +116,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             highlighted && { backgroundColor: '#EEFFE9' },
           ]}
         >
-
-          {message.replyTo && (
-            <TouchableOpacity onPress={() => onQuotedPress(message.replyTo!)}>
+          {message.replyTo != null && (
+            <TouchableOpacity onPress={() => onQuotedPress(message.replyTo as Message)}>
               <View style={styles.replyPreview}>
                 <Text style={styles.replyLabel}>Replying to:</Text>
                 <Text numberOfLines={1} style={styles.replyText}>
@@ -134,20 +133,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             </TouchableOpacity>
           )}
           {message.imageUrl && (
-            <TouchableOpacity onPress={() => onImagePress(message.imageUrl!)}>
+   <TouchableOpacity onPress={() => onImagePress(message.imageUrl!)}>
               <View style={styles.imageBubble}>
                 <Image source={{ uri: message.imageUrl }} style={styles.chatImage} />
               </View>
             </TouchableOpacity>
           )}
           {message.videoUrl && (
-            <TouchableOpacity onPress={() => onVideoPress(message.videoUrl!)}>
+    <TouchableOpacity onPress={() => onImagePress(message.imageUrl!)}>
+
               <View style={styles.videoBubble}>
                 <Video
                   source={{ uri: message.videoUrl }}
                   style={styles.chatVideo}
                   useNativeControls
-                  resizeMode={"contain" as any}
+                  resizeMode= {"contain" as any}
                 />
               </View>
             </TouchableOpacity>
@@ -164,75 +164,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
 const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, name, avatar } = route.params;
-  // Dummy chat messages with quoted replies from both sides.
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      sender: 'Alice',
-      text: "Hey, how's it going?",
-      timestamp: '10:00 AM',
-    },
-    {
-      id: '2',
-      sender: 'Me',
-      text: "I'm good, thanks! How about you?",
-      timestamp: '10:01 AM',
-      replyTo: {
-        id: '1',
-        sender: 'Alice',
-        text: "Hey, how's it going?",
-        timestamp: '10:00 AM',
-      },
-    },
-    {
-      id: '3',
-      sender: 'Alice',
-      text: "I'm doing well! Did you check out the latest update?",
-      timestamp: '10:02 AM',
-      replyTo: {
-        id: '2',
-        sender: 'Me',
-        text: "I'm good, thanks! How about you?",
-        timestamp: '10:01 AM',
-      },
-    },
-    {
-      id: '4',
-      sender: 'Me',
-      text: "Yes, it's awesome! I especially liked the new features.",
-      timestamp: '10:03 AM',
-      replyTo: {
-        id: '3',
-        sender: 'Alice',
-        text: "I'm doing well! Did you check out the latest update?",
-        timestamp: '10:02 AM',
-      },
-    },
-    {
-      id: '5',
-      sender: 'Alice',
-      text: "Great! I'll send you more details later.",
-      timestamp: '10:04 AM',
-      replyTo: {
-        id: '4',
-        sender: 'Me',
-        text: "Yes, it's awesome! I especially liked the new features.",
-        timestamp: '10:03 AM',
-      },
-    },
-    {
-      id: '6',
-      sender: 'Me',
-      text: "Sounds good. Thanks, Alice!",
-      timestamp: '10:05 AM',
-      replyTo: {
-        id: '5',
-        sender: 'Alice',
-        text: "Great! I'll send you more details later.",
-        timestamp: '10:04 AM',
-      },
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [attachment, setAttachment] = useState<Omit<Message, 'id'> | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -253,20 +185,31 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     })
   ).current;
 
-  // When a quoted message is tapped, scroll to that message and highlight it temporarily.
+  // On mount, initialize the database and load messages.
+  useEffect(() => {
+    (async () => {
+      await initializeDatabase();
+      try {
+        const fetchedMessages: Message[] = await fetchMessages();
+        setMessages(fetchedMessages);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
+    })();
+  }, []);
+
   const handleQuotedPress = (quoted: Message) => {
     const index = messages.findIndex((msg) => msg.id === quoted.id);
     if (index !== -1 && flatListRef.current) {
       flatListRef.current.scrollToIndex({ index, animated: true });
       setHighlightedMessageId(quoted.id);
-      // Clear highlight after 1500 milliseconds
       setTimeout(() => setHighlightedMessageId(null), 1500);
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim() && !attachment) return;
-    const newId = (messages.length + 1).toString();
+    const newId = Date.now().toString();
     let combinedMsg: Message = {
       id: newId,
       sender: 'Me',
@@ -276,11 +219,21 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     if (attachment) combinedMsg = { ...combinedMsg, ...attachment };
     if (replyMessage) combinedMsg.replyTo = replyMessage;
 
+    // Update local state and clear inputs.
     setMessages([...messages, combinedMsg]);
     setNewMessage('');
     setAttachment(null);
     setReplyMessage(null);
     triggerLightHapticFeedback();
+
+    try {
+      await insertMessage(combinedMsg);
+      // Optionally re-fetch messages to keep state in sync.
+      const fetchedMessages = await fetchMessages();
+      setMessages(fetchedMessages);
+    } catch (error) {
+      console.error('Error inserting message:', error);
+    }
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
@@ -372,7 +325,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 placeholderTextColor="#999"
                 value={newMessage}
                 onChangeText={setNewMessage}
-                autoFocus={true}
+                autoFocus
               />
             </View>
             <TouchableOpacity style={styles.iconContainer} onPress={() => console.log('Mic pressed')}>
@@ -384,7 +337,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </ImageBackground>
         {/* Modal for full-screen image preview */}
-        <Modal visible={!!selectedImage} transparent={true} onRequestClose={() => setSelectedImage(null)}>
+        <Modal visible={!!selectedImage} transparent onRequestClose={() => setSelectedImage(null)}>
           <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
               <Ionicons name="close" size={32} color="#fff" />
@@ -393,7 +346,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </Modal>
         {/* Modal for full-screen video preview */}
-        <Modal visible={!!selectedVideo} transparent={true} onRequestClose={() => setSelectedVideo(null)}>
+        <Modal visible={!!selectedVideo} transparent onRequestClose={() => setSelectedVideo(null)}>
           <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedVideo(null)}>
               <Ionicons name="close" size={32} color="#fff" />
@@ -403,7 +356,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 source={{ uri: selectedVideo }}
                 style={styles.fullScreenVideo}
                 useNativeControls
-                resizeMode={"contain" as any}
+                resizeMode= {"contain" as any}
               />
             )}
           </View>
