@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -67,11 +68,13 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     },
   ]);
   const [newMessage, setNewMessage] = useState('');
-  // New state to hold the selected attachment (if any)
+  // State to hold selected attachment (if any)
   const [attachment, setAttachment] = useState<Omit<Message, 'id'> | null>(null);
+  // State to hold selected image uri for full screen preview
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  /** Send a new message from "Me" when Send is pressed */
+  /** Send a new message when Send is pressed */
   const handleSendMessage = () => {
     if (!newMessage.trim() && !attachment) return; // Nothing to send
 
@@ -82,18 +85,16 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    // Merge text if entered
     if (newMessage.trim()) {
       combinedMsg.text = newMessage;
     }
-    // Merge attachment data if selected
     if (attachment) {
       combinedMsg = { ...combinedMsg, ...attachment };
     }
 
     setMessages([...messages, combinedMsg]);
     setNewMessage('');
-    setAttachment(null); // Clear the attachment after sending
+    setAttachment(null);
     console.log('send pressed');
     triggerLightHapticFeedback();
   };
@@ -111,14 +112,17 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           )}
           {item.imageUrl && (
-            <View style={styles.imageBubble}>
-              <Image source={{ uri: item.imageUrl }} style={styles.chatImage} />
-              {item.fileName && (
-                <Text style={styles.fileText}>
-                  {item.fileName} {item.fileSize ? `(${item.fileSize})` : ''}
-                </Text>
-              )}
-            </View>
+            <TouchableOpacity onPress={() => setSelectedImage(item.imageUrl ?? null)}>
+
+              <View style={styles.imageBubble}>
+                <Image source={{ uri: item.imageUrl }} style={styles.chatImage} />
+                {item.fileName && (
+                  <Text style={styles.fileText}>
+                    {item.fileName} {item.fileSize ? `(${item.fileSize})` : ''}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
           )}
           {item.text && (
             <Text style={styles.messageText}>
@@ -169,10 +173,10 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
 
-          {/* Display a preview of the selected attachment (if any) */}
+          {/* Display attachment preview if any */}
           {attachment && (
             <View style={styles.previewContainer}>
-              <Text style={styles.previewText}>Attachment selected: {attachment.fileName}</Text>
+              <Text style={styles.previewText}>Attachment: {attachment.fileName}</Text>
             </View>
           )}
 
@@ -182,14 +186,11 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.iconContainer}
               onPress={async () => {
                 const att = await handleAttachment();
-                if (att) {
-                  setAttachment(att);
-                }
+                if (att) setAttachment(att);
               }}
             >
               <Ionicons name="attach" size={24} color="#666" />
             </TouchableOpacity>
-
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.textInput}
@@ -200,16 +201,30 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 autoFocus={true}
               />
             </View>
-
             <TouchableOpacity style={styles.iconContainer} onPress={() => console.log('Mic pressed')}>
               <Ionicons name="mic" size={24} color="#666" />
             </TouchableOpacity>
-
             <TouchableOpacity style={styles.iconContainer} onPress={handleSendMessage}>
               <Ionicons name="send" size={24} color="#666" />
             </TouchableOpacity>
           </View>
         </ImageBackground>
+
+        {/* Modal for full-screen image preview */}
+        <Modal
+          visible={!!selectedImage}
+          transparent={true}
+          onRequestClose={() => setSelectedImage(null)}
+        >
+          <View style={styles.modalContainer}>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
+              <Ionicons name="close" size={32} color="#fff" />
+            </TouchableOpacity>
+            {selectedImage && (
+              <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} />
+            )}
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -263,18 +278,16 @@ const styles = StyleSheet.create({
   timeTextOutside: { fontSize: 10, color: '#999', marginTop: 4 },
   timeTextRight: { alignSelf: 'flex-end' },
   timeTextLeft: { alignSelf: 'flex-start' },
-  
   // IMAGE BUBBLE
   imageBubble: { marginBottom: 5 },
-  chatImage: { 
-    width: 100, 
-    height: 120, 
-    resizeMode: 'contain', 
-    borderRadius: 8, 
-    marginBottom: 5 
+  chatImage: {
+    width: 100,
+    height: 120,
+    resizeMode: 'contain',
+    borderRadius: 8,
+    marginBottom: 5,
   },
   fileText: { color: '#333', fontSize: 14 },
-
   // BOTTOM INPUT BAR
   bottomBar: {
     flexDirection: 'row',
@@ -286,7 +299,14 @@ const styles = StyleSheet.create({
     borderTopColor: '#ccc',
   },
   iconContainer: { paddingHorizontal: 8 },
-  inputWrapper: { flex: 1, backgroundColor: '#fff', marginHorizontal: 6, borderRadius: 25, justifyContent: 'center', paddingHorizontal: 10 },
+  inputWrapper: {
+    flex: 1,
+    backgroundColor: '#fff',
+    marginHorizontal: 6,
+    borderRadius: 25,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
   textInput: { paddingVertical: 8, fontSize: 16 },
   // ENCRYPTION NOTICE
   encryptedText: {
@@ -305,4 +325,22 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   previewText: { fontSize: 14, color: '#333' },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: '90%',
+    height: '70%',
+    resizeMode: 'contain',
+  },
+  modalClose: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1,
+  },
 });
