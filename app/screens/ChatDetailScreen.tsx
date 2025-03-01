@@ -1,25 +1,25 @@
 import React, { useState, useRef } from 'react';
 import {
-  View,
-  Text,
+  Animated,
   FlatList,
-  StyleSheet,
-  ImageBackground,
   Image,
-  TextInput,
-  TouchableOpacity,
-  SafeAreaView,
+  ImageBackground,
   KeyboardAvoidingView,
-  Platform,
   Modal,
   PanResponder,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 import handleAttachment from '../../utils/ChatUtils/InsertAttachment';
-import { triggerHoldHapticFeedback } from '@/utils/GlobalUtils/HoldHapticFeedback';
 import { triggerLightHapticFeedback } from '@/utils/GlobalUtils/HapticFeedback';
 
 type RootStackParamList = {
@@ -44,41 +44,122 @@ export type Message = {
   fileSize?: string;
   videoUrl?: string;
   audioUrl?: string;
+  replyTo?: Message;
 };
+
+type MessageBubbleProps = {
+  message: Message;
+  onReply: (message: Message) => void;
+  onImagePress: (uri: string) => void;
+  onVideoPress: (uri: string) => void;
+};
+
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onReply, onImagePress, onVideoPress }) => {
+  const isMe = message.sender === 'Me';
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) =>
+        Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+      onPanResponderMove: (evt, gestureState) => {
+        // Limit the movement to a maximum of 100 pixels to the right
+        if (gestureState.dx > 0) {
+          translateX.setValue(Math.min(gestureState.dx, 100));
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        // If swipe is more than 50 pixels, trigger reply
+        if (gestureState.dx > 50) {
+          onReply(message);
+        }
+        Animated.spring(translateX, {
+          toValue: 0,
+          friction: 5,
+          tension: 100,
+          useNativeDriver: true,
+        }).start();
+      },
+      onPanResponderTerminate: () => {
+        // In case the gesture is interrupted, reset the value
+        Animated.spring(translateX, {
+          toValue: 0,
+          friction: 5,
+          tension: 100,
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
+
+  return (
+    <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+      <View style={styles.messageWrapper}>
+        <View style={[styles.bubbleContainer, isMe ? styles.bubbleRight : styles.bubbleLeft]}>
+          {!isMe && (
+            <View style={styles.nameLabel}>
+              <Text style={styles.nameText}>{message.sender}</Text>
+            </View>
+          )}
+          {message.replyTo && (
+            <View style={styles.replyPreview}>
+              <Text style={styles.replyLabel}>Replying to:</Text>
+              <Text numberOfLines={1} style={styles.replyText}>
+                {message.replyTo.text
+                  ? message.replyTo.text
+                  : message.replyTo.imageUrl
+                  ? 'Image'
+                  : message.replyTo.videoUrl
+                  ? 'Video'
+                  : ''}
+              </Text>
+            </View>
+          )}
+          {message.imageUrl && (
+            <TouchableOpacity onPress={() => onImagePress(message.imageUrl!)}>
+              <View style={styles.imageBubble}>
+                <Image source={{ uri: message.imageUrl }} style={styles.chatImage} />
+              </View>
+            </TouchableOpacity>
+          )}
+          {message.videoUrl && (
+            <TouchableOpacity onPress={() => onVideoPress(message.videoUrl!)}>
+              <View style={styles.videoBubble}>
+                <Video
+                  source={{ uri: message.videoUrl }}
+                  style={styles.chatVideo}
+                  useNativeControls
+                  resizeMode={"contain" as any}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+          {message.text && <Text style={styles.messageText}>{message.text}</Text>}
+        </View>
+        <Text style={[styles.timeTextOutside, isMe ? styles.timeTextRight : styles.timeTextLeft]}>
+          {message.timestamp}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+};
+
 
 const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, name, avatar } = route.params;
-  // Dummy initial messages
   const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      sender: 'Alice',
-      text: "Hey, how's it going?",
-      timestamp: '10:00 AM',
-    },
-    {
-      id: '2',
-      sender: 'Me',
-      text: "I'm good, thanks! How about you?",
-      timestamp: '10:01 AM',
-    },
-    {
-      id: '3',
-      sender: 'Alice',
-      text: "Doing well. Just working on some projects.",
-      timestamp: '10:02 AM',
-    },
+    { id: '1', sender: 'Alice', text: "Hey, how's it going?", timestamp: '10:00 AM' },
+    { id: '2', sender: 'Me', text: "I'm good, thanks! How about you?", timestamp: '10:01 AM' },
+    { id: '3', sender: 'Alice', text: "Doing well. Just working on some projects.", timestamp: '10:02 AM' },
   ]);
   const [newMessage, setNewMessage] = useState('');
-  // State to hold selected attachment (if any)
   const [attachment, setAttachment] = useState<Omit<Message, 'id'> | null>(null);
-  // State to hold selected image/video URI for full screen preview
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [replyMessage, setReplyMessage] = useState<Message | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  // PanResponder to enable swipe down to close the modal
-  const panResponder = useRef(
+  const modalPanResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => Math.abs(gestureState.dy) > 20,
       onPanResponderRelease: (evt, gestureState) => {
@@ -90,74 +171,33 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     })
   ).current;
 
-  /** Send a new message when Send is pressed */
   const handleSendMessage = () => {
-    if (!newMessage.trim() && !attachment) return; // Nothing to send
-
+    if (!newMessage.trim() && !attachment) return;
     const newId = (messages.length + 1).toString();
     let combinedMsg: Message = {
       id: newId,
       sender: 'Me',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
-
-    if (newMessage.trim()) {
-      combinedMsg.text = newMessage;
-    }
-    if (attachment) {
-      combinedMsg = { ...combinedMsg, ...attachment };
-    }
+    if (newMessage.trim()) combinedMsg.text = newMessage;
+    if (attachment) combinedMsg = { ...combinedMsg, ...attachment };
+    if (replyMessage) combinedMsg.replyTo = replyMessage;
 
     setMessages([...messages, combinedMsg]);
     setNewMessage('');
     setAttachment(null);
-    console.log('send pressed');
+    setReplyMessage(null);
     triggerLightHapticFeedback();
   };
 
-  /** Render each message bubble */
-  const renderMessage = ({ item }: { item: Message }) => {
-    const isMe = item.sender === 'Me';
-
-    return (
-      <View style={styles.messageWrapper}>
-        <View style={[styles.bubbleContainer, isMe ? styles.bubbleRight : styles.bubbleLeft]}>
-          {!isMe && (
-            <View style={styles.nameLabel}>
-              <Text style={styles.nameText}>{item.sender}</Text>
-            </View>
-          )}
-          {item.imageUrl && (
-            <TouchableOpacity onPress={() => setSelectedImage(item.imageUrl ?? null)}>
-              <View style={styles.imageBubble}>
-                <Image source={{ uri: item.imageUrl }} style={styles.chatImage} />
-              </View>
-            </TouchableOpacity>
-          )}
-          {item.videoUrl && (
-            <TouchableOpacity onPress={() => setSelectedVideo(item.videoUrl ?? null)}>
-              <View style={styles.videoBubble}>
-                <Video
-                  source={{ uri: item.videoUrl }}
-                  style={styles.chatVideo}
-                  useNativeControls
-                  resizeMode={"contain" as any}
-                />
-              </View>
-            </TouchableOpacity>
-          )}
-          {item.text && (
-            <Text style={styles.messageText}>
-              {item.text}
-            </Text>
-          )}
-        </View>
-        <Text style={[styles.timeTextOutside, isMe ? styles.timeTextRight : styles.timeTextLeft]}>
-          {item.timestamp}
-        </Text>
-      </View>
-    );
-  };
+  const renderMessage = ({ item }: { item: Message }) => (
+    <MessageBubble
+      message={item}
+      onReply={(msg) => setReplyMessage(msg)}
+      onImagePress={(uri) => setSelectedImage(uri)}
+      onVideoPress={(uri) => setSelectedVideo(uri)}
+    />
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -177,14 +217,12 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.detailUserName}>{name}</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.callButton}>
+            <TouchableOpacity style={styles.callButton} onPress={() => {}}>
               <Ionicons name="call-outline" size={24} color="#000" />
             </TouchableOpacity>
           </View>
         </View>
         <Text style={styles.encryptedText}>End-to-end encrypted</Text>
-
-        {/* CHAT AREA */}
         <ImageBackground style={styles.chatBackground} source={{ uri: 'https://via.placeholder.com/400' }}>
           <FlatList
             ref={flatListRef}
@@ -194,14 +232,30 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             contentContainerStyle={styles.flatListContent}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
-
-          {/* Display attachment preview if any (now without file name) */}
+          {/* Reply preview above input */}
+          {replyMessage && (
+            <View style={styles.replyContainer}>
+              <Text style={styles.replyPreviewText}>
+                Replying to:{' '}
+                {replyMessage.text
+                  ? replyMessage.text
+                  : replyMessage.imageUrl
+                  ? 'Image'
+                  : replyMessage.videoUrl
+                  ? 'Video'
+                  : ''}
+              </Text>
+              <TouchableOpacity onPress={() => setReplyMessage(null)}>
+                <Ionicons name="close" size={20} color="#333" />
+              </TouchableOpacity>
+            </View>
+          )}
+          {/* Display attachment preview if any */}
           {attachment && (
             <View style={styles.previewContainer}>
               <Text style={styles.previewText}>Attachment selected</Text>
             </View>
           )}
-
           {/* BOTTOM INPUT BAR */}
           <View style={styles.bottomBar}>
             <TouchableOpacity
@@ -231,30 +285,18 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         </ImageBackground>
-
-        {/* Modal for full-screen image preview with swipe down to close */}
-        <Modal
-          visible={!!selectedImage}
-          transparent={true}
-          onRequestClose={() => setSelectedImage(null)}
-        >
-          <View style={styles.modalContainer} {...panResponder.panHandlers}>
+        {/* Modal for full-screen image preview */}
+        <Modal visible={!!selectedImage} transparent={true} onRequestClose={() => setSelectedImage(null)}>
+          <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
               <Ionicons name="close" size={32} color="#fff" />
             </TouchableOpacity>
-            {selectedImage && (
-              <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} />
-            )}
+            {selectedImage && <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} />}
           </View>
         </Modal>
-
-        {/* Modal for full-screen video preview with swipe down to close */}
-        <Modal
-          visible={!!selectedVideo}
-          transparent={true}
-          onRequestClose={() => setSelectedVideo(null)}
-        >
-          <View style={styles.modalContainer} {...panResponder.panHandlers}>
+        {/* Modal for full-screen video preview */}
+        <Modal visible={!!selectedVideo} transparent={true} onRequestClose={() => setSelectedVideo(null)}>
+          <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedVideo(null)}>
               <Ionicons name="close" size={32} color="#fff" />
             </TouchableOpacity>
@@ -375,7 +417,29 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
   },
-  previewText: { fontSize: 14, color: '#333' },
+  previewText: { fontSize: 13, color: '#333' },
+  // Reply preview container above input
+  replyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5FFF2',
+    borderLeftColor: '#007AFF',
+    borderLeftWidth: 2,
+    padding: 8,
+    marginHorizontal: 10,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  replyPreviewText: { flex: 1, fontSize: 14, color: '#333' },
+  // Reply preview inside message bubble
+  replyPreview: {
+    borderLeftWidth: 2,
+    borderLeftColor: '#007AFF',
+    paddingLeft: 6,
+    marginBottom: 4,
+  },
+  replyLabel: { fontSize: 11, color: '#007AFF', marginBottom: 2 },
+  replyText: { fontSize: 13, color: '#555' },
   // Modal styles
   modalContainer: {
     flex: 1,
