@@ -116,11 +116,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             highlighted && { backgroundColor: '#EEFFE9' },
           ]}
         >
-          {!isMe && (
-            <View style={styles.nameLabel}>
-              <Text style={styles.nameText}>{message.sender}</Text>
-            </View>
-          )}
+
           {message.replyTo && (
             <TouchableOpacity onPress={() => onQuotedPress(message.replyTo!)}>
               <View style={styles.replyPreview}>
@@ -168,10 +164,74 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
 const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, name, avatar } = route.params;
+  // Dummy chat messages with quoted replies from both sides.
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', sender: 'Alice', text: "Hey, how's it going?", timestamp: '10:00 AM' },
-    { id: '2', sender: 'Me', text: "I'm good, thanks! How about you?", timestamp: '10:01 AM' },
-    { id: '3', sender: 'Alice', text: "Doing well. Just working on some projects.", timestamp: '10:02 AM' },
+    {
+      id: '1',
+      sender: 'Alice',
+      text: "Hey, how's it going?",
+      timestamp: '10:00 AM',
+    },
+    {
+      id: '2',
+      sender: 'Me',
+      text: "I'm good, thanks! How about you?",
+      timestamp: '10:01 AM',
+      replyTo: {
+        id: '1',
+        sender: 'Alice',
+        text: "Hey, how's it going?",
+        timestamp: '10:00 AM',
+      },
+    },
+    {
+      id: '3',
+      sender: 'Alice',
+      text: "I'm doing well! Did you check out the latest update?",
+      timestamp: '10:02 AM',
+      replyTo: {
+        id: '2',
+        sender: 'Me',
+        text: "I'm good, thanks! How about you?",
+        timestamp: '10:01 AM',
+      },
+    },
+    {
+      id: '4',
+      sender: 'Me',
+      text: "Yes, it's awesome! I especially liked the new features.",
+      timestamp: '10:03 AM',
+      replyTo: {
+        id: '3',
+        sender: 'Alice',
+        text: "I'm doing well! Did you check out the latest update?",
+        timestamp: '10:02 AM',
+      },
+    },
+    {
+      id: '5',
+      sender: 'Alice',
+      text: "Great! I'll send you more details later.",
+      timestamp: '10:04 AM',
+      replyTo: {
+        id: '4',
+        sender: 'Me',
+        text: "Yes, it's awesome! I especially liked the new features.",
+        timestamp: '10:03 AM',
+      },
+    },
+    {
+      id: '6',
+      sender: 'Me',
+      text: "Sounds good. Thanks, Alice!",
+      timestamp: '10:05 AM',
+      replyTo: {
+        id: '5',
+        sender: 'Alice',
+        text: "Great! I'll send you more details later.",
+        timestamp: '10:04 AM',
+      },
+    },
   ]);
   const [newMessage, setNewMessage] = useState('');
   const [attachment, setAttachment] = useState<Omit<Message, 'id'> | null>(null);
