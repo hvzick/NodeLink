@@ -53,6 +53,8 @@ type MessageBubbleProps = {
   onReply: (message: Message) => void;
   onImagePress: (uri: string) => void;
   onVideoPress: (uri: string) => void;
+  onQuotedPress: (quoted: Message) => void;
+  highlighted?: boolean;
 };
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -60,6 +62,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onReply,
   onImagePress,
   onVideoPress,
+  onQuotedPress,
+  highlighted = false,
 }) => {
   const isMe = message.sender === 'Me';
   const translateX = useRef(new Animated.Value(0)).current;
@@ -69,7 +73,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       onMoveShouldSetPanResponder: (evt, gestureState) =>
         Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
       onPanResponderGrant: () => {
-        // Dismiss keyboard when starting the swipe
         Keyboard.dismiss();
       },
       onPanResponderMove: (evt, gestureState) => {
@@ -103,25 +106,33 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
       <View style={styles.messageWrapper}>
-        <View style={[styles.bubbleContainer, isMe ? styles.bubbleRight : styles.bubbleLeft]}>
+        <View
+          style={[
+            styles.bubbleContainer,
+            isMe ? styles.bubbleRight : styles.bubbleLeft,
+            highlighted && { backgroundColor: '#EEFFE9' },
+          ]}
+        >
           {!isMe && (
             <View style={styles.nameLabel}>
               <Text style={styles.nameText}>{message.sender}</Text>
             </View>
           )}
           {message.replyTo && (
-            <View style={styles.replyPreview}>
-              <Text style={styles.replyLabel}>Replying to:</Text>
-              <Text numberOfLines={1} style={styles.replyText}>
-                {message.replyTo.text
-                  ? message.replyTo.text
-                  : message.replyTo.imageUrl
-                  ? 'Image'
-                  : message.replyTo.videoUrl
-                  ? 'Video'
-                  : ''}
-              </Text>
-            </View>
+            <TouchableOpacity onPress={() => onQuotedPress(message.replyTo!)}>
+              <View style={styles.replyPreview}>
+                <Text style={styles.replyLabel}>Replying to:</Text>
+                <Text numberOfLines={1} style={styles.replyText}>
+                  {message.replyTo.text
+                    ? message.replyTo.text
+                    : message.replyTo.imageUrl
+                    ? 'Image'
+                    : message.replyTo.videoUrl
+                    ? 'Video'
+                    : ''}
+                </Text>
+              </View>
+            </TouchableOpacity>
           )}
           {message.imageUrl && (
             <TouchableOpacity onPress={() => onImagePress(message.imageUrl!)}>
@@ -164,6 +175,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState<Message | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const modalPanResponder = useRef(
@@ -177,6 +189,17 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       },
     })
   ).current;
+
+  // When a quoted message is tapped, scroll to that message and highlight it temporarily.
+  const handleQuotedPress = (quoted: Message) => {
+    const index = messages.findIndex((msg) => msg.id === quoted.id);
+    if (index !== -1 && flatListRef.current) {
+      flatListRef.current.scrollToIndex({ index, animated: true });
+      setHighlightedMessageId(quoted.id);
+      // Clear highlight after 2000 milliseconds
+      setTimeout(() => setHighlightedMessageId(null), 1500);
+    }
+  };
 
   const handleSendMessage = () => {
     if (!newMessage.trim() && !attachment) return;
@@ -203,6 +226,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       onReply={(msg) => setReplyMessage(msg)}
       onImagePress={(uri) => setSelectedImage(uri)}
       onVideoPress={(uri) => setSelectedVideo(uri)}
+      onQuotedPress={handleQuotedPress}
+      highlighted={item.id === highlightedMessageId}
     />
   );
 
@@ -243,16 +268,18 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           {/* Reply preview above input */}
           {replyMessage && (
             <View style={styles.replyContainer}>
-              <Text style={styles.replyPreviewText}>
-                Replying to:{' '}
-                {replyMessage.text
-                  ? replyMessage.text
-                  : replyMessage.imageUrl
-                  ? 'Image'
-                  : replyMessage.videoUrl
-                  ? 'Video'
-                  : ''}
-              </Text>
+              <TouchableOpacity onPress={() => handleQuotedPress(replyMessage)}>
+                <Text style={styles.replyPreviewText}>
+                  Replying to:{' '}
+                  {replyMessage.text
+                    ? replyMessage.text
+                    : replyMessage.imageUrl
+                    ? 'Image'
+                    : replyMessage.videoUrl
+                    ? 'Video'
+                    : ''}
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setReplyMessage(null)}>
                 <Ionicons name="close" size={20} color="#333" />
               </TouchableOpacity>
