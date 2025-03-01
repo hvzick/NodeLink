@@ -70,20 +70,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const panResponder = useRef(
     PanResponder.create({
+      // Start pan responder after 5 pixels of horizontal movement
       onMoveShouldSetPanResponder: (evt, gestureState) =>
-        Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+        Math.abs(gestureState.dx) > 5 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
       onPanResponderGrant: () => {
         Keyboard.dismiss();
       },
       onPanResponderMove: (evt, gestureState) => {
-        // Limit movement to a maximum of 100 pixels to the right
+        // Allow movement up to 30 pixels to the right
         if (gestureState.dx > 0) {
-          translateX.setValue(Math.min(gestureState.dx, 100));
+          translateX.setValue(Math.min(gestureState.dx, 30));
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dx > 50) {
+        // Trigger reply and haptic feedback if swipe exceeds 10 pixels
+        if (gestureState.dx > 10) {
           onReply(message);
+          triggerLightHapticFeedback();
         }
         Animated.spring(translateX, {
           toValue: 0,
@@ -196,7 +199,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     if (index !== -1 && flatListRef.current) {
       flatListRef.current.scrollToIndex({ index, animated: true });
       setHighlightedMessageId(quoted.id);
-      // Clear highlight after 2000 milliseconds
+      // Clear highlight after 1500 milliseconds
       setTimeout(() => setHighlightedMessageId(null), 1500);
     }
   };
