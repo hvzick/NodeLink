@@ -11,6 +11,7 @@ import AuthScreen from "./screens/Authentication";
 import TermsOfServiceScreen from "./screens/TermsOfService";
 import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
 import Chats from "./screens/ChatScreen";
+import ChatDetailScreen from "./screens/ChatDetailScreen"; // <-- new import
 import { initializeWalletConnect } from "../utils/AuthenticationUtils/WalletConnect";
 import BottomTabs from "./screens/BottomTabs";
 
@@ -24,12 +25,14 @@ import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider"; // Adjust pa
 global.Buffer = Buffer;
 global.crypto = crypto;
 
+// App.tsx (excerpt)
 export type RootStackParamList = {
   LoadingScreen: undefined;
   Auth: undefined;
   TOS: undefined;
   PrivacyPolicy: undefined;
   Chats: undefined;
+  ChatDetail: { conversationId: string; name: string; avatar: any }; // <-- now includes avatar
   Main: undefined;
 };
 
@@ -86,6 +89,12 @@ export default function App() {
                 }
               }
             })}
+          />
+          {/* ChatDetail screen added here */}
+          <Stack.Screen 
+            name="ChatDetail" 
+            component={ChatDetailScreen} 
+            options={({ route }) => ({ headerShown: false, title: route.params.name })}
           />
           {!isAuthenticated && (
             <Stack.Screen name="Auth" component={AuthScreen} />

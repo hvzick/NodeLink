@@ -1,5 +1,9 @@
+// ChatScreen.tsx
 import React, { useRef, memo, useState } from "react";
 import { StyleSheet, RefreshControl, View, Text, FlatList, TextInput, Image, TouchableOpacity } from "react-native";
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack'; // <-- Use StackNavigationProp for push
+import { RootStackParamList } from '../App'; // adjust the path as needed
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReanimatedSwipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Ionicons } from "@expo/vector-icons";
@@ -104,13 +108,14 @@ interface ChatItemProps {
   onSwipe: (id: string) => void;
   onPin: () => void;
   isPinned: boolean;
+  onPress: (item: ChatItemType) => void; // added prop for navigation
 }
 
-const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: ChatItemProps) => {
-  // Use the global theme instead of local useColorScheme.
+const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned, onPress }: ChatItemProps) => {
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
+  const isSwiping = useRef(false);
 
   const renderRightActions = (progress: SharedValue<number>) => {
     const animatedStyle = useAnimatedStyle(() => {
@@ -168,37 +173,57 @@ const ChatItem = memo(({ item, swipeRefs, onSwipe, onPin, isPinned }: ChatItemPr
     <ReanimatedSwipeable
       ref={(ref) => (swipeRefs.current[item.id] = ref)}
       renderRightActions={renderRightActions}
-      onSwipeableWillOpen={() => onSwipe(item.id)}
+      overshootRight={false}
+      onSwipeableWillOpen={() => {
+        isSwiping.current = true;
+        onSwipe(item.id);
+      }}
+      onSwipeableClose={() => {
+        isSwiping.current = false;
+      }}
     >
-      <View style={styles.chatItem}>
-        <Image source={item.avatar} style={styles.avatar} />
-        <View style={styles.chatContent}>
-          <Text style={styles.chatName}>{item.name}</Text>
-          <Text style={styles.chatMessage}>{item.message}</Text>
+      <TouchableOpacity
+        delayPressIn={200}
+        onPress={() => {
+          if (!isSwiping.current) {
+            swipeRefs.current[item.id]?.close?.();
+            onPress(item);
+          }
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.chatItem}>
+          <Image source={{ uri: item.avatar.uri ? item.avatar.uri : item.avatar }} style={styles.avatar} />
+          <View style={styles.chatContent}>
+            <Text style={styles.chatName}>{item.name}</Text>
+            <Text style={styles.chatMessage}>{item.message}</Text>
+          </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={styles.chatTime}>{item.time}</Text>
+            {isPinned && (
+              <Image 
+                source={require("../../assets/images/pinned-logo-white.png")} 
+                style={styles.pinned}
+                resizeMode="contain"
+              />
+            )}
+          </View>
         </View>
-        <View style={{ alignItems: "flex-end" }}>
-          <Text style={styles.chatTime}>{item.time}</Text>
-          {isPinned && (
-            <Image 
-              source={require("../../assets/images/pinned-logo-white.png")} 
-              style={styles.pinned}
-              resizeMode="contain"
-            />
-          )}
-        </View>
-      </View>
+      </TouchableOpacity>
     </ReanimatedSwipeable>
   );
 });
 
 const Chats = () => {
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
-  // Use the global theme hook here as well.
   const { currentTheme, toggleTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Use the StackNavigationProp so that push is available
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   const handleSwipe = (id: string) => {
     Object.keys(swipeRefs.current).forEach((key) => {
@@ -216,6 +241,15 @@ const Chats = () => {
     );
   };
 
+  // When a chat is pressed, push a new ChatDetail screen passing conversationId, name, and avatar
+  const handleChatPress = (item: ChatItemType) => {
+    navigation.push('ChatDetail', { 
+      conversationId: item.id, 
+      name: item.name, 
+      avatar: item.avatar  // Passing avatar along
+    });
+  };
+
   const sortedChats = [...chats].sort(
     (a, b) => (pinnedChats.includes(b.id) ? 1 : 0) - (pinnedChats.includes(a.id) ? 1 : 0)
   );
@@ -229,8 +263,8 @@ const Chats = () => {
         />
         <Text style={styles.nodeLinkName}>NodeLink</Text>
         <TouchableOpacity 
-          // Toggle the theme on press without passing an argument.
-          onPress={() => {toggleTheme();
+          onPress={() => {
+            toggleTheme();
             triggerLightHapticFeedback();
           }}
           style={styles.themeIconContainer}
@@ -248,6 +282,7 @@ const Chats = () => {
             onSwipe={handleSwipe}
             onPin={() => handlePin(item.id)}
             isPinned={pinnedChats.includes(item.id)}
+            onPress={handleChatPress}
           />
         )}
         ListHeaderComponent={
