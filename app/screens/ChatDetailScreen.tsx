@@ -5,6 +5,7 @@ import {
   Image,
   ImageBackground,
   KeyboardAvoidingView,
+  Keyboard,
   Modal,
   PanResponder,
   Platform,
@@ -54,7 +55,12 @@ type MessageBubbleProps = {
   onVideoPress: (uri: string) => void;
 };
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onReply, onImagePress, onVideoPress }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({
+  message,
+  onReply,
+  onImagePress,
+  onVideoPress,
+}) => {
   const isMe = message.sender === 'Me';
   const translateX = useRef(new Animated.Value(0)).current;
 
@@ -62,14 +68,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onReply, onImage
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) =>
         Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+      onPanResponderGrant: () => {
+        // Dismiss keyboard when starting the swipe
+        Keyboard.dismiss();
+      },
       onPanResponderMove: (evt, gestureState) => {
-        // Limit the movement to a maximum of 100 pixels to the right
+        // Limit movement to a maximum of 100 pixels to the right
         if (gestureState.dx > 0) {
           translateX.setValue(Math.min(gestureState.dx, 100));
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
-        // If swipe is more than 50 pixels, trigger reply
         if (gestureState.dx > 50) {
           onReply(message);
         }
@@ -81,7 +90,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onReply, onImage
         }).start();
       },
       onPanResponderTerminate: () => {
-        // In case the gesture is interrupted, reset the value
         Animated.spring(translateX, {
           toValue: 0,
           friction: 5,
@@ -143,7 +151,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onReply, onImage
     </Animated.View>
   );
 };
-
 
 const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, name, avatar } = route.params;
@@ -225,6 +232,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         <Text style={styles.encryptedText}>End-to-end encrypted</Text>
         <ImageBackground style={styles.chatBackground} source={{ uri: 'https://via.placeholder.com/400' }}>
           <FlatList
+            keyboardShouldPersistTaps="always"
             ref={flatListRef}
             data={messages}
             keyExtractor={(item) => item.id}
@@ -417,7 +425,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
   },
-  previewText: { fontSize: 13, color: '#333' },
+  previewText: { fontSize: 14, color: '#333' },
   // Reply preview container above input
   replyContainer: {
     flexDirection: 'row',
