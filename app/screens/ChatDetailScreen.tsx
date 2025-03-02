@@ -1,3 +1,4 @@
+// ChatDetailScreen.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Animated,
@@ -22,9 +23,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 import handleAttachment from '../../utils/ChatUtils/InsertAttachment';
 import { triggerLightHapticFeedback } from '@/utils/GlobalUtils/HapticFeedback';
-
-// Import database functions from your separate file.
 import { initializeDatabase, insertMessage, fetchMessages } from '../../backend/database/SaveMessages';
+import MessageBubble, { Message } from '../../utils/ChatUtils/MessageBubble';
+import { useThemeToggle } from '@/utils/GlobalUtils/ThemeProvider';
 
 type RootStackParamList = {
   ChatDetail: { conversationId: string; name: string; avatar: any };
@@ -36,130 +37,6 @@ type ChatDetailNavigationProp = StackNavigationProp<RootStackParamList, 'ChatDet
 type Props = {
   route: ChatDetailRouteProp;
   navigation: ChatDetailNavigationProp;
-};
-
-export type Message = {
-  id: string;
-  sender: string;
-  text?: string;
-  timestamp: string;
-  imageUrl?: string;
-  fileName?: string;
-  fileSize?: string;
-  videoUrl?: string;
-  audioUrl?: string;
-  replyTo?: Message | null; // Optional field (can be undefined)
-};
-
-type MessageBubbleProps = {
-  message: Message;
-  onReply: (message: Message) => void;
-  onImagePress: (uri: string) => void;
-  onVideoPress: (uri: string) => void;
-  onQuotedPress: (quoted: Message) => void;
-  highlighted?: boolean;
-};
-
-const MessageBubble: React.FC<MessageBubbleProps> = ({
-  message,
-  onReply,
-  onImagePress,
-  onVideoPress,
-  onQuotedPress,
-  highlighted = false,
-}) => {
-  const isMe = message.sender === 'Me';
-  const translateX = useRef(new Animated.Value(0)).current;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) =>
-        Math.abs(gestureState.dx) > 5 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderGrant: () => {
-        Keyboard.dismiss();
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (gestureState.dx > 0) {
-          translateX.setValue(Math.min(gestureState.dx, 30));
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dx > 10) {
-          onReply(message);
-          triggerLightHapticFeedback();
-        }
-        Animated.spring(translateX, {
-          toValue: 0,
-          friction: 5,
-          tension: 100,
-          useNativeDriver: true,
-        }).start();
-      },
-      onPanResponderTerminate: () => {
-        Animated.spring(translateX, {
-          toValue: 0,
-          friction: 5,
-          tension: 100,
-          useNativeDriver: true,
-        }).start();
-      },
-    })
-  ).current;
-
-  return (
-    <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
-      <View style={styles.messageWrapper}>
-        <View
-          style={[
-            styles.bubbleContainer,
-            isMe ? styles.bubbleRight : styles.bubbleLeft,
-            highlighted && { backgroundColor: '#EEFFE9' },
-          ]}
-        >
-          {message.replyTo != null && (
-            <TouchableOpacity onPress={() => onQuotedPress(message.replyTo as Message)}>
-              <View style={styles.replyPreview}>
-                <Text style={styles.replyLabel}>Replying to:</Text>
-                <Text numberOfLines={1} style={styles.replyText}>
-                  {message.replyTo.text
-                    ? message.replyTo.text
-                    : message.replyTo.imageUrl
-                    ? 'Image'
-                    : message.replyTo.videoUrl
-                    ? 'Video'
-                    : ''}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-          {message.imageUrl && (
-   <TouchableOpacity onPress={() => onImagePress(message.imageUrl!)}>
-              <View style={styles.imageBubble}>
-                <Image source={{ uri: message.imageUrl }} style={styles.chatImage} />
-              </View>
-            </TouchableOpacity>
-          )}
-          {message.videoUrl && (
-    <TouchableOpacity onPress={() => onImagePress(message.imageUrl!)}>
-
-              <View style={styles.videoBubble}>
-                <Video
-                  source={{ uri: message.videoUrl }}
-                  style={styles.chatVideo}
-                  useNativeControls
-                  resizeMode= {"contain" as any}
-                />
-              </View>
-            </TouchableOpacity>
-          )}
-          {message.text && <Text style={styles.messageText}>{message.text}</Text>}
-        </View>
-        <Text style={[styles.timeTextOutside, isMe ? styles.timeTextRight : styles.timeTextLeft]}>
-          {message.timestamp}
-        </Text>
-      </View>
-    </Animated.View>
-  );
 };
 
 const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -185,7 +62,11 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     })
   ).current;
 
-  // On mount, initialize the database and load messages.
+  // Get the current theme from our global ThemeProvider.
+  const { currentTheme } = useThemeToggle();
+  const styles = getStyles(currentTheme);
+
+  // Initialize the database and load messages on mount.
   useEffect(() => {
     (async () => {
       await initializeDatabase();
@@ -228,7 +109,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
     try {
       await insertMessage(combinedMsg);
-      // Optionally re-fetch messages to keep state in sync.
       const fetchedMessages = await fetchMessages();
       setMessages(fetchedMessages);
     } catch (error) {
@@ -250,7 +130,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: '#EDEDED' }}
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
@@ -258,7 +138,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.headerContainer}>
           <View style={styles.headerLeft}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color="#007AFF" />
+              <Ionicons name="chevron-back" size={24} color={currentTheme === 'dark' ? '#FFF' : '#007AFF'} />
             </TouchableOpacity>
             <Text style={styles.chatsText}>Chats</Text>
             <Image source={avatar} style={styles.detailAvatar} />
@@ -266,12 +146,13 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.callButton} onPress={() => {}}>
-              <Ionicons name="call-outline" size={24} color="#000" />
+              <Ionicons name="call-outline" size={24} color={currentTheme === 'dark' ? '#FFF' : '#000'} />
             </TouchableOpacity>
           </View>
         </View>
-        <Text style={styles.encryptedText}>End-to-end encrypted</Text>
+        {/* Moved "End-to-end encrypted" text inside the ImageBackground */}
         <ImageBackground style={styles.chatBackground} source={{ uri: 'https://via.placeholder.com/400' }}>
+          <Text style={styles.encryptedText}>End-to-end encrypted</Text>
           <FlatList
             keyboardShouldPersistTaps="always"
             ref={flatListRef}
@@ -297,11 +178,11 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setReplyMessage(null)}>
-                <Ionicons name="close" size={20} color="#333" />
+                <Ionicons name="close" size={20} color={currentTheme === 'dark' ? '#FFF' : '#333'} />
               </TouchableOpacity>
             </View>
           )}
-          {/* Display attachment preview if any */}
+          {/* Attachment preview */}
           {attachment && (
             <View style={styles.previewContainer}>
               <Text style={styles.previewText}>Attachment selected</Text>
@@ -316,23 +197,23 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 if (att) setAttachment(att);
               }}
             >
-              <Ionicons name="attach" size={24} color="#666" />
+              <Ionicons name="attach" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />
             </TouchableOpacity>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.textInput}
                 placeholder="Type a Message"
-                placeholderTextColor="#999"
+                placeholderTextColor={currentTheme === 'dark' ? '#AAA' : '#999'}
                 value={newMessage}
                 onChangeText={setNewMessage}
                 autoFocus
               />
             </View>
             <TouchableOpacity style={styles.iconContainer} onPress={() => console.log('Mic pressed')}>
-              <Ionicons name="mic" size={24} color="#666" />
+              <Ionicons name="mic" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconContainer} onPress={handleSendMessage}>
-              <Ionicons name="send" size={24} color="#666" />
+              <Ionicons name="send" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />
             </TouchableOpacity>
           </View>
         </ImageBackground>
@@ -356,7 +237,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 source={{ uri: selectedVideo }}
                 style={styles.fullScreenVideo}
                 useNativeControls
-                resizeMode= {"contain" as any}
+                resizeMode={"contain" as any}
               />
             )}
           </View>
@@ -368,150 +249,107 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
 export default ChatDetailScreen;
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#EDEDED' },
-  // HEADER
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F2F2F2',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', top: -5 },
-  backButton: { marginRight: 5 },
-  chatsText: {
-    color: '#037EE5',
-    fontSize: 15,
-    marginRight: 10,
-    left: -5,
-    fontFamily: 'SF-Pro-Text-Regular',
-  },
-  detailAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8 },
-  detailUserName: { fontSize: 20, color: '#000', left: 5, fontFamily: 'SF-Pro-Text-Medium' },
-  headerRight: { alignItems: 'flex-end', top: -5 },
-  callButton: { padding: 5, marginRight: 10 },
-  // CHAT BACKGROUND
-  chatBackground: { flex: 1, width: '100%', height: '100%' },
-  flatListContent: { paddingHorizontal: 10, paddingVertical: 5 },
-  // MESSAGE WRAPPER
-  messageWrapper: { marginBottom: 8 },
-  // BUBBLES
-  bubbleContainer: {
-    maxWidth: '75%',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 25,
-  },
-  bubbleLeft: { alignSelf: 'flex-start', backgroundColor: '#fff', borderTopLeftRadius: 0 },
-  bubbleRight: { alignSelf: 'flex-end', backgroundColor: '#DCF8C6', borderTopRightRadius: 0 },
-  nameLabel: { backgroundColor: '#fff', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginBottom: 3 },
-  nameText: { fontSize: 13, fontWeight: 'bold', color: '#075E54' },
-  messageText: { fontSize: 17, lineHeight: 22, color: '#333', fontFamily: 'SF-Pro-Text-Regular' },
-  timeTextOutside: { fontSize: 10, color: '#999', marginTop: 4 },
-  timeTextRight: { alignSelf: 'flex-end' },
-  timeTextLeft: { alignSelf: 'flex-start' },
-  // IMAGE BUBBLE
-  imageBubble: { marginBottom: 5 },
-  chatImage: {
-    width: 100,
-    height: 120,
-    resizeMode: 'contain',
-    borderRadius: 8,
-    marginBottom: 5,
-  },
-  fileText: { color: '#333', fontSize: 14 },
-  // VIDEO BUBBLE
-  videoBubble: { marginBottom: 5 },
-  chatVideo: {
-    width: 200,
-    height: 120,
-    borderRadius: 8,
-    marginBottom: 5,
-  },
-  // BOTTOM INPUT BAR
-  bottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EDEDED',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#ccc',
-  },
-  iconContainer: { paddingHorizontal: 8 },
-  inputWrapper: {
-    flex: 1,
-    backgroundColor: '#fff',
-    marginHorizontal: 6,
-    borderRadius: 25,
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  textInput: { paddingVertical: 8, fontSize: 16 },
-  // ENCRYPTION NOTICE
-  encryptedText: {
-    textAlign: 'center',
-    color: '#999',
-    marginVertical: 10,
-    fontSize: 13,
-    fontFamily: 'SF-Pro-Text-Regular',
-  },
-  // Attachment preview (file name removed)
-  previewContainer: {
-    padding: 8,
-    backgroundColor: '#fff',
-    marginHorizontal: 10,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  previewText: { fontSize: 14, color: '#333' },
-  // Reply preview container above input
-  replyContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5FFF2',
-    borderLeftColor: '#007AFF',
-    borderLeftWidth: 2,
-    padding: 8,
-    marginHorizontal: 10,
-    borderRadius: 8,
-    marginBottom: 4,
-  },
-  replyPreviewText: { flex: 1, fontSize: 14, color: '#333' },
-  // Reply preview inside message bubble
-  replyPreview: {
-    borderLeftWidth: 2,
-    borderLeftColor: '#007AFF',
-    paddingLeft: 6,
-    marginBottom: 4,
-  },
-  replyLabel: { fontSize: 11, color: '#007AFF', marginBottom: 2 },
-  replyText: { fontSize: 13, color: '#555' },
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullScreenImage: {
-    width: '90%',
-    height: '70%',
-    resizeMode: 'contain',
-  },
-  fullScreenVideo: {
-    width: '90%',
-    height: '70%',
-    resizeMode: 'contain',
-  },
-  modalClose: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    zIndex: 1,
-  },
-});
+// Helper function to generate styles based on current theme.
+const getStyles = (theme: 'light' | 'dark') =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme === 'dark' ? '#222' : '#EDEDED' },
+    headerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme === 'dark' ? '#222' : '#F2F2F2',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderBottomWidth: 1,
+      borderBottomColor: theme === 'dark' ? '#444' : '#ccc',
+    },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', top: -5 },
+    backButton: { marginRight: 5 },
+    chatsText: {
+      color: theme === 'dark' ? '#FFF' : '#037EE5',
+      fontSize: 15,
+      marginRight: 10,
+      left: -5,
+      fontFamily: 'SF-Pro-Text-Regular',
+    },
+    detailAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8 },
+    detailUserName: {
+      fontSize: 20,
+      color: theme === 'dark' ? '#FFF' : '#000',
+      left: 5,
+      fontFamily: 'SF-Pro-Text-Medium',
+    },
+    headerRight: { alignItems: 'flex-end', top: -5 },
+    callButton: { padding: 5, marginRight: 10 },
+    encryptedText: {
+      textAlign: 'center',
+      color: theme === 'dark' ? '#AAA' : '#999',
+      marginVertical: 10,
+      fontSize: 13,
+      fontFamily: 'SF-Pro-Text-Regular',
+      backgroundColor: 'transparent',
+    },
+    chatBackground: { flex: 1, width: '100%', height: '100%' },
+    flatListContent: { paddingHorizontal: 10, paddingVertical: 5 },
+    replyContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme === 'dark' ? '#333' : '#F5FFF2',
+      borderLeftColor: '#007AFF',
+      borderLeftWidth: 2,
+      padding: 8,
+      marginHorizontal: 10,
+      borderRadius: 8,
+      marginBottom: 4,
+    },
+    replyPreviewText: { flex: 1, fontSize: 14, color: theme === 'dark' ? '#FFF' : '#333' },
+    previewContainer: {
+      padding: 8,
+      backgroundColor: theme === 'dark' ? '#222' : '#fff',
+      marginHorizontal: 10,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    previewText: { fontSize: 14, color: theme === 'dark' ? '#FFF' : '#333' },
+    bottomBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme === 'dark' ? '#222' : '#EDEDED',
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme === 'dark' ? '#444' : '#ccc',
+    },
+    iconContainer: { paddingHorizontal: 8 },
+    inputWrapper: {
+      flex: 1,
+      backgroundColor: theme === 'dark' ? '#333' : '#fff',
+      marginHorizontal: 6,
+      borderRadius: 25,
+      justifyContent: 'center',
+      paddingHorizontal: 10,
+    },
+    textInput: { paddingVertical: 8, fontSize: 16, color: theme === 'dark' ? '#FFF' : '#000' },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.9)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    fullScreenImage: {
+      width: '90%',
+      height: '70%',
+      resizeMode: 'contain',
+    },
+    fullScreenVideo: {
+      width: '90%',
+      height: '70%',
+      resizeMode: 'contain',
+    },
+    modalClose: {
+      position: 'absolute',
+      top: 40,
+      right: 20,
+      zIndex: 1,
+    },
+  });
