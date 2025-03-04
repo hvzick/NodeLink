@@ -1,7 +1,6 @@
 // ChatDetailScreen.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Animated,
   FlatList,
   Image,
   ImageBackground,
@@ -15,6 +14,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
@@ -23,7 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 import handleAttachment from '../../utils/ChatUtils/InsertAttachment';
 import { triggerLightHapticFeedback } from '@/utils/GlobalUtils/HapticFeedback';
-import { initializeDatabase, insertMessage, fetchMessages } from '../../backend/database/SaveMessages';
+import { initializeDatabase, insertMessage, fetchMessages } from '../../backend/local database/SaveMessages';
 import MessageBubble, { Message } from '../../utils/ChatUtils/MessageBubble';
 import { useThemeToggle } from '@/utils/GlobalUtils/ThemeProvider';
 
@@ -50,6 +50,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
+  // Pan responder for modals (for closing image/video preview)
   const modalPanResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => Math.abs(gestureState.dy) > 20,
@@ -57,6 +58,18 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         if (gestureState.dy > 100) {
           if (selectedImage) setSelectedImage(null);
           if (selectedVideo) setSelectedVideo(null);
+        }
+      },
+    })
+  ).current;
+
+  // Pan responder to dismiss the keyboard when swiping down on the chat background
+  const keyboardDismissPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => Math.abs(gestureState.dy) > 20,
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dy > 50) {
+          Keyboard.dismiss();
         }
       },
     })
@@ -77,6 +90,27 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         console.error('Error fetching messages:', error);
       }
     })();
+  }, []);
+
+  // Scroll to the bottom of the chat when messages change.
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: false });
+    }
+  }, [messages]);
+
+  // Listen for the keyboard event. For iOS we use 'keyboardWillShow', for Android 'keyboardDidShow'.
+  useEffect(() => {
+    const eventName = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const keyboardListener = Keyboard.addListener(eventName, () => {
+      // Delay a little to allow the keyboard layout changes to take effect.
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 50);
+    });
+    return () => {
+      keyboardListener.remove();
+    };
   }, []);
 
   const handleQuotedPress = (quoted: Message) => {
@@ -129,120 +163,133 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
-        {/* CUSTOM HEADER */}
-        <View style={styles.headerContainer}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={currentTheme === 'dark' ? '#FFF' : '#007AFF'} />
-            </TouchableOpacity>
-            <Text style={styles.chatsText}>Chats</Text>
-            <Image source={avatar} style={styles.detailAvatar} />
-            <Text style={styles.detailUserName}>{name}</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.callButton} onPress={() => {}}>
-              <Ionicons name="call-outline" size={24} color={currentTheme === 'dark' ? '#FFF' : '#000'} />
-            </TouchableOpacity>
-          </View>
-        </View>
-        {/* Moved "End-to-end encrypted" text inside the ImageBackground */}
-        <ImageBackground style={styles.chatBackground} source={{ uri: 'https://via.placeholder.com/400' }}>
-          <Text style={styles.encryptedText}>End-to-end encrypted</Text>
-          <FlatList
-            keyboardShouldPersistTaps="always"
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMessage}
-            contentContainerStyle={styles.flatListContent}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          />
-          {/* Reply preview above input */}
-          {replyMessage && (
-            <View style={styles.replyContainer}>
-              <TouchableOpacity onPress={() => handleQuotedPress(replyMessage)}>
-                <Text style={styles.replyPreviewText}>
-                  Replying to:{' '}
-                  {replyMessage.text
-                    ? replyMessage.text
-                    : replyMessage.imageUrl
-                    ? 'Image'
-                    : replyMessage.videoUrl
-                    ? 'Video'
-                    : ''}
-                </Text>
+      {/* Wrap the main view with TouchableWithoutFeedback to dismiss the keyboard on tap */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
+          {/* CUSTOM HEADER */}
+          <View style={styles.headerContainer}>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color={currentTheme === 'dark' ? '#FFF' : '#007AFF'} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setReplyMessage(null)}>
-                <Ionicons name="close" size={20} color={currentTheme === 'dark' ? '#FFF' : '#333'} />
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.chatsText}>Chats</Text>
+              </TouchableOpacity>
+              <Image source={avatar} style={styles.detailAvatar} />
+              <Text style={styles.detailUserName}>{name}</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity style={styles.callButton} onPress={() => {}}>
+                <Ionicons name="call-outline" size={24} color={currentTheme === 'dark' ? '#FFF' : '#000'} />
               </TouchableOpacity>
             </View>
-          )}
-          {/* Attachment preview */}
-          {attachment && (
-            <View style={styles.previewContainer}>
-              <Text style={styles.previewText}>Attachment selected</Text>
-            </View>
-          )}
-          {/* BOTTOM INPUT BAR */}
-          <View style={styles.bottomBar}>
-            <TouchableOpacity
-              style={styles.iconContainer}
-              onPress={async () => {
-                const att = await handleAttachment();
-                if (att) setAttachment(att);
-              }}
-            >
-              <Ionicons name="attach" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />
-            </TouchableOpacity>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Type a Message"
-                placeholderTextColor={currentTheme === 'dark' ? '#AAA' : '#999'}
-                value={newMessage}
-                onChangeText={setNewMessage}
-                autoFocus
-              />
-            </View>
-            <TouchableOpacity style={styles.iconContainer} onPress={() => console.log('Mic pressed')}>
-              <Ionicons name="mic" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconContainer} onPress={handleSendMessage}>
-              <Ionicons name="send" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />
-            </TouchableOpacity>
           </View>
-        </ImageBackground>
-        {/* Modal for full-screen image preview */}
-        <Modal visible={!!selectedImage} transparent onRequestClose={() => setSelectedImage(null)}>
-          <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
-            <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
-              <Ionicons name="close" size={32} color="#fff" />
-            </TouchableOpacity>
-            {selectedImage && <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} />}
-          </View>
-        </Modal>
-        {/* Modal for full-screen video preview */}
-        <Modal visible={!!selectedVideo} transparent onRequestClose={() => setSelectedVideo(null)}>
-          <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
-            <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedVideo(null)}>
-              <Ionicons name="close" size={32} color="#fff" />
-            </TouchableOpacity>
-            {selectedVideo && (
-              <Video
-                source={{ uri: selectedVideo }}
-                style={styles.fullScreenVideo}
-                useNativeControls
-                resizeMode={"contain" as any}
-              />
+          {/* Moved "End-to-end encrypted" text inside the ImageBackground */}
+          <ImageBackground
+            style={styles.chatBackground}
+            source={{ uri: 'https://via.placeholder.com/400' }}
+            // Add pan handlers to detect swipe-down and dismiss the keyboard.
+            {...keyboardDismissPanResponder.panHandlers}
+          >
+            <Text style={styles.encryptedText}>End-to-end encrypted</Text>
+            <FlatList
+              keyboardShouldPersistTaps="always"
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={(item) => item.id}
+              renderItem={renderMessage}
+              contentContainerStyle={styles.flatListContent}
+              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            />
+            {/* Reply preview above input */}
+            {replyMessage && (
+              <View style={styles.replyContainer}>
+                <TouchableOpacity onPress={() => handleQuotedPress(replyMessage)}>
+                  <Text style={styles.replyPreviewText}>
+                    Replying to:{' '}
+                    {replyMessage.text
+                      ? replyMessage.text
+                      : replyMessage.imageUrl
+                      ? 'Image'
+                      : replyMessage.videoUrl
+                      ? 'Video'
+                      : ''}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setReplyMessage(null)}>
+                  <Ionicons name="close" size={20} color={currentTheme === 'dark' ? '#FFF' : '#333'} />
+                </TouchableOpacity>
+              </View>
             )}
-          </View>
-        </Modal>
-      </KeyboardAvoidingView>
+            {/* Attachment preview */}
+            {attachment && (
+              <View style={styles.previewContainer}>
+                <Text style={styles.previewText}>Attachment selected</Text>
+              </View>
+            )}
+            {/* BOTTOM INPUT BAR */}
+            <View style={styles.bottomBar}>
+              <TouchableOpacity
+                style={styles.iconContainer}
+                onPress={async () => {
+                  const att = await handleAttachment();
+                  if (att) setAttachment(att);
+                }}
+              >
+                <Ionicons name="attach" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />
+              </TouchableOpacity>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Type a Message"
+                  placeholderTextColor={currentTheme === 'dark' ? '#AAA' : '#999'}
+                  value={newMessage}
+                  onChangeText={setNewMessage}
+                  // Trigger a scroll when the TextInput receives focus.
+                  onFocus={() =>
+                    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 50)
+                  }
+                />
+              </View>
+              <TouchableOpacity style={styles.iconContainer} onPress={() => console.log('Mic pressed')}>
+                <Ionicons name="mic" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconContainer} onPress={handleSendMessage}>
+                <Ionicons name="send" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />
+              </TouchableOpacity>
+            </View>
+          </ImageBackground>
+          {/* Modal for full-screen image preview */}
+          <Modal visible={!!selectedImage} transparent onRequestClose={() => setSelectedImage(null)}>
+            <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
+              <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
+                <Ionicons name="close" size={32} color="#fff" />
+              </TouchableOpacity>
+              {selectedImage && <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} />}
+            </View>
+          </Modal>
+          {/* Modal for full-screen video preview */}
+          <Modal visible={!!selectedVideo} transparent onRequestClose={() => setSelectedVideo(null)}>
+            <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
+              <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedVideo(null)}>
+                <Ionicons name="close" size={32} color="#fff" />
+              </TouchableOpacity>
+              {selectedVideo && (
+                <Video
+                  source={{ uri: selectedVideo }}
+                  style={styles.fullScreenVideo}
+                  useNativeControls
+                  resizeMode={"contain" as any}
+                />
+              )}
+            </View>
+          </Modal>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 };

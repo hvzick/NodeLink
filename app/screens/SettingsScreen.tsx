@@ -1,5 +1,5 @@
 // SettingsScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,9 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
+
+// Import your Gun.js user service
+import { getOrCreateUserData, UserData } from '../../backend/decentralized-database/GetUserData';
 
 export type SettingsStackParamList = {
   SettingsMain: undefined;
@@ -38,16 +41,38 @@ export default function SettingsScreen() {
   // Retrieve the current theme and toggle function from your ThemeProvider.
   const { currentTheme, toggleTheme } = useThemeToggle();
   const isDarkMode = currentTheme === 'dark';
-
   const [copied, setCopied] = useState(false);
   const navigation = useNavigation<SettingsNavigationProp>();
+
+  // State to hold user data retrieved from the database.
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  // Here we use a fixed wallet address; in your app, you might get it from global state or props.
+  const walletAddress = '0xe65EAC370d1079688fe1e4B9a35A41aac2bac';
+
+  // Fetch or create the user data on mount.
+  useEffect(() => {
+    getOrCreateUserData(walletAddress, {
+      username: '@hvzick',
+      avatar: 'default', // "default" identifier will be used for fallback.
+      name: 'Sheikh Hazik',
+      bio: 'Blockchain enthusiast and developer',
+    })
+      .then((data) => {
+        setUserData(data);
+      })
+      .catch((err) => {
+        console.error('Error fetching user data:', err);
+      });
+  }, []);
 
   const toggleDarkMode = async () => {
     await toggleTheme();
   };
 
   const handleCopyAddress = async () => {
-    const address = '0xe65EAC370d1079688fe1e4B9a35A41aac2bac';
+    // Use the wallet address from userData if available.
+    const address = userData ? userData.walletAddress : walletAddress;
     const success = await copyToClipboard(address);
     if (success) {
       setCopied(true);
@@ -64,6 +89,14 @@ export default function SettingsScreen() {
   const ProfileRightArrow = () => (
     <ProfileArrowSvg width={styles.profileArrowIcon.width} height={styles.profileArrowIcon.height} />
   );
+
+  // Determine the image source.
+  // If userData exists and avatar isn't the "default" string, assume it's a URL or base64 string.
+  // Otherwise, load a local default avatar.
+  const profileImageSource =
+    userData && userData.avatar !== 'default'
+      ? { uri: userData.avatar }
+      : require('../../assets/images/default-avatar.jpg');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -83,15 +116,19 @@ export default function SettingsScreen() {
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.profileContainer}>
           <Image
-            source={require('../../assets/images/profile-picture.png')}
+            source={profileImageSource}
             style={styles.profileImage}
           />
           <View style={styles.profileTextContainer}>
             <Text style={styles.profileName}>
-              {'Hazik'.length > 25 ? 'Hazik'.slice(0, 25) + '...' : 'Hazik'}
+              {userData
+                ? userData.name.length > 25
+                  ? userData.name.slice(0, 25) + '...'
+                  : userData.name
+                : 'Hazik'}
             </Text>
             <Text style={styles.profileAddress}>
-              0xe65EAC370d1079688fe1e4B9a35A41aac2bac
+              {userData ? userData.walletAddress : walletAddress}
             </Text>
           </View>
           <ProfileRightArrow />

@@ -21,6 +21,9 @@ import crypto from "react-native-polyfill-globals";
 import "react-native-polyfill-globals/auto";
 import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider"; // Adjust path as needed
 
+// Import the getOrCreateUserData function and UserData type
+import { getOrCreateUserData, UserData } from "../backend/decentralized-database/GetUserData"; // <-- update the path as necessary
+
 // Polyfill global objects
 global.Buffer = Buffer;
 global.crypto = crypto;
@@ -40,6 +43,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [fontsLoaded] = useFonts({
     "MontserratAlternates-Regular": require("../assets/fonts/MontserratAlternates-Regular.ttf"),
     "Inter_18pt-Medium": require("../assets/fonts/Inter_18pt-Medium.ttf"),
@@ -51,9 +55,23 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated) {
       initializeWalletConnect(
-        (walletAddress) => {
+        async (walletAddress: string | null) => {
           if (walletAddress) {
             setIsAuthenticated(true);
+            try {
+              // Call getOrCreateUserData with default values if the user doesn't exist.
+              // For the default avatar, we store the string "default" as an identifier.
+              const user = await getOrCreateUserData(walletAddress, {
+                username: '@hvzick',
+                avatar: 'default', 
+                name: 'Sheikh Hazik',
+                bio: 'Blockchain enthusiast and developer',
+              });
+              setUserData(user);
+              console.log("User data loaded:", user);
+            } catch (error) {
+              console.error("Error retrieving or creating user data:", error);
+            }
           }
         },
         () => setIsAuthenticated(false),

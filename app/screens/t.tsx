@@ -24,7 +24,7 @@ import handleAttachment from '../../utils/ChatUtils/InsertAttachment';
 import { triggerLightHapticFeedback } from '@/utils/GlobalUtils/HapticFeedback';
 
 // Import asynchronous database functions from your separate file.
-import { initializeDatabase, insertMessage, fetchMessages } from '../../backend/database/SaveMessages';
+import { initializeDatabase, insertMessage, fetchMessages } from '../../backend/local database/SaveMessages';
 
 type RootStackParamList = {
   ChatDetail: { conversationId: string; name: string; avatar: any };
