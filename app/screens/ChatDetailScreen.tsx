@@ -23,8 +23,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 import handleAttachment from '../../utils/ChatUtils/InsertAttachment';
 import { triggerLightHapticFeedback } from '@/utils/GlobalUtils/HapticFeedback';
-import { initializeDatabase, insertMessage, fetchMessages } from '../../backend/local database/SaveMessages';
-import MessageBubble, { Message } from '../../utils/ChatUtils/MessageBubble';
+import { initializeDatabase, insertMessage, fetchMessages, Message } from '../../backend/local database/SaveMessages';
+import MessageBubble from '../../utils/ChatUtils/MessageBubble';
 import { useThemeToggle } from '@/utils/GlobalUtils/ThemeProvider';
 
 type RootStackParamList = {
@@ -43,6 +43,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, name, avatar } = route.params;
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  // When storing attachments, omit only the 'id' property; conversationId is now required.
   const [attachment, setAttachment] = useState<Omit<Message, 'id'> | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
@@ -84,13 +85,13 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     (async () => {
       await initializeDatabase();
       try {
-        const fetchedMessages: Message[] = await fetchMessages();
+        const fetchedMessages: Message[] = await fetchMessages(conversationId);
         setMessages(fetchedMessages);
       } catch (error) {
         console.error('Error fetching messages:', error);
       }
     })();
-  }, []);
+  }, [conversationId]);
 
   // Scroll to the bottom of the chat when messages change.
   useEffect(() => {
@@ -127,6 +128,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     const newId = Date.now().toString();
     let combinedMsg: Message = {
       id: newId,
+      conversationId, // assign conversationId from route params
       sender: 'Me',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
@@ -143,7 +145,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
     try {
       await insertMessage(combinedMsg);
-      const fetchedMessages = await fetchMessages();
+      const fetchedMessages = await fetchMessages(conversationId);
       setMessages(fetchedMessages);
     } catch (error) {
       console.error('Error inserting message:', error);
@@ -237,7 +239,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 style={styles.iconContainer}
                 onPress={async () => {
                   const att = await handleAttachment();
-                  if (att) setAttachment(att);
+                  // Add conversationId to the attachment before setting state
+                  if (att) setAttachment({ ...att, conversationId });
                 }}
               >
                 <Ionicons name="attach" size={24} color={currentTheme === 'dark' ? '#FFF' : '#666'} />

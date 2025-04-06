@@ -1,4 +1,3 @@
-// MessageBubble.tsx
 import React, { useRef } from 'react';
 import {
   Animated,
@@ -12,16 +11,7 @@ import {
 } from 'react-native';
 import { Video } from 'expo-av';
 import { triggerLightHapticFeedback } from '@/utils/GlobalUtils/HapticFeedback';
-
-export type Message = {
-  id: string;
-  sender: string;
-  text?: string;
-  timestamp: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  replyTo?: Message | null;
-};
+import { Message } from '../../backend/local database/SaveMessages';
 
 export type MessageBubbleProps = {
   message: Message;
@@ -46,17 +36,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) =>
-        Math.abs(gestureState.dx) > 5 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+        Math.abs(gestureState.dx) > 5 &&
+        Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
       onPanResponderGrant: () => {
         Keyboard.dismiss();
       },
       onPanResponderMove: (evt, gestureState) => {
-        if (gestureState.dx > 0) {
-          translateX.setValue(Math.min(gestureState.dx, 30));
+        const dx = gestureState.dx;
+        if ((isMe && dx < 0) || (!isMe && dx > 0)) {
+          translateX.setValue(Math.max(Math.min(dx, 30), -30));
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dx > 10) {
+        const dx = gestureState.dx;
+        const swipeThreshold = 10;
+        if ((isMe && dx < -swipeThreshold) || (!isMe && dx > swipeThreshold)) {
           onReply(message);
           triggerLightHapticFeedback();
         }
@@ -79,17 +73,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   ).current;
 
   return (
-    <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
-      <View style={styles.messageWrapper}>
+    <View style={styles.messageWrapper}>
+      <Animated.View style={{ transform: [{ translateX }] }}>
         <View
           style={[
             styles.bubbleContainer,
             isMe ? styles.bubbleRight : styles.bubbleLeft,
             highlighted && { backgroundColor: '#EEFFE9' },
           ]}
+          {...panResponder.panHandlers} // 👈 attached here
         >
-          {message.replyTo != null && (
-            <TouchableOpacity onPress={() => onQuotedPress(message.replyTo as Message)}>
+          {message.replyTo && (
+            <TouchableOpacity onPress={() => onQuotedPress(message.replyTo!)}>
               <View style={styles.replyPreview}>
                 <Text style={styles.replyLabel}>Replying to:</Text>
                 <Text numberOfLines={1} style={styles.replyText}>
@@ -104,33 +99,38 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               </View>
             </TouchableOpacity>
           )}
+  
           {message.imageUrl && (
-            <TouchableOpacity onPress={() => onImagePress(message.imageUrl ?? "")}>
+            <TouchableOpacity onPress={() => onImagePress(message.imageUrl ?? '')}>
               <View style={styles.imageBubble}>
                 <Image source={{ uri: message.imageUrl }} style={styles.chatImage} />
               </View>
             </TouchableOpacity>
           )}
+  
           {message.videoUrl && (
-            <TouchableOpacity onPress={() => onVideoPress(message.videoUrl ?? "")}>
+            <TouchableOpacity onPress={() => onVideoPress(message.videoUrl ?? '')}>
               <View style={styles.videoBubble}>
                 <Video
                   source={{ uri: message.videoUrl }}
                   style={styles.chatVideo}
                   useNativeControls
-                  resizeMode={"contain" as any}
+                  resizeMode={'contain' as any}
                 />
               </View>
             </TouchableOpacity>
           )}
+  
           {message.text && <Text style={styles.messageText}>{message.text}</Text>}
         </View>
-        <Text style={[styles.timeTextOutside, isMe ? styles.timeTextRight : styles.timeTextLeft]}>
-          {message.timestamp}
-        </Text>
-      </View>
-    </Animated.View>
+      </Animated.View>
+  
+      <Text style={[styles.timeTextOutside, isMe ? styles.timeTextRight : styles.timeTextLeft]}>
+        {message.timestamp}
+      </Text>
+    </View>
   );
+  
 };
 
 const styles = StyleSheet.create({
