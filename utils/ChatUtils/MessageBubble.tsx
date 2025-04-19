@@ -130,7 +130,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       </Text>
     </View>
   );
-  
 };
 
 const styles = StyleSheet.create({
