@@ -15,16 +15,16 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
-
 // Import your Gun.js user service
 import { getOrCreateUserData, UserData } from '../../backend/decentralized-database/GetUserData';
 
 export type SettingsStackParamList = {
-  SettingsMain: undefined;
+  Settings: undefined;
   Appearance: undefined;
+  MyProfile: undefined;
 };
 
-type SettingsNavigationProp = StackNavigationProp<SettingsStackParamList, 'SettingsMain'>;
+type SettingsNavigationProp = StackNavigationProp<SettingsStackParamList, 'Settings'>;
 
 const trashIcon = require('../../assets/images/fc.jpg');
 const phoneIcon = require('../../assets/images/fc.jpg');
@@ -114,34 +114,25 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
       <ScrollView style={styles.scrollContainer}>
-        <View style={styles.profileContainer}>
-          <Image
-            source={profileImageSource}
-            style={styles.profileImage}
-          />
-          <View style={styles.profileTextContainer}>
-            <Text style={styles.profileName}>
-              {userData
-                ? userData.name.length > 25
-                  ? userData.name.slice(0, 25) + '...'
-                  : userData.name
-                : 'Hazik'}
-            </Text>
-            <Text style={styles.profileAddress}>
-              {userData ? userData.walletAddress : walletAddress}
-            </Text>
-          </View>
-          <ProfileRightArrow />
-        </View>
-        <View style={styles.settingsItem}>
-          <View style={styles.itemLeft}>
-            <View style={[styles.iconBackground, { backgroundColor: '#FF3B30' }]}>
-              <Image source={trashIcon} style={styles.icon} />
-            </View>
-            <Text style={styles.itemTitle}>Delete Chats</Text>
-          </View>
-          <RightArrow />
-        </View>
+      <TouchableOpacity style={styles.profileContainer} onPress={() => navigation.navigate('MyProfile')}>
+  <Image
+    source={profileImageSource}
+    style={styles.profileImage}
+  />
+  <View style={styles.profileTextContainer}>
+    <Text style={styles.profileName}>
+      {userData
+        ? userData.name.length > 25
+          ? userData.name.slice(0, 25) + '...'
+          : userData.name
+        : 'Hazik'}
+    </Text>
+    <Text style={styles.profileAddress}>
+      {userData ? userData.walletAddress : walletAddress}
+    </Text>
+  </View>
+  <ProfileRightArrow />
+</TouchableOpacity>
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#4CD964' }]}>
