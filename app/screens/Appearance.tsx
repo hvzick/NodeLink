@@ -81,7 +81,7 @@ const getStyles = (isDarkMode: boolean) =>
       position: 'relative',
       flexDirection: 'row',
       alignItems: 'center',
-      height: 56,
+      height: 40,
       paddingHorizontal: 16,
       backgroundColor: isDarkMode ? '#1C1C1D' : '#F2F2F2',
     },
@@ -106,7 +106,7 @@ const getStyles = (isDarkMode: boolean) =>
       color: isDarkMode ? '#fff' : '#333333',
     },
     listContainer: {
-      marginTop: 20,
+      marginTop: 10,
       borderRadius: 8,
       marginHorizontal: 20,
       overflow: 'hidden',
