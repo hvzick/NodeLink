@@ -56,11 +56,16 @@ export default function MyProfile() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
           <Text style={styles.backButtonText}>Settings</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Profile</Text>
+
+        {/* Centered title, non-touchable */}
+        <View style={styles.headerTitleContainer} pointerEvents="none">
+          <Text style={styles.headerTitleText}>My Profile</Text>
+        </View>
+
         <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
           <Ionicons name="create-outline" size={24} color="#007AFF" />
         </TouchableOpacity>
@@ -74,10 +79,7 @@ export default function MyProfile() {
       <View style={styles.infoBox}>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Wallet Address</Text>
-          <TouchableOpacity 
-            onPress={handleCopyAddress}
-            onLongPress={handleOpenEtherscan}
-          >
+          <TouchableOpacity onPress={handleCopyAddress} onLongPress={handleOpenEtherscan}>
             <Text style={styles.wallet}>0xe65EAC370dB1079688f8e1e4B9a35A841aac2bac</Text>
           </TouchableOpacity>
           {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
@@ -122,16 +124,23 @@ const getStyles = (isDarkMode: boolean) =>
       left: 10,
       flexDirection: 'row',
       alignItems: 'center',
+      zIndex: 1,
     },
     backButtonText: {
       fontSize: 17,
       color: '#007AFF',
     },
-    headerTitle: {
+    headerTitleContainer: {
       position: 'absolute',
+      top: 0,
+      bottom: 0,
       left: 0,
       right: 0,
-      textAlign: 'center',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 0,
+    },
+    headerTitleText: {
       fontSize: 20,
       fontWeight: '600',
       fontFamily: 'SF-Pro-Text-Medium',
@@ -201,5 +210,7 @@ const getStyles = (isDarkMode: boolean) =>
       position: 'absolute',
       right: 16,
       padding: 8,
+      zIndex: 1,
     },
   });
+ 
