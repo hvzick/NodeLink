@@ -32,6 +32,7 @@ import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
 import { ChatItemType } from "@/utils/ChatUtils/ChatItemsTypes";
 import { onRefresh } from "@/utils/ChatUtils/RefreshChats";
+import { handlePin } from "@/utils/ChatUtils/OnPin";
 
 const chats: ChatItemType[] = [
   { id: "1", name: "Saved Messages", message: "image.jpeg", time: "Fri", avatar: require("../../assets/images/default-user-avatar.jpg") },
@@ -173,6 +174,7 @@ const Chats = () => {
   const styles = createStyles(isDarkMode);
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [chatList, setChatList] = useState<ChatItemType[]>(chats);
 
   // Animated search bar state
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -217,12 +219,8 @@ const Chats = () => {
     });
   };
 
-  const handlePin = (id: string) => {
-    setPinnedChats((prevPinnedChats) =>
-      prevPinnedChats.includes(id)
-        ? prevPinnedChats.filter((chatId) => chatId !== id)
-        : [...prevPinnedChats, id]
-    );
+  const onPinChat = (id: string) => {
+    handlePin(id, setPinnedChats, setChatList);
   };
 
   const handleChatPress = (item: ChatItemType) => {
@@ -232,10 +230,6 @@ const Chats = () => {
       avatar: item.avatar 
     });
   };
-
-  const sortedChats = [...chats].sort(
-    (a, b) => (pinnedChats.includes(b.id) ? 1 : 0) - (pinnedChats.includes(a.id) ? 1 : 0)
-  );
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -265,14 +259,14 @@ const Chats = () => {
       
       {/* Render inactive search bar in the FlatList header */}
       <FlatList
-        data={sortedChats}
+        data={chatList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ChatItem 
             item={item} 
             swipeRefs={swipeRefs} 
             onSwipe={handleSwipe}
-            onPin={() => handlePin(item.id)}
+            onPin={() => onPinChat(item.id)}
             isPinned={pinnedChats.includes(item.id)}
             onPress={handleChatPress}
           />
