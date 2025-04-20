@@ -42,6 +42,7 @@ const chats: ChatItemType[] = [
   { id: "10", name: "Mom", message: "do it", time: "11/01", avatar: require("../../assets/images/default-user-avatar.jpg") },
   { id: "11", name: "Zaid", message: "bgmi?", time: "Thu", avatar: require("../../assets/images/default-user-avatar.jpg") },
   { id: "12", name: "Waseem", message: "hi...", time: "Tue", avatar: require("../../assets/images/default-user-avatar.jpg") },
+  // More chat items...
 ];
 
 interface ChatItemProps {
@@ -139,7 +140,10 @@ const ChatItem = memo(
           activeOpacity={0.7}
         >
           <View style={styles.chatItem}>
-            <Image source={{ uri: item.avatar.uri ? item.avatar.uri : item.avatar }} style={styles.avatar} />
+            <Image 
+              source={item.avatar} 
+              style={styles.avatar} 
+            />
             <View style={styles.chatContent}>
               <Text style={styles.chatName}>{item.name}</Text>
               <Text style={styles.chatMessage}>{item.message}</Text>
