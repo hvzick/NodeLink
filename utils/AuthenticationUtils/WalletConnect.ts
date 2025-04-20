@@ -93,11 +93,12 @@ export const connectWallet = async (
     console.warn("⚠️ WalletConnect is not initialized (ignored)");
     return;
   }
-  navigation.reset({   //no need of logging
-    index: 0,
-    routes: [{ name: "Main" }],
-  });   
-  setLoading(true);
+  //no need of logging while testing
+  // navigation.reset({   
+  //   index: 0,
+  //   routes: [{ name: "Main" }],
+  // });   
+  // setLoading(true);
 
   try {
     console.log("🔹 Creating WalletConnect session...");
