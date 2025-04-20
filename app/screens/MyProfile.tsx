@@ -5,24 +5,17 @@ import {
   View,
   Image,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
+import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
-type RootStackParamList = {
-  Settings: undefined;
-  MyProfile: undefined;
-};
-
-type MyProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyProfile'>;
 
 export default function MyProfile() {
-  const navigation = useNavigation<MyProfileScreenNavigationProp>();
+  const navigation = useNavigation();
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === 'dark';
   const [copyWalletText, setCopyWalletText] = useState('');
@@ -30,22 +23,28 @@ export default function MyProfile() {
   const styles = getStyles(isDarkMode);
 
   const handleCopyAddress = async () => {
-    try {
-      await Clipboard.setStringAsync('0xe65EAC370dB1079688f8e1e4B9a35A841aac2bac');
+    const success = await copyToClipboard('0xe65EAC370dB1079688f8e1e4B9a35A841aac2bac');
+    if (success) {
       setCopyWalletText('Wallet Address Copied!');
       setTimeout(() => setCopyWalletText(''), 2000);
-    } catch (error) {
-      console.error('Error copying wallet address:', error);
     }
   };
 
   const handleCopyUsername = async () => {
-    try {
-      await Clipboard.setStringAsync('@h44zick');
+    const success = await copyToClipboard('@h44zick');
+    if (success) {
       setCopyUsernameText('Username Copied!');
       setTimeout(() => setCopyUsernameText(''), 2000);
+    }
+  };
+
+  const handleOpenEtherscan = async () => {
+    const address = '0xe65EAC370dB1079688f8e1e4B9a35A841aac2bac';
+    const url = `https://sepolia.etherscan.io/address/${address}`;
+    try {
+      await Linking.openURL(url);
     } catch (error) {
-      console.error('Error copying username:', error);
+      console.error('Error opening Etherscan:', error);
     }
   };
 
@@ -57,10 +56,7 @@ export default function MyProfile() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.navigate('Settings')} 
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} >
           <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
           <Text style={styles.backButtonText}>Settings</Text>
         </TouchableOpacity>
@@ -78,7 +74,10 @@ export default function MyProfile() {
       <View style={styles.infoBox}>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Wallet Address</Text>
-          <TouchableOpacity onLongPress={handleCopyAddress}>
+          <TouchableOpacity 
+            onPress={handleCopyAddress}
+            onLongPress={handleOpenEtherscan}
+          >
             <Text style={styles.wallet}>0xe65EAC370dB1079688f8e1e4B9a35A841aac2bac</Text>
           </TouchableOpacity>
           {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
@@ -87,7 +86,7 @@ export default function MyProfile() {
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Username</Text>
-          <TouchableOpacity onLongPress={handleCopyUsername}>
+          <TouchableOpacity onPress={handleCopyUsername}>
             <Text style={styles.username}>@h44zick</Text>
           </TouchableOpacity>
           {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
@@ -188,19 +187,19 @@ const getStyles = (isDarkMode: boolean) =>
     },
     waCopyMessage: {
       fontSize: 14,
-      color: '#4CAF50',
+      color: '#00A86B',
       marginTop: 5,
-      fontWeight: '600',
+      fontWeight: '400',
     },
     uCopyMessage: {
       fontSize: 14,
       color: '#007AFF',
       marginTop: 5,
-      fontWeight: '600',
+      fontWeight: '400',
     },
     editButton: {
       position: 'absolute',
       right: 16,
-      padding: 4,
+      padding: 8,
     },
   });
