@@ -34,10 +34,15 @@ export default function AppearanceScreen() {
       <View style={styles.headerContainer}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
-          <Text style={styles.backButtonText}>Settings</Text>
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Appearance</Text>
+
+        {/* Centered title, non-touchable */}
+        <View style={styles.headerTitleContainer} pointerEvents="none">
+          <Text style={styles.headerTitleText}>Appearance</Text>
+        </View>
       </View>
+
       <View style={styles.listContainer}>
         <TouchableOpacity
           style={styles.listItem}
@@ -89,17 +94,23 @@ const getStyles = (isDarkMode: boolean) =>
       width: 100,
       flexDirection: 'row',
       alignItems: 'center',
-      left: -10,
+      zIndex: 1,
     },
     backButtonText: {
       fontSize: 17,
       color: '#007AFF',
     },
-    headerTitle: {
+    headerTitleContainer: {
       position: 'absolute',
+      top: 0,
+      bottom: 0,
       left: 0,
       right: 0,
-      textAlign: 'center',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 0,
+    },
+    headerTitleText: {
       fontSize: 20,
       fontFamily: 'SF-Pro-Text-Medium',
       fontWeight: '600',

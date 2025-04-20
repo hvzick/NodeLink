@@ -58,7 +58,7 @@ export default function MyProfile() {
       <View style={styles.headerContainer}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
-          <Text style={styles.backButtonText}>Settings</Text>
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
         {/* Centered title, non-touchable */}
