@@ -9,8 +9,6 @@ import {
   TextInput,
   Image,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  ViewStyle,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -23,10 +21,6 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   interpolate,
   useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  Easing,
-  runOnJS,
   SharedValue,
 } from "react-native-reanimated";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
@@ -48,7 +42,6 @@ const chats: ChatItemType[] = [
   { id: "10", name: "Mom", message: "do it", time: "11/01", avatar: require("../../assets/images/default-user-avatar.jpg") },
   { id: "11", name: "Zaid", message: "bgmi?", time: "Thu", avatar: require("../../assets/images/default-user-avatar.jpg") },
   { id: "12", name: "Waseem", message: "hi...", time: "Tue", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  // More chat items...
 ];
 
 interface ChatItemProps {
@@ -179,12 +172,8 @@ const Chats = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredChats, setFilteredChats] = useState<ChatItemType[]>(chats);
 
-  // Animated search bar state
-  const [isSearchActive, setIsSearchActive] = useState(false);
-  const searchAnim = useSharedValue(0);
-  const searchInputRef = useRef<TextInput>(null);
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // Filter chats based on search query
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredChats(chatList);
@@ -195,25 +184,6 @@ const Chats = () => {
       setFilteredChats(filtered);
     }
   }, [searchQuery, chatList]);
-
-  // Helper functions for native callbacks
-  const focusSearchInput = () => {
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  };
-
-  const deactivateSearch = () => {
-    setIsSearchActive(false);
-  };
-
-  // Animated style for background overlay
-  const overlayStyle = useAnimatedStyle(() => {
-    return { opacity: interpolate(searchAnim.value, [0, 1], [0, 0.7]) };
-  });
-
-  // Navigation
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   const handleSwipe = (id: string) => {
     Object.keys(swipeRefs.current).forEach((key) => {
@@ -275,8 +245,6 @@ const Chats = () => {
               style={styles.searchInput} 
               value={searchQuery}
               onChangeText={setSearchQuery}
-              onFocus={() => setIsSearchActive(true)}
-              onBlur={() => setIsSearchActive(false)}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity 
