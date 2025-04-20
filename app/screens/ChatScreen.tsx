@@ -1,5 +1,5 @@
 // ChatScreen.tsx
-import React, { useRef, memo, useState } from "react";
+import React, { useRef, memo, useState, useEffect } from "react";
 import {
   StyleSheet,
   RefreshControl,
@@ -10,6 +10,7 @@ import {
   Image,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  ViewStyle,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -175,11 +176,25 @@ const Chats = () => {
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [chatList, setChatList] = useState<ChatItemType[]>(chats);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredChats, setFilteredChats] = useState<ChatItemType[]>(chats);
 
   // Animated search bar state
   const [isSearchActive, setIsSearchActive] = useState(false);
   const searchAnim = useSharedValue(0);
   const searchInputRef = useRef<TextInput>(null);
+
+  // Filter chats based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredChats(chatList);
+    } else {
+      const filtered = chatList.filter(chat => 
+        chat.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredChats(filtered);
+    }
+  }, [searchQuery, chatList]);
 
   // Helper functions for native callbacks
   const focusSearchInput = () => {
@@ -195,17 +210,6 @@ const Chats = () => {
   // Animated style for background overlay
   const overlayStyle = useAnimatedStyle(() => {
     return { opacity: interpolate(searchAnim.value, [0, 1], [0, 0.7]) };
-  });
-
-  // Animated style for the search bar's vertical position
-  const searchBarAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      top: interpolate(searchAnim.value, [0, 1], [70, 10]),
-      left: 20,
-      right: 20,
-      position: "absolute",
-      zIndex: 3,
-    };
   });
 
   // Navigation
@@ -233,13 +237,6 @@ const Chats = () => {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      {/* Render overlay when search is active */}
-      {isSearchActive && (
-        <TouchableWithoutFeedback onPress={() => searchInputRef.current?.blur()}>
-          <Animated.View style={[styles.overlay, overlayStyle]} />
-        </TouchableWithoutFeedback>
-      )}
-
       <View style={styles.headerContainer}>
         <Image 
           source={isDarkMode ? require('../../assets/images/logo-white.png') : require('../../assets/images/logo-black.png')} 
@@ -257,9 +254,8 @@ const Chats = () => {
         </TouchableOpacity>
       </View>
       
-      {/* Render inactive search bar in the FlatList header */}
       <FlatList
-        data={chatList}
+        data={filteredChats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ChatItem 
@@ -272,61 +268,30 @@ const Chats = () => {
           />
         )}
         ListHeaderComponent={
-          !isSearchActive ? (
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                setIsSearchActive(true);
-                searchAnim.value = withTiming(
-                  1,
-                  { duration: 300, easing: Easing.out(Easing.ease) },
-                  (finished) => {
-                    if (finished) {
-                      runOnJS(focusSearchInput)();
-                    }
-                  }
-                );
-              }}
-            >
-              <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#888" />
-                <TextInput 
-                  placeholder="Search for messages or users" 
-                  style={styles.searchInput} 
-                  editable={false} 
-                />
-              </View>
-            </TouchableOpacity>
-          ) : null
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color="#888" />
+            <TextInput 
+              placeholder="Search for messages or users" 
+              style={styles.searchInput} 
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFocus={() => setIsSearchActive(true)}
+              onBlur={() => setIsSearchActive(false)}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity 
+                onPress={() => setSearchQuery("")}
+                style={styles.clearButton}
+              >
+                <Ionicons name="close-circle" size={20} color="#888" />
+              </TouchableOpacity>
+            )}
+          </View>
         }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
-
-      {/* Render active, animated search bar */}
-      {isSearchActive && (
-        <Animated.View style={[styles.absoluteSearchContainer, searchBarAnimatedStyle]}>
-          <Ionicons name="search" size={20} color="#888" />
-          <TextInput
-            ref={searchInputRef}
-            placeholder="Search for messages or users"
-            style={styles.searchInput}
-            autoFocus
-            onBlur={() => {
-              searchAnim.value = withTiming(
-                0,
-                { duration: 300, easing: Easing.out(Easing.ease) },
-                (finished) => {
-                  if (finished) {
-                    runOnJS(deactivateSearch)();
-                  }
-                }
-              );
-            }}
-          />
-        </Animated.View>
-      )}
     </GestureHandlerRootView>
   );
 };
@@ -381,6 +346,9 @@ const createStyles = (isDarkMode: boolean) =>
       marginLeft: 15, 
       color: isDarkMode ? "#fff" : "#000",
     },
+    clearButton: {
+      padding: 5,
+    },
     chatItem: {
       flexDirection: "row",
       alignItems: "center",
@@ -432,17 +400,6 @@ const createStyles = (isDarkMode: boolean) =>
       fontWeight: "bold",
       marginTop: -5,
       bottom: -10
-    },
-    overlay: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: "black",
-      zIndex: 1,
-    },
-    absoluteSearchContainer: {
-      backgroundColor: isDarkMode ? "#6666" : "#D1D1D3",
-      paddingHorizontal: 30,
-      paddingVertical: 8,
-      borderRadius: 15,
     },
   });
 
