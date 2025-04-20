@@ -67,7 +67,7 @@ export default function MyProfile() {
         </View>
 
         <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-          <Ionicons name="create-outline" size={24} color="#007AFF" />
+          <Text style={styles.editButtonText}>Edit</Text>
         </TouchableOpacity>
       </View>
 
@@ -127,7 +127,7 @@ const getStyles = (isDarkMode: boolean) =>
       zIndex: 1,
     },
     backButtonText: {
-      fontSize: 17,
+      fontSize: 18,
       color: '#007AFF',
     },
     headerTitleContainer: {
@@ -208,9 +208,13 @@ const getStyles = (isDarkMode: boolean) =>
     },
     editButton: {
       position: 'absolute',
-      right: 16,
-      padding: 8,
+      right: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
       zIndex: 1,
     },
+    editButtonText: {
+      fontSize: 18,
+      color: '#007AFF',
+    },
   });
- 
