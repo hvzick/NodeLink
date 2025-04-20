@@ -12,9 +12,17 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type RootStackParamList = {
+  Settings: undefined;
+  MyProfile: undefined;
+};
+
+type MyProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyProfile'>;
 
 export default function MyProfile() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<MyProfileScreenNavigationProp>();
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === 'dark';
   const [copyWalletText, setCopyWalletText] = useState('');
@@ -41,14 +49,25 @@ export default function MyProfile() {
     }
   };
 
+  const handleEditProfile = () => {
+    // TODO: Implement edit profile functionality
+    console.log('Edit profile pressed');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} >
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.navigate('Settings')} 
+        >
           <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
           <Text style={styles.backButtonText}>Settings</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Profile</Text>
+        <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+          <Ionicons name="create-outline" size={24} color="#007AFF" />
+        </TouchableOpacity>
       </View>
 
       {/* Avatar */}
@@ -178,5 +197,10 @@ const getStyles = (isDarkMode: boolean) =>
       color: '#007AFF',
       marginTop: 5,
       fontWeight: '600',
+    },
+    editButton: {
+      position: 'absolute',
+      right: 16,
+      padding: 4,
     },
   });
