@@ -2,22 +2,35 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+<<<<<<< HEAD
     "baseUrl": "./",
+=======
+>>>>>>> 8c7332c0677505a6fe7f1db6eed73bc0726d5462
     "paths": {
       "@/*": [
         "./*"
       ]
+<<<<<<< HEAD
     },
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
     ]
+=======
+    }
+>>>>>>> 8c7332c0677505a6fe7f1db6eed73bc0726d5462
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
+<<<<<<< HEAD
     "expo-env.d.ts",
     "utils/ChatUtils"
   ]
 }
+=======
+    "expo-env.d.ts"
+  ]
+}
+>>>>>>> 8c7332c0677505a6fe7f1db6eed73bc0726d5462

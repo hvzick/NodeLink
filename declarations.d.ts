@@ -4,6 +4,7 @@ declare module "*.svg" {
     const content: React.FC<SvgProps>;
     export default content;
   }
+<<<<<<< HEAD
 declare module "react-native-crypto";
 declare module "react-native-polyfill-globals";
 declare module "qrcode" {
@@ -11,3 +12,6 @@ declare module "qrcode" {
   export default content;
 }
 declare module '@walletconnect/sign-client';
+=======
+  
+>>>>>>> 8c7332c0677505a6fe7f1db6eed73bc0726d5462

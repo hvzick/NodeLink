@@ -1,5 +1,6 @@
 {
   "expo": {
+<<<<<<< HEAD
     "name": "NodeLink2",
     "slug": "NodeLink2",
     "version": "1.0.0",
@@ -10,13 +11,32 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
+=======
+    "name": "Node Link",
+    "slug": "NodeLink",
+    "scheme": "NodeLink",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "We use Face ID for authentication."
+      }
+>>>>>>> 8c7332c0677505a6fe7f1db6eed73bc0726d5462
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+<<<<<<< HEAD
       },
       "edgeToEdgeEnabled": true
+=======
+      }
+>>>>>>> 8c7332c0677505a6fe7f1db6eed73bc0726d5462
     },
     "web": {
       "bundler": "metro",
@@ -33,7 +53,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+<<<<<<< HEAD
       ]
+=======
+      ],
+      "expo-secure-store",
+      "expo-font"
+>>>>>>> 8c7332c0677505a6fe7f1db6eed73bc0726d5462
     ],
     "experiments": {
       "typedRoutes": true
