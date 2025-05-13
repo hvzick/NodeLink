@@ -1,28 +1,22 @@
 {
   "expo": {
-    "name": "Node Link",
-    "slug": "node-link",
-    "scheme": "nodelink",
+    "name": "NodeLink2",
+    "slug": "NodeLink2",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
+    "scheme": "nodelink2",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "LSApplicationQueriesSchemes": [
-          "metamask",
-          "wc"
-        ]
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.NodeLink"
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -39,36 +33,10 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ],
-      "expo-secure-store",
-      "expo-font",
-      [
-        "expo-sqlite",
-        {
-          "enableFTS": true,
-          "useSQLCipher": true,
-          "android": {
-            "enableFTS": false,
-            "useSQLCipher": false
-          },
-          "ios": {
-            "customBuildFlags": [
-              "-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"
-            ]
-          }
-        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "6cf77e27-eb61-4e23-a7d6-89a2ba26b1d0"
-      }
     }
   }
 }

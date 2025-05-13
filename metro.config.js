@@ -16,6 +16,7 @@ module.exports = (() => {
     extraNodeModules: {
       crypto: require.resolve("react-native-polyfill-globals"),
       stream: require.resolve("stream-browserify"),
+      'web-streams-polyfill': require.resolve('web-streams-polyfill'),  // Use the main entry point
     },
   };
 
