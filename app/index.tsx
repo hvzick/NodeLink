@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';            // Required for React Navigation
-
+import 'expo-router/entry';
 // Registers the main app component so that it runs correctly in both Expo Go and standalone builds.
 // Ensures that the app works in an Expo-managed environment.
 import { registerRootComponent } from 'expo';
