@@ -48,7 +48,7 @@ const ProfileScreen: React.FC = () => {
       <View style={styles.content}>
         {/* Profile Image */}
         <Image
-          source={require('../../assets/images/img.jpg')}
+          source={require('../../assets/images/default-user-avatar.jpg')}
           style={styles.profileImage}
         />
 
