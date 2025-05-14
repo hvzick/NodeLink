@@ -22,6 +22,7 @@ export type SettingsStackParamList = {
   Settings: undefined;
   Appearance: undefined;
   MyProfile: undefined;
+  Notifications: undefined;
 };
 
 type SettingsNavigationProp = StackNavigationProp<SettingsStackParamList, 'Settings'>;
@@ -156,15 +157,17 @@ export default function SettingsScreen() {
             <Switch value={isDarkMode} onValueChange={toggleDarkMode} />
           </View>
         </View>
-        <View style={styles.settingsItem}>
-          <View style={styles.itemLeft}>
-            <View style={[styles.iconBackground, { backgroundColor: '#FF9500' }]}>
-              <Image source={bellIcon} style={styles.icon} />
-            </View>
-            <Text style={styles.itemTitle}>Notifications and Sounds</Text>
-          </View>
-          <RightArrow />
-        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+  <View style={styles.settingsItem}>
+    <View style={styles.itemLeft}>
+      <View style={[styles.iconBackground, { backgroundColor: '#FF9500' }]}>
+        <Image source={bellIcon} style={styles.icon} />
+      </View>
+      <Text style={styles.itemTitle}>Notifications</Text>
+    </View>
+    <RightArrow />
+  </View>
+</TouchableOpacity>
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#8E8E93' }]}>
