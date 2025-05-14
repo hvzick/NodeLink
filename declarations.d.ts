@@ -11,3 +11,8 @@ declare module "qrcode" {
   export default content;
 }
 declare module '@walletconnect/sign-client';
+// react-native-vector-icons.d.ts
+declare module 'react-native-vector-icons/MaterialIcons' {
+  const content: any;
+  export default content;
+}
