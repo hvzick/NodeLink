@@ -26,9 +26,10 @@ import {
 import { useMuteSettings } from '../../utils/NotificationsSettings/MuteNotifications';
 import { QuietRange, useQuietHours } from '../../utils/NotificationsSettings/UseQuietHours';
 import { useNavigation } from '@react-navigation/native';
+import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
+import { testForegroundNotification } from './t';
 type QuietField = 'start' | 'end';
 const muteDurations = ['8 hours', '1 day', '1 week', '1 month', '1 year'];
-import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 
 declare module 'react-native' {
   interface NativeModulesStatic {
@@ -86,17 +87,9 @@ export default function NotificationsScreen() {
 
   // ─── simulation respects quiet hours ──────────────────────────────
   const handleSend = async () => {
-    if (!conversationTones || isQuietNow()) {
-      console.log('[Simulate Send] suppressed by quiet hours');
-      return;
-    }
     await playSendTone();
   };
   const handleReceive = async () => {
-    if (!conversationTones || isQuietNow()) {
-      console.log('[Simulate Receive] suppressed by quiet hours');
-      return;
-    }
     await playReceiveTone();
   };
 
@@ -114,30 +107,14 @@ export default function NotificationsScreen() {
   const [showPreview, setShowPreview] = useState(true);
 
   // ─── tone picker ──────────────────────────────────────────────────
-  const [notificationTone, setNotificationTone] = useState('System Default');
+  const [setNotificationTone] = useState('System Default');
   const [tonePickerMessage, setTonePickerMessage] = useState('');
   useEffect(() => {
     if (!tonePickerMessage) return;
     const t = setTimeout(() => setTonePickerMessage(''), 3000);
     return () => clearTimeout(t);
   }, [tonePickerMessage]);
-  const pickSystemTone = async () => {
-    try {
-      if (Platform.OS === 'android') {
-        const { title, uri } =
-          await NativeModules.RingtonePickerModule.showPicker('notification');
-        setNotificationTone(title || uri);
-      } else {
-        setNotificationTone('System Default');
-        setTonePickerMessage(
-          'Native picker unavailable on iOS—using system default'
-        );
-      }
-      triggerLightHapticFeedback();
-    } catch {
-      setTonePickerMessage('Error opening tone picker');
-    }
-  };
+  
   const styles = getStyles(isDarkMode);
   // ─── mute settings ────────────────────────────────────────────────
   const { isMuted, muteUntil, setMuteDuration } = useMuteSettings();
@@ -148,13 +125,6 @@ export default function NotificationsScreen() {
   const openMuteModal = () => {
     triggerLightHapticFeedback();
     setMuteModalVisible(true);
-  };
-  const closeMuteModal = async () => {
-    triggerLightHapticFeedback();
-    await setMuteDuration(selectedMuteLabel);
-    setMuteModalVisible(false);
-    setShowMuteInfo(true);
-    setTimeout(() => setShowMuteInfo(false), 3000);
   };
 
   // ─── generic toggle handler ───────────────────────────────────────
@@ -292,7 +262,12 @@ export default function NotificationsScreen() {
                 </View>
               </View>
             </Modal>
-
+            {/*Send Notification for testing */}
+          <View style={styles.container}>
+            <TouchableOpacity style={styles.button} onPress={testForegroundNotification }>
+              <Text style={styles.buttonText}>Send Test Notification</Text>
+            </TouchableOpacity>
+          </View>
     
     </SafeAreaView>
   );
@@ -426,4 +401,14 @@ const getStyles = (isDarkMode: boolean) =>
       color: isDarkMode ? '#aaa' : '#8E8E93',
       paddingHorizontal: 16,
     },
+      button: {
+    backgroundColor: '#4CD964',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
   });
