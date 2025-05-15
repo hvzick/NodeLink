@@ -15,17 +15,17 @@ let receivePlayer: AudioPlayer | null = null;
 export async function initConversationTones() {
   // already done?
   if (sendPlayer && receivePlayer) {
-    console.log('[ConversationTones] already initialized');
+    // console.log('[ConversationTones] already initialized');
     return;
   }
 
   try {
     // createAudioPlayer returns an AudioPlayer you must release yourself
     sendPlayer = createAudioPlayer(SEND_TONE);
-    console.log('[ConversationTones] created sendPlayer');
+    // console.log('[ConversationTones] created sendPlayer');
 
     receivePlayer = createAudioPlayer(RECEIVE_TONE);
-    console.log('[ConversationTones] created receivePlayer');
+    // console.log('[ConversationTones] created receivePlayer');
   } catch (err) {
     console.error('[ConversationTones] init error:', err);
   }
@@ -35,7 +35,7 @@ export async function initConversationTones() {
  * Play the send tone (rewind + play).
  */
 export async function playSendTone() {
-  console.log('[ConversationTones] playSendTone()');
+  // console.log('[ConversationTones] playSendTone()');
   try {
     if (!sendPlayer) {
       await initConversationTones();
@@ -52,7 +52,7 @@ export async function playSendTone() {
  * Play the receive tone (rewind + play).
  */
 export async function playReceiveTone() {
-  console.log('[ConversationTones] playReceiveTone()');
+  // console.log('[ConversationTones] playReceiveTone()');
   try {
     if (!receivePlayer) {
       await initConversationTones();
@@ -73,5 +73,5 @@ export function releaseConversationTones() {
   receivePlayer?.remove();
   sendPlayer = null;
   receivePlayer = null;
-  console.log('[ConversationTones] released players');
+  // console.log('[ConversationTones] released players');
 }
