@@ -4,10 +4,18 @@
     "slug": "NodeLink",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+     "icon": "./assets/images/app-logo-24px.png",   
     "scheme": "nodelink",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "largeIcon": "./assets/images/app-logo-192px.png",
+    "notification": {
+      "icon": "./assets/images/app-logo-24px.png",
+      "color": "#FF6600",
+      "android": {
+        "largeIcon": "./assets/images/app-logo-192px.png"
+      }
+    },
 
     "ios": {
       "supportsTablet": true
@@ -28,6 +36,7 @@
     },
 
     "plugins": [
+      ["expo-notifications"],
       "expo-router",
       "expo-audio",
       [
