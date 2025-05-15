@@ -3,44 +3,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { triggerLightHapticFeedback } from '../../utils/GlobalUtils/HapticFeedback';
 
-const STORAGE_KEY = '@app:notificationsEnabled';
-const QUIET_KEY   = 'quietHours';
+// ─── Foreground notification handler ─────────────────────────────────
+// Ensure notifications show alerts, sounds, banners, and list entries when the app is in the foreground
 
-type QuietRange = {
-  start: { h: number; m: number };
-  end:   { h: number; m: number };
-};
-
-// ─── Setup handler to respect quiet hours ───────────────────────────
-// At top of EnableNotification.ts, after your imports:
+// …at top level, once when your app mounts:
 Notifications.setNotificationHandler({
-  handleNotification: async notification => {
-    // load quiet hours…
-    const raw = await AsyncStorage.getItem(QUIET_KEY);
-    let inQuiet = false;
-    if (raw) {
-      try {
-        const { start, end } = JSON.parse(raw) as QuietRange;
-        const now = new Date();
-        const total = now.getHours() * 60 + now.getMinutes();
-        const s = start.h * 60 + start.m;
-        const e = end.h   * 60 + end.m;
-        inQuiet = s < e ? (total >= s && total < e) : (total >= s || total < e);
-      } catch { inQuiet = false; }
-    }
-
-    console.log('[EnableNotification] inQuietHours=', inQuiet);
-
-    return {
-      shouldShowAlert:      !inQuiet,
-      shouldPlaySound:      !inQuiet,
-      shouldSetBadge:       false,
-      shouldShowBanner:     !inQuiet,
-      shouldShowList:       !inQuiet,
-    };
-  },
+  handleNotification: async () => ({
+    shouldShowAlert: true,       // REQUIRED to show notifications in foreground
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,      // NEW: needed for iOS 16+
+    shouldShowList: true         // NEW: iOS Notification Center
+  }),
 });
 
+const STORAGE_KEY = '@app:notificationsEnabled';
 
 async function ensureNotificationPermission(): Promise<boolean> {
   const { status } = await Notifications.getPermissionsAsync();
@@ -84,10 +61,6 @@ export async function loadNotificationEnabled(): Promise<boolean> {
   return val === 'true';
 }
 
-/**
- * Directly set notifications on/off to match `desired` and return it.
- * Use this in your Switch handler.
- */
 export async function setNotificationsEnabled(desired: boolean): Promise<boolean> {
   console.log('[EnableNotification] set desired =', desired);
   if (desired) {

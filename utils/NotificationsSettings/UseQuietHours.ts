@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'quietHours';
+const STORAGE_KEY = 'app:quietHours';
 
 export type QuietRange = {
   start: { h: number; m: number };
@@ -23,15 +23,7 @@ export function useQuietHours() {
         try {
           const parsed: QuietRange = JSON.parse(raw);
           console.log(
-            `[QuietHours] Retrieved range → start: ${parsed.start.h
-              .toString()
-              .padStart(2, '0')}:${parsed.start.m
-              .toString()
-              .padStart(2, '0')}, end: ${parsed.end.h
-              .toString()
-              .padStart(2, '0')}:${parsed.end.m
-              .toString()
-              .padStart(2, '0')}`
+            `[QuietHours] Retrieved range → start: ${parsed.start.h.toString().padStart(2, '0')}:${parsed.start.m.toString().padStart(2, '0')}, end: ${parsed.end.h.toString().padStart(2, '0')}:${parsed.end.m.toString().padStart(2, '0')}`
           );
           setQuietRange(parsed);
         } catch (err) {
@@ -39,15 +31,7 @@ export function useQuietHours() {
         }
       } else {
         console.log(
-          `[QuietHours] No stored range found; using default → start: ${quietRange.start.h
-            .toString()
-            .padStart(2, '0')}:${quietRange.start.m
-            .toString()
-            .padStart(2, '0')}, end: ${quietRange.end.h
-            .toString()
-            .padStart(2, '0')}:${quietRange.end.m
-            .toString()
-            .padStart(2, '0')}`
+          `[QuietHours] No stored range found; using default → start: ${quietRange.start.h.toString().padStart(2, '0')}:${quietRange.start.m.toString().padStart(2, '0')}, end: ${quietRange.end.h.toString().padStart(2, '0')}:${quietRange.end.m.toString().padStart(2, '0')}`
         );
       }
     });
@@ -56,15 +40,7 @@ export function useQuietHours() {
   // Persist whenever it changes
   const saveQuietRange = async (range: QuietRange) => {
     console.log(
-      `[QuietHours] Saving new range → start: ${range.start.h
-        .toString()
-        .padStart(2, '0')}:${range.start.m
-        .toString()
-        .padStart(2, '0')}, end: ${range.end.h
-        .toString()
-        .padStart(2, '0')}:${range.end.m
-        .toString()
-        .padStart(2, '0')}`
+      `[QuietHours] Saving new range → start: ${range.start.h.toString().padStart(2, '0')}:${range.start.m.toString().padStart(2, '0')}, end: ${range.end.h.toString().padStart(2, '0')}:${range.end.m.toString().padStart(2, '0')}`
     );
     setQuietRange(range);
     try {
@@ -84,23 +60,19 @@ export function useQuietHours() {
     const mm = now.getMinutes();
     const totalMins = hh * 60 + mm;
 
-    console.log(`[QuietHours] Checking now=${hh
-      .toString()
-      .padStart(2, '0')}:${mm.toString().padStart(2, '0')} (${totalMins} mins)`);
-
     const startTotal = quietRange.start.h * 60 + quietRange.start.m;
     const endTotal   = quietRange.end.h   * 60 + quietRange.end.m;
 
+    // SPECIAL CASE: identical times → no quiet window
+    if (startTotal === endTotal) {
+      console.log('[QuietHours] No quiet window set (start === end)');
+      return false;
+    }
+
     console.log(
-      `[QuietHours] Window start=${quietRange.start.h
-        .toString()
-        .padStart(2, '0')}:${quietRange.start.m
-        .toString()
-        .padStart(2, '0')} (${startTotal} mins), end=${quietRange.end.h
-        .toString()
-        .padStart(2, '0')}:${quietRange.end.m
-        .toString()
-        .padStart(2, '0')} (${endTotal} mins)`
+      `[QuietHours] Checking now=${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')} (${totalMins} mins), ` +
+      `window start=${quietRange.start.h.toString().padStart(2, '0')}:${quietRange.start.m.toString().padStart(2, '0')} (${startTotal} mins), ` +
+      `end=${quietRange.end.h.toString().padStart(2, '0')}:${quietRange.end.m.toString().padStart(2, '0')} (${endTotal} mins)`
     );
 
     let result: boolean;
