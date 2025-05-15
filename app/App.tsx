@@ -1,5 +1,5 @@
 // App.tsx
-import 'react-native-get-random-values'; // Ensures crypto.getRandomValues is available
+import 'react-native-get-random-values';
 import "react-native-gesture-handler";
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
@@ -11,19 +11,26 @@ import AuthScreen from "./screens/Authentication";
 import TermsOfServiceScreen from "./screens/TermsOfService";
 import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
 import Chats from "./screens/ChatScreen";
-import ChatDetailScreen from "./screens/ChatDetailScreen"; // <-- new import
+import ChatDetailScreen from "./screens/ChatDetailScreen";
 import { initializeWalletConnect } from "../utils/AuthenticationUtils/WalletConnect";
 import BottomTabs from "./screens/BottomTabs";
-
-import '@ethersproject/shims'; // Helps with WalletConnect compatibility
+import '@ethersproject/shims';
 import { Buffer } from "buffer";
 import crypto from "react-native-polyfill-globals"; 
 import "react-native-polyfill-globals/auto";
-import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider"; // Adjust path as needed
+import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider";
+import { getOrCreateUserData, UserData } from "../backend/decentralized-database/GetUserData";
+import * as Notifications from 'expo-notifications';
 
-// Import the getOrCreateUserData function and UserData type
-import { getOrCreateUserData, UserData } from "../backend/decentralized-database/GetUserData"; // <-- update the path as necessary
-
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 // Polyfill global objects
 global.Buffer = Buffer;
 global.crypto = crypto;
@@ -35,7 +42,7 @@ export type RootStackParamList = {
   TOS: undefined;
   PrivacyPolicy: undefined;
   Chats: undefined;
-  ChatDetail: { conversationId: string; name: string; avatar: any }; // <-- now includes avatar
+  ChatDetail: { conversationId: string; name: string; avatar: any };
   Main: undefined;
 };
 
