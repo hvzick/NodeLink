@@ -93,11 +93,11 @@ export const connectWallet = async (
     return;
   }
   //no need of logging while testing
-  navigation.reset({   
-    index: 0,
-    routes: [{ name: "Main" }],
-  });   
-  setLoading(true);
+  // navigation.reset({   
+  //   index: 0,
+  //   routes: [{ name: "Main" }],
+  // });   
+  // setLoading(true);
 
   try {
     console.log("🔹 Creating WalletConnect session...");
