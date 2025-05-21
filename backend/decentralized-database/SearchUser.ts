@@ -2,6 +2,7 @@
 
 import Gun from 'gun';
 import { UserData } from './RegisterUser';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const gun = Gun({
   peers: ['https://gun-manhattan.herokuapp.com/gun'],
@@ -26,14 +27,30 @@ export async function searchUser(walletAddress: string): Promise<UserData> {
   });
 }
 
-// Run search and exit
-(async () => {
+// Test function
+export async function testSearchUser(): Promise<void> {
   try {
-    const user = await searchUser('0xe65eac370db1079688f8e1e4b9a35a841aac2bac');
+    const walletAddress = await AsyncStorage.getItem("walletAddress");
+    if (!walletAddress) {
+      console.log("❌ No wallet address found in AsyncStorage");
+      return;
+    }
+    
+    const user = await searchUser(walletAddress);
     console.log('User found:', user);
-    process.exit(0);
   } catch (err: any) {
     console.error('Error:', err.message);
-    process.exit(1);
   }
-})();
+}
+
+// Run search and exit
+// (async () => {
+//   try {
+//     const user = await searchUser('0xe65eac370db1079688f8e1e4b9a35a841aac2bac');
+//     console.log('User found:', user);
+//     process.exit(0);
+//   } catch (err: any) {
+//     console.error('Error:', err.message);
+//     process.exit(1);
+//   }
+// })();

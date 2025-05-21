@@ -21,7 +21,14 @@ export async function handleUserData(): Promise<void> {
     console.log("📝 Retrieved wallet address:", walletAddress);
     
     if (!walletAddress) {
-      console.log("❌ No wallet address found in AsyncStorage");
+      console.log("❌ No wallet address found - skipping user data handling");
+      return;
+    }
+
+    // Check if user is already stored locally
+    const storedUserData = await AsyncStorage.getItem("userData");
+    if (storedUserData) {
+      console.log("✅ User data already stored locally");
       return;
     }
 
