@@ -17,7 +17,6 @@ import BottomTabs from "./screens/BottomTabs";
 import '@ethersproject/shims';
 import "react-native-polyfill-globals/auto";
 import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider";
-import { getOrCreateUserData, UserData } from "../backend/decentralized-database/GetUserData";
 import * as Notifications from 'expo-notifications';
 
 Notifications.setNotificationHandler({
@@ -44,7 +43,6 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [fontsLoaded] = useFonts({
     "MontserratAlternates-Regular": require("../assets/fonts/MontserratAlternates-Regular.ttf"),
     "Inter_18pt-Medium": require("../assets/fonts/Inter_18pt-Medium.ttf"),
@@ -59,20 +57,7 @@ export default function App() {
         async (walletAddress: string | null) => {
           if (walletAddress) {
             setIsAuthenticated(true);
-            try {
-              // Call getOrCreateUserData with default values if the user doesn't exist.
-              // For the default avatar, we store the string "default" as an identifier.
-              const user = await getOrCreateUserData(walletAddress, {
-                username: '@hvzick',
-                avatar: 'default', 
-                name: 'Sheikh Hazik',
-                bio: 'Blockchain enthusiast and developer',
-              });
-              setUserData(user);
-              console.log("User data loaded:", user);
-            } catch (error) {
-              console.error("Error retrieving or creating user data:", error);
-            }
+            console.log("🔸 Received wallet address:", walletAddress);
           }
         },
         () => setIsAuthenticated(false),
@@ -109,7 +94,6 @@ export default function App() {
               }
             })}
           />
-          {/* ChatDetail screen added here */}
           <Stack.Screen 
             name="ChatDetail" 
             component={ChatDetailScreen} 
@@ -126,5 +110,3 @@ export default function App() {
     </ThemeProvider>
   );
 }
-
- 
