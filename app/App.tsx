@@ -15,8 +15,6 @@ import ChatDetailScreen from "./screens/ChatDetailScreen";
 import { initializeWalletConnect } from "../utils/AuthenticationUtils/WalletConnect";
 import BottomTabs from "./screens/BottomTabs";
 import '@ethersproject/shims';
-// import { Buffer } from "buffer";
-// import crypto from "react-native-polyfill-globals"; 
 import "react-native-polyfill-globals/auto";
 import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider";
 import { getOrCreateUserData, UserData } from "../backend/decentralized-database/GetUserData";
@@ -31,11 +29,7 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
-// Polyfill global objects
-// global.Buffer = Buffer;
-// global.crypto = crypto;
 
-// App.tsx (excerpt)
 export type RootStackParamList = {
   LoadingScreen: undefined;
   Auth: undefined;
