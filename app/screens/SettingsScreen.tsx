@@ -18,8 +18,9 @@ import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { UserData, DEFAULT_USER_DATA } from '../../backend/decentralized-database/RegisterUser';
 import ArrowSVG from '../../assets/images/arrow-icon.svg';
 import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
-import { logout } from '../../utils/AuthenticationUtils/Logout'; // adjust path as needed
+import { logout } from '../../utils/AuthenticationUtils/Logout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RootStackParamList } from '../App';
 
 export type SettingsStackParamList = {
   Settings: undefined;
@@ -44,6 +45,7 @@ export default function SettingsScreen() {
   const isDarkMode = currentTheme === 'dark';
   const [copied, setCopied] = useState(false);
   const navigation = useNavigation<SettingsNavigationProp>();
+  const rootNavigation = navigation.getParent();
 
   // State to hold user data retrieved from the database.
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -171,16 +173,16 @@ export default function SettingsScreen() {
           </View>
         </View>
         <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-  <View style={styles.settingsItem}>
-    <View style={styles.itemLeft}>
-      <View style={[styles.iconBackground, { backgroundColor: '#FF9500' }]}>
-        <Image source={bellIcon} style={styles.icon} />
-      </View>
-      <Text style={styles.itemTitle}>Notifications</Text>
-    </View>
-    <RightArrow />
-  </View>
-</TouchableOpacity>
+          <View style={styles.settingsItem}>
+            <View style={styles.itemLeft}>
+              <View style={[styles.iconBackground, { backgroundColor: '#FF9500' }]}>
+                <Image source={bellIcon} style={styles.icon} />
+              </View>
+              <Text style={styles.itemTitle}>Notifications</Text>
+            </View>
+            <RightArrow />
+          </View>
+        </TouchableOpacity>
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#8E8E93' }]}>
@@ -211,19 +213,18 @@ export default function SettingsScreen() {
           <RightArrow />
         </View>
         <View style={styles.accountActionsContainer}>
-            <TouchableOpacity onPress={() => logout(navigation)}>
-                <View style={styles.accountActionItem}>
-                <Text style={styles.deleteTitle}>Logout</Text>
-                </View>
-            </TouchableOpacity>
+          <TouchableOpacity onPress={() => logout(navigation)}>
+            <View style={styles.accountActionItem}>
+              <Text style={styles.deleteTitle}>Logout</Text>
+            </View>
+          </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => console.log('Delete Account pressed')}>
-                <View style={styles.accountActionItem}>
-                <Text style={[styles.deleteTitle, { color: '#FF3B30' }]}>Delete Account</Text>
-                </View>
-            </TouchableOpacity>
+          <TouchableOpacity onPress={() => console.log('Delete Account pressed')}>
+            <View style={styles.accountActionItem}>
+              <Text style={[styles.deleteTitle, { color: '#FF3B30' }]}>Delete Account</Text>
+            </View>
+          </TouchableOpacity>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
