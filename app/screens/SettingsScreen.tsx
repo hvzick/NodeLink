@@ -182,18 +182,20 @@ export default function SettingsScreen() {
           </View>
           <RightArrow />
         </View>
-        <TouchableOpacity onPress={() => logout(navigation)}>
-          <View style={[styles.settingsItem, styles.deleteAccountItem]}>
-          <Text style={styles.deleteTitle}>Logout</Text>
-          <RightArrow />
+        <View style={styles.accountActionsContainer}>
+            <TouchableOpacity onPress={() => logout(navigation)}>
+                <View style={styles.accountActionItem}>
+                <Text style={styles.deleteTitle}>Logout</Text>
+                </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => console.log('Delete Account pressed')}>
+                <View style={styles.accountActionItem}>
+                <Text style={[styles.deleteTitle, { color: '#FF3B30' }]}>Delete Account</Text>
+                </View>
+            </TouchableOpacity>
         </View>
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <View style={[styles.settingsItem, styles.deleteAccountItem]}>
-          <Text style={styles.deleteTitle}>Delete Account</Text>
-          <RightArrow />
-          </View>
-        </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -316,4 +318,20 @@ const getStyles = (isDarkMode: boolean) =>
       marginLeft: 8,
       tintColor: '#3C3C43',
     },
+    accountActionsContainer: {
+        marginTop: 35,
+        borderTopWidth: 1,
+        borderTopColor: isDarkMode ? '#333' : '#ddd',
+    },
+    accountActionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: isDarkMode ? '#333' : '#EFEFEF',
+    },
+
   });
