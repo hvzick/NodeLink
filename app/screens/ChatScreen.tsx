@@ -28,6 +28,7 @@ import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedba
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
 import { onRefresh } from "../../utils/ChatUtils/RefreshChats";
 import { handlePin } from "../../utils/ChatUtils/OnPin";
+import { searchUser } from '../../backend/decentralized-database/SearchUser';
 
 const chats: ChatItemType[] = [
   { id: "1", name: "Saved Messages", message: "image.jpeg", time: "Fri", avatar: require("../../assets/images/default-user-avatar.jpg") },
@@ -184,19 +185,45 @@ const Chats = () => {
   const [chatList, setChatList] = useState<ChatItemType[]>(chats);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredChats, setFilteredChats] = useState<ChatItemType[]>(chats);
+  const [searchError, setSearchError] = useState("");
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
+  // Add useEffect to handle chat filtering
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredChats(chatList);
+      setSearchError("");
     } else {
+      // Always filter chats while searching
       const filtered = chatList.filter(chat => 
         chat.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredChats(filtered);
+      // Don't show error for local chat searches
+      setSearchError("");
     }
   }, [searchQuery, chatList]);
+
+  const handleSearch = async (query: string) => {
+    setSearchError(""); // Clear any previous error
+    // Check if the query looks like a wallet address (starts with 0x and has 42 characters)
+    if (query.startsWith('0x') && query.length >= 15) {
+      try {
+        // Search for user in Gun.js database
+        const user = await searchUser(query);
+        if (!user || !user.walletAddress) {
+          setSearchError("User not found");
+          return;
+        }
+        // Navigate to UserProfile with the found user's wallet address
+        navigation.navigate('UserProfile', { walletAddress: query });
+      } catch (error) {
+        // console.error("❌ User not found:", error);
+        setSearchError("User not found");
+      }
+    }
+  };
 
   const handleSwipe = (id: string) => {
     Object.keys(swipeRefs.current).forEach((key) => {
@@ -251,22 +278,39 @@ const Chats = () => {
           />
         )}
         ListHeaderComponent={
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color="#888" />
-            <TextInput 
-              placeholder="Search for messages or users" 
-              style={styles.searchInput} 
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity 
-                onPress={() => setSearchQuery("")}
-                style={styles.clearButton}
-              >
-                <Ionicons name="close-circle" size={20} color="#888" />
-              </TouchableOpacity>
-            )}
+          <View>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#888" />
+              <TextInput 
+                placeholder="Search for messages, users, or enter wallet address" 
+                style={styles.searchInput} 
+                value={searchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  setSearchError("");
+                }}
+                onSubmitEditing={() => handleSearch(searchQuery)}
+                returnKeyType="search"
+                blurOnSubmit={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity 
+                  onPress={() => {
+                    setSearchQuery("");
+                    setFilteredChats(chatList);
+                    setSearchError("");
+                  }}
+                  style={styles.clearButton}
+                >
+                  <Ionicons name="close-circle" size={20} color="#888" />
+                </TouchableOpacity>
+              )}
+            </View>
+            {searchError ? (
+              <Text style={[styles.errorText, { color: isDarkMode ? '#ff6b6b' : '#ff0000' }]}>
+                {searchError}
+              </Text>
+            ) : null}
           </View>
         }
         refreshControl={
@@ -381,6 +425,12 @@ const createStyles = (isDarkMode: boolean) =>
       fontWeight: "bold",
       marginTop: -5,
       bottom: -10
+    },
+    errorText: {
+      marginLeft: 35,
+      marginTop: 5,
+      fontSize: 14,
+      fontFamily: "SF-Pro-Text-Regular",
     },
   });
 

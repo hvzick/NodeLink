@@ -10,7 +10,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthScreen from "./screens/Authentication";
 import TermsOfServiceScreen from "./screens/TermsOfService";
 import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
-import Chats from "./screens/ChatScreen";
 import ChatDetailScreen from "./screens/ChatDetailScreen";
 import BottomTabs from "./screens/BottomTabs";
 import '@ethersproject/shims';
@@ -18,6 +17,7 @@ import "react-native-polyfill-globals/auto";
 import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider";
 import * as Notifications from 'expo-notifications';
 import { handleUserData } from "../backend/decentralized-database/HandleUserData";
+import UserProfile from './screens/UserProfile';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -36,6 +36,8 @@ export type RootStackParamList = {
   Chats: undefined;
   ChatDetail: { conversationId: string; name: string; avatar: any };
   Main: undefined;
+  MyProfile: { walletAddress?: string };
+  UserProfile: { walletAddress?: string };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -115,6 +117,11 @@ export default function App() {
           <Stack.Screen 
             name="ChatDetail" 
             component={ChatDetailScreen}
+            options={{ gestureEnabled: hasSession }}
+          />
+          <Stack.Screen 
+            name="UserProfile" 
+            component={UserProfile}
             options={{ gestureEnabled: hasSession }}
           />
         </Stack.Navigator>

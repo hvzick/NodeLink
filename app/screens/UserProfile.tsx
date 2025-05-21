@@ -1,182 +1,259 @@
-import React, { useRef } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import {
-  SafeAreaView,
-  View,
-  Text,
   StyleSheet,
+  Text,
+  View,
   Image,
   TouchableOpacity,
-  Animated,
+  Linking,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useState, useEffect } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
+import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserData, DEFAULT_USER_DATA } from '../../backend/decentralized-database/RegisterUser';
 
-const ProfileScreen: React.FC = () => {
-  // Create an animated value for scaling the button on press.
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+export default function UserProfile() {
+  const navigation = useNavigation();
+  const { currentTheme } = useThemeToggle();
+  const isDarkMode = currentTheme === 'dark';
+  const [copyWalletText, setCopyWalletText] = useState('');
+  const [copyUsernameText, setCopyUsernameText] = useState('');
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const styles = getStyles(isDarkMode);
 
-  const handleSendMessage = () => {
-    // Animate button press by scaling down then back up.
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      // Your send message logic goes here.
-      console.log('Send Message tapped');
-    });
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const storedData = await AsyncStorage.getItem("userData");
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        console.log("📱 Loaded user data:", parsedData);
+        setUserData(parsedData);
+      } else {
+        console.log("❌ No user data found in AsyncStorage, using default values");
+        // Get wallet address from AsyncStorage
+        const walletAddress = await AsyncStorage.getItem("walletAddress");
+        if (walletAddress) {
+          setUserData({
+            walletAddress,
+            ...DEFAULT_USER_DATA
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      // Get wallet address from AsyncStorage even if userData loading fails
+      const walletAddress = await AsyncStorage.getItem("walletAddress");
+      if (walletAddress) {
+        setUserData({
+          walletAddress,
+          ...DEFAULT_USER_DATA
+        });
+      }
+    }
   };
+
+  const handleCopyAddress = async () => {
+    if (!userData?.walletAddress) return;
+    const success = await copyToClipboard(userData.walletAddress);
+    if (success) {
+      setCopyWalletText('Wallet Address Copied!');
+      setTimeout(() => setCopyWalletText(''), 2000);
+    }
+  };
+
+  const handleCopyUsername = async () => {
+    if (!userData?.username) return;
+    const success = await copyToClipboard(`@${userData.username}`);
+    if (success) {
+      setCopyUsernameText('Username Copied!');
+      setTimeout(() => setCopyUsernameText(''), 2000);
+    }
+  };
+
+  const handleOpenEtherscan = async () => {
+    if (!userData?.walletAddress) return;
+    const url = `https://sepolia.etherscan.io/address/${userData.walletAddress}`;
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error('Error opening Etherscan:', error);
+    }
+  };
+
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Back & Title */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => { /* Handle back action */ }}>
-          <Text style={styles.backText}>Back</Text>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Profile</Text>
-      </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Profile Image */}
-        <Image
-          source={require('../../assets/images/default-user-avatar.jpg')}
-          style={styles.profileImage}
-        />
-
-        {/* Name & Username */}
-        <Text style={styles.name}>Sheikh Hazik</Text>
-        <Text style={styles.username}>@hvzick</Text>
-
-        {/* Wallet Address */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Wallet Address:</Text>
-          <Text style={styles.walletAddress}>
-            0xe65EAC370D1079688f8e1e4B9a35A841aac2bac
-          </Text>
+        {/* Centered title, non-touchable */}
+        <View style={styles.headerTitleContainer} pointerEvents="none">
+          <Text style={styles.headerTitleText}>My Profile</Text>
         </View>
 
-        {/* About Me */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About Me:</Text>
-          <Text style={styles.sectionContent}>Hi im using nodelink</Text>
-        </View>
-
-        {/* Minimal Send Message Button with Animation */}
-        <TouchableOpacity onPress={handleSendMessage} activeOpacity={0.85}>
-          <Animated.View style={[styles.gradientButton, { transform: [{ scale: scaleAnim }] }]}>
-            <LinearGradient
-              colors={['#FFFFFF', '#FFFFFF']} // Solid white background
-              style={styles.gradientBackground}
-            >
-              <Icon name="send" size={20} color="#000" style={styles.buttonIcon} />
-              <Text style={styles.gradientButtonText}>Send message</Text>
-            </LinearGradient>
-          </Animated.View>
-        </TouchableOpacity>
       </View>
+
+      {/* Avatar */}
+      <Image 
+        source={userData?.avatar === "default" 
+          ? require('../../assets/images/default-user-avatar.jpg')
+          : { uri: userData?.avatar }
+        } 
+        style={styles.avatar} 
+      />
+      <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
+
+      {/* Info Box */}
+      <View style={styles.infoBox}>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Wallet Address</Text>
+          <TouchableOpacity onPress={handleCopyAddress} onLongPress={handleOpenEtherscan}>
+            <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
+          </TouchableOpacity>
+          {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
+        </View>
+        <View style={styles.separator} />
+
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Username</Text>
+          <TouchableOpacity onPress={handleCopyUsername}>
+            <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
+          </TouchableOpacity>
+          {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
+        </View>
+        <View style={styles.separator} />
+
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Bio</Text>
+          <Text style={styles.infoText}>{userData?.bio || "Im not being spied on!"}</Text>
+        </View>
+      </View>
+
+      <StatusBar style="auto" />
     </SafeAreaView>
   );
-};
+}
 
-export default ProfileScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backText: {
-    color: 'blue',
-    fontSize: 16,
-  },
-  title: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 24,
-    alignSelf: 'center', // Centers the avatar
-  },
-  name: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    textAlign: 'center', // Centers the name text
-  },
-  username: {
-    fontSize: 16,
-    color: 'gray',
-    marginBottom: 16,
-    textAlign: 'center', // Centers the username text
-  },
-  section: {
-    width: '100%',
-    marginVertical: 12,
-    paddingHorizontal: 8,
-  },
-  walletAddress: {
-    color: '#037EE5',
-  },
-  sectionTitle: {
-    fontWeight: '600',
-    marginBottom: 4,
-    fontSize: 17
-  },
-  sectionContent: {
-    color: '#555',
-  },
-  // Outer container for the button with shadow/elevation.
-  gradientButton: {
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 3,
-    marginTop: 32,
-    alignSelf: 'center', // Centers the button
-  },
-  // Actual background and content layout.
-  gradientBackground: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 15,
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  gradientButtonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const getStyles = (isDarkMode: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDarkMode ? '#1C1C1D' : '#F2F2F2',
+      alignItems: 'center',
+    },
+    headerContainer: {
+      height: 40,
+      justifyContent: 'center',
+      backgroundColor: isDarkMode ? '#1C1C1D' : '#F2F2F2',
+      width: '100%',
+    },
+    backButton: {
+      position: 'absolute',
+      left: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    backButtonText: {
+      fontSize: 18,
+      color: '#007AFF',
+    },
+    headerTitleContainer: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 0,
+    },
+    headerTitleText: {
+      fontSize: 20,
+      fontWeight: '600',
+      fontFamily: 'SF-Pro-Text-Medium',
+      color: isDarkMode ? '#fff' : '#333333',
+    },
+    avatar: {
+      top: 10,
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+    },
+    name: {
+      top: 10,
+      fontSize: 22,
+      fontFamily: 'SF-Pro-Text-Medium',
+      marginTop: 10,
+      color: isDarkMode ? '#fff' : '#333333',
+    },
+    infoBox: {
+      top: 10,
+      backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
+      width: '90%',
+      borderRadius: 12,
+      paddingHorizontal: 15,
+      paddingVertical: 10,
+      marginVertical: 20,
+    },
+    infoRow: {
+      paddingVertical: 10,
+    },
+    label: {
+      fontSize: 12,
+      color: 'gray',
+      marginBottom: 4,
+    },
+    wallet: {
+      fontSize: 16,
+      color: '#00A86B',
+      flexWrap: 'wrap',
+    },
+    username: {
+      fontSize: 16,
+      color: '#007AFF',
+    },
+    infoText: {
+      fontSize: 16,
+      color: isDarkMode ? '#fff' : '#333333',
+    },
+    separator: {
+      height: 1,
+      backgroundColor: isDarkMode ? '#333' : '#EFEFEF',
+      marginVertical: 0,
+    },
+    waCopyMessage: {
+      fontSize: 14,
+      color: '#00A86B',
+      marginTop: 5,
+      fontWeight: '400',
+    },
+    uCopyMessage: {
+      fontSize: 14,
+      color: '#007AFF',
+      marginTop: 5,
+      fontWeight: '400',
+    },
+    editButton: {
+      position: 'absolute',
+      right: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    editButtonText: {
+      fontSize: 18,
+      color: '#007AFF',
+    },
+  });
