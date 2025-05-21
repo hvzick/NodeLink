@@ -1,23 +1,32 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "lib": [
+      "ES2020"
+    ],
     "strict": true,
-    "baseUrl": "./",
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    },
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "moduleResolution": "bundler",
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
-    ]
+    ],
+    "jsx": "react-native"
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
+    "backend/**/*",
+    "src/**/*",
+    "app/**/*",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts",
-    "utils/ChatUtils"
-  ]
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "extends": "expo/tsconfig.base"
 }

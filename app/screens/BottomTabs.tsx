@@ -8,6 +8,7 @@ import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedba
 import { triggerHoldHapticFeedback } from "../../utils/GlobalUtils/HoldHapticFeedback";
 // IMPORTANT: Import from ThemeProvider instead of CheckSystemTheme
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
+import { handleUserData } from "../../backend/decentralized-database/HandleUserData";
 
 const Tab = createBottomTabNavigator();
 
@@ -92,6 +93,10 @@ export default function BottomTabs() {
   console.log("BottomTabs currentTheme:", currentTheme); // Should log "light" or "dark"
   const isDarkMode = currentTheme === "dark";
 
+  useEffect(() => {
+    handleUserData();
+  }, []);
+
   return (
     <Tab.Navigator
       initialRouteName="Chats"
@@ -130,7 +135,7 @@ export default function BottomTabs() {
           );
         },
         tabBarLabelStyle: {
-          top: 13, // to change text position if needed
+          top: 13,
           fontSize: 12,
         },
       })}
