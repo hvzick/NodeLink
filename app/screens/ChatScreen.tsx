@@ -54,6 +54,58 @@ interface ChatItemProps {
   onPress: (item: ChatItemType) => void;
 }
 
+const RightActions = ({ progress, onAction, isPinned, styles }: { 
+  progress: SharedValue<number>, 
+  onAction: (action: string) => void, 
+  isPinned: boolean,
+  styles: any 
+}) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    const animatedTranslateX = interpolate(
+      progress.value,
+      [0, 1],
+      [100, 0],
+      { extrapolateRight: "clamp" }
+    );
+    return { transform: [{ translateX: animatedTranslateX }] };
+  });
+
+  return (
+    <Animated.View style={[styles.rightActions, animatedStyle]}>
+      <TouchableOpacity
+        style={[styles.actionButton, { backgroundColor: "#F09A37" }]}
+        onPress={() => onAction("Mute")}
+      >
+        <Image 
+          source={require("../../assets/images/mute.png")} 
+          style={{ width: 30, height: 30, resizeMode: "contain" }} 
+        />
+        <Text style={styles.actionText}>Mute</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.actionButton, { backgroundColor: isPinned ? "#999" : "#1EBE1E" }]}
+        onPress={() => onAction("Pin")}
+      >
+        <Image 
+          source={require("../../assets/images/pin.png")} 
+          style={{ width: 30, height: 30, resizeMode: "contain" }} 
+        />
+        <Text style={styles.actionText}>{isPinned ? "Unpin" : "Pin"}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.actionButton, { backgroundColor: "#FE3B30" }]}
+        onPress={() => onAction("Delete")}
+      >
+        <Image 
+          source={require("../../assets/images/delete.png")} 
+          style={{ width: 30, height: 30, resizeMode: "contain" }} 
+        />
+        <Text style={styles.actionText}>Delete</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 const ChatItem = memo(
   ({ item, swipeRefs, onSwipe, onPin, isPinned, onPress }: ChatItemProps) => {
     const { currentTheme } = useThemeToggle();
@@ -62,63 +114,20 @@ const ChatItem = memo(
     const isSwiping = useRef(false);
 
     const renderRightActions = (progress: SharedValue<number>) => {
-      const animatedStyle = useAnimatedStyle(() => {
-        const animatedTranslateX = interpolate(
-          progress.value,
-          [0, 1],
-          [100, 0],
-          { extrapolateRight: "clamp" }
-        );
-        return { transform: [{ translateX: animatedTranslateX }] };
-      });
-
       const handleAction = (action: string) => {
         swipeRefs.current[item.id]?.close?.();
         console.log(`Action: ${action} performed on ${item.name}`);
+        if (action === "Pin") {
+          onPin();
+        }
       };
 
-      return (
-        <Animated.View style={[styles.rightActions, animatedStyle]}>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: "#F09A37" }]}
-            onPress={() => handleAction("Mute")}
-          >
-            <Image 
-              source={require("../../assets/images/mute.png")} 
-              style={{ width: 30, height: 30, resizeMode: "contain" }} 
-            />
-            <Text style={styles.actionText}>Mute</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: isPinned ? "#999" : "#1EBE1E" }]}
-            onPress={() => {
-              onPin();
-              handleAction("Pin");
-            }}
-          >
-            <Image 
-              source={require("../../assets/images/pin.png")} 
-              style={{ width: 30, height: 30, resizeMode: "contain" }} 
-            />
-            <Text style={styles.actionText}>{isPinned ? "Unpin" : "Pin"}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: "#FE3B30" }]}
-            onPress={() => handleAction("Delete")}
-          >
-            <Image 
-              source={require("../../assets/images/delete.png")} 
-              style={{ width: 30, height: 30, resizeMode: "contain" }} 
-            />
-            <Text style={styles.actionText}>Delete</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      );
+      return <RightActions progress={progress} onAction={handleAction} isPinned={isPinned} styles={styles} />;
     };
 
     return (
       <ReanimatedSwipeable
-        ref={(ref) => (swipeRefs.current[item.id] = ref)}
+        ref={ref => { swipeRefs.current[item.id] = ref; }}
         renderRightActions={renderRightActions}
         overshootRight={false}
         onSwipeableWillOpen={() => {
