@@ -10,7 +10,7 @@ const projectId = "0b183fc0707f5795787aefe996f3df28"; // Replace with your Walle
 let signClient: SignClientType | null = null;
 
 // Global flag to prevent multiple navigations to the target screen.
-let navigationHandled = false;  // kept it true coz of logging again and again
+let navigationHandled = false;  
 
 // In-memory session store (to store session and wallet address)
 let sessionStore: { walletAddress: string | null } = { walletAddress: null };
