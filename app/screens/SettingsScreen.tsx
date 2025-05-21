@@ -15,11 +15,11 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
-// Import your Gun.js user service
-import { getOrCreateUserData, UserData } from '../../backend/decentralized-database/GetUserData';
+import { UserData, DEFAULT_USER_DATA } from '../../backend/decentralized-database/RegisterUser';
 import ArrowSVG from '../../assets/images/arrow-icon.svg';
 import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
 import { logout } from '../../utils/AuthenticationUtils/Logout'; // adjust path as needed
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type SettingsStackParamList = {
   Settings: undefined;
@@ -30,7 +30,6 @@ export type SettingsStackParamList = {
 
 type SettingsNavigationProp = StackNavigationProp<SettingsStackParamList, 'Settings'>;
 
-const trashIcon = require('../../assets/images/fc.jpg');
 const phoneIcon = require('../../assets/images/fc.jpg');
 const moonIcon = require('../../assets/images/fc.jpg');
 const bellIcon = require('../../assets/images/fc.jpg');
@@ -49,17 +48,48 @@ export default function SettingsScreen() {
   // State to hold user data retrieved from the database.
   const [userData, setUserData] = useState<UserData | null>(null);
 
-  // Here we use a fixed wallet address; in your app, you might get it from global state or props.
-  const walletAddress = '0xe65EAC370d1079688fe1e4B9a35A41aac2bac';
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const storedData = await AsyncStorage.getItem("userData");
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        console.log("📱 Loaded user data in settings:", parsedData);
+        setUserData(parsedData);
+      } else {
+        console.log("❌ No user data found in AsyncStorage, using default values");
+        // Get wallet address from AsyncStorage
+        const walletAddress = await AsyncStorage.getItem("walletAddress");
+        if (walletAddress) {
+          setUserData({
+            walletAddress,
+            ...DEFAULT_USER_DATA
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      // Get wallet address from AsyncStorage even if userData loading fails
+      const walletAddress = await AsyncStorage.getItem("walletAddress");
+      if (walletAddress) {
+        setUserData({
+          walletAddress,
+          ...DEFAULT_USER_DATA
+        });
+      }
+    }
+  };
 
   const toggleDarkMode = async () => {
     await toggleTheme();
   };
 
   const handleCopyAddress = async () => {
-    // Use the wallet address from userData if available.
-    const address = userData ? userData.walletAddress : walletAddress;
-    const success = await copyToClipboard(address);
+    if (!userData?.walletAddress) return;
+    const success = await copyToClipboard(userData.walletAddress);
     if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -76,9 +106,7 @@ export default function SettingsScreen() {
     <ProfileArrowSvg width={styles.profileArrowIcon.width} height={styles.profileArrowIcon.height} />
   );
 
-  // Determine the image source.
-  // If userData exists and avatar isn't the "default" string, assume it's a URL or base64 string.
-  // Otherwise, load a local default avatar.
+  // Determine the image source based on user data
   const profileImageSource =
     userData && userData.avatar !== 'default'
       ? { uri: userData.avatar }
@@ -100,25 +128,25 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
       <ScrollView style={styles.scrollContainer}>
-      <TouchableOpacity style={styles.profileContainer} onPress={() => navigation.navigate('MyProfile')}>
-  <Image
-    source={profileImageSource}
-    style={styles.profileImage}
-  />
-  <View style={styles.profileTextContainer}>
-    <Text style={styles.profileName}>
-      {userData
-        ? userData.name.length > 25
-          ? userData.name.slice(0, 25) + '...'
-          : userData.name
-        : 'Hazik'}
-    </Text>
-    <Text style={styles.profileAddress}>
-      {userData ? userData.walletAddress : walletAddress}
-    </Text>
-  </View>
-  <ProfileRightArrow />
-</TouchableOpacity>
+        <TouchableOpacity style={styles.profileContainer} onPress={() => navigation.navigate('MyProfile')}>
+          <Image
+            source={profileImageSource}
+            style={styles.profileImage}
+          />
+          <View style={styles.profileTextContainer}>
+            <Text style={styles.profileName}>
+              {userData
+                ? userData.name.length > 25
+                  ? userData.name.slice(0, 25) + '...'
+                  : userData.name
+                : "NodeLink User"}
+            </Text>
+            <Text style={styles.profileAddress}>
+              {userData?.walletAddress || "Loading..."}
+            </Text>
+          </View>
+          <ProfileRightArrow />
+        </TouchableOpacity>
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#4CD964' }]}>

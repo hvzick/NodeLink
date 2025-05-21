@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   Linking,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserData, DEFAULT_USER_DATA } from '../../backend/decentralized-database/RegisterUser';
 
 export default function MyProfile() {
   const navigation = useNavigation();
@@ -20,10 +22,47 @@ export default function MyProfile() {
   const isDarkMode = currentTheme === 'dark';
   const [copyWalletText, setCopyWalletText] = useState('');
   const [copyUsernameText, setCopyUsernameText] = useState('');
+  const [userData, setUserData] = useState<UserData | null>(null);
   const styles = getStyles(isDarkMode);
 
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const storedData = await AsyncStorage.getItem("userData");
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        console.log("📱 Loaded user data:", parsedData);
+        setUserData(parsedData);
+      } else {
+        console.log("❌ No user data found in AsyncStorage, using default values");
+        // Get wallet address from AsyncStorage
+        const walletAddress = await AsyncStorage.getItem("walletAddress");
+        if (walletAddress) {
+          setUserData({
+            walletAddress,
+            ...DEFAULT_USER_DATA
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      // Get wallet address from AsyncStorage even if userData loading fails
+      const walletAddress = await AsyncStorage.getItem("walletAddress");
+      if (walletAddress) {
+        setUserData({
+          walletAddress,
+          ...DEFAULT_USER_DATA
+        });
+      }
+    }
+  };
+
   const handleCopyAddress = async () => {
-    const success = await copyToClipboard('0xe65EAC370dB1079688f8e1e4B9a35A841aac2bac');
+    if (!userData?.walletAddress) return;
+    const success = await copyToClipboard(userData.walletAddress);
     if (success) {
       setCopyWalletText('Wallet Address Copied!');
       setTimeout(() => setCopyWalletText(''), 2000);
@@ -31,7 +70,8 @@ export default function MyProfile() {
   };
 
   const handleCopyUsername = async () => {
-    const success = await copyToClipboard('@h44zick');
+    if (!userData?.username) return;
+    const success = await copyToClipboard(`@${userData.username}`);
     if (success) {
       setCopyUsernameText('Username Copied!');
       setTimeout(() => setCopyUsernameText(''), 2000);
@@ -39,8 +79,8 @@ export default function MyProfile() {
   };
 
   const handleOpenEtherscan = async () => {
-    const address = '0xe65EAC370dB1079688f8e1e4B9a35A841aac2bac';
-    const url = `https://sepolia.etherscan.io/address/${address}`;
+    if (!userData?.walletAddress) return;
+    const url = `https://sepolia.etherscan.io/address/${userData.walletAddress}`;
     try {
       await Linking.openURL(url);
     } catch (error) {
@@ -72,15 +112,21 @@ export default function MyProfile() {
       </View>
 
       {/* Avatar */}
-      <Image source={require('../../assets/images/default-user-avatar.jpg')} style={styles.avatar} />
-      <Text style={styles.name}>Sheikh Hazik</Text>
+      <Image 
+        source={userData?.avatar === "default" 
+          ? require('../../assets/images/default-user-avatar.jpg')
+          : { uri: userData?.avatar }
+        } 
+        style={styles.avatar} 
+      />
+      <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
 
       {/* Info Box */}
       <View style={styles.infoBox}>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Wallet Address</Text>
           <TouchableOpacity onPress={handleCopyAddress} onLongPress={handleOpenEtherscan}>
-            <Text style={styles.wallet}>0xe65EAC370dB1079688f8e1e4B9a35A841aac2bac</Text>
+            <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
           </TouchableOpacity>
           {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
         </View>
@@ -89,7 +135,7 @@ export default function MyProfile() {
         <View style={styles.infoRow}>
           <Text style={styles.label}>Username</Text>
           <TouchableOpacity onPress={handleCopyUsername}>
-            <Text style={styles.username}>@h44zick</Text>
+            <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
           </TouchableOpacity>
           {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
         </View>
@@ -97,7 +143,7 @@ export default function MyProfile() {
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Bio</Text>
-          <Text style={styles.infoText}>Dev of NodeLink</Text>
+          <Text style={styles.infoText}>{userData?.bio || "Im not being spied on!"}</Text>
         </View>
       </View>
 
