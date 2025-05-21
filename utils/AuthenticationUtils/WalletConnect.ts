@@ -7,7 +7,7 @@ type SignClientType = InstanceType<typeof SignClient>;
 
 const projectId = "0b183fc0707f5795787aefe996f3df28"; // Replace with your WalletConnect Project ID
 
-const core = new Core({ projectId });
+// const core = new Core({ projectId });
 let signClient: SignClientType | null = null;
 
 // Global flag to prevent multiple navigations to the target screen.
