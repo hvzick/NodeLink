@@ -17,6 +17,7 @@ import '@ethersproject/shims';
 import "react-native-polyfill-globals/auto";
 import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider";
 import * as Notifications from 'expo-notifications';
+import { handleUserData } from "../backend/decentralized-database/HandleUserData";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -50,13 +51,20 @@ export default function App() {
     "SF-Pro-Text-Medium": require("../assets/fonts/SF-Pro-Text-Medium.otf"),
   });
 
-  // Check for existing session
+  // Check for existing session and load user data
   useEffect(() => {
     const checkSession = async () => {
       try {
         const walletAddress = await AsyncStorage.getItem("walletAddress");
         console.log("🔍 Checking session:", walletAddress ? "Found" : "Not found");
-        setHasSession(!!walletAddress);
+        
+        if (walletAddress) {
+          setHasSession(true);
+          // Load user data if authenticated
+          await handleUserData();
+        } else {
+          setHasSession(false);
+        }
       } catch (error) {
         console.error("Error checking session:", error);
         setHasSession(false);
@@ -84,20 +92,31 @@ export default function App() {
           initialRouteName={hasSession ? "Main" : "Auth"}
           screenOptions={{ headerShown: false }}
         >
-          {hasSession ? (
-            // Authenticated stack
-            <>
-              <Stack.Screen name="Main" component={BottomTabs} />
-              <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
-            </>
-          ) : (
-            // Unauthenticated stack
-            <>
-              <Stack.Screen name="Auth" component={AuthScreen} />
-              <Stack.Screen name="TOS" component={TermsOfServiceScreen} />
-              <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-            </>
-          )}
+          <Stack.Screen 
+            name="Auth" 
+            component={AuthScreen}
+            options={{ gestureEnabled: !hasSession }}
+          />
+          <Stack.Screen 
+            name="TOS" 
+            component={TermsOfServiceScreen}
+            options={{ gestureEnabled: !hasSession }}
+          />
+          <Stack.Screen 
+            name="PrivacyPolicy" 
+            component={PrivacyPolicyScreen}
+            options={{ gestureEnabled: !hasSession }}
+          />
+          <Stack.Screen 
+            name="Main" 
+            component={BottomTabs}
+            options={{ gestureEnabled: hasSession }}
+          />
+          <Stack.Screen 
+            name="ChatDetail" 
+            component={ChatDetailScreen}
+            options={{ gestureEnabled: hasSession }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
