@@ -7,13 +7,11 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { useFonts } from "expo-font";
 import { View, Text } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LoadingScreen from "./screens/LoadingScreen";
 import AuthScreen from "./screens/Authentication";
 import TermsOfServiceScreen from "./screens/TermsOfService";
 import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
 import Chats from "./screens/ChatScreen";
 import ChatDetailScreen from "./screens/ChatDetailScreen";
-import { initializeWalletConnect } from "../utils/AuthenticationUtils/WalletConnect";
 import BottomTabs from "./screens/BottomTabs";
 import '@ethersproject/shims';
 import "react-native-polyfill-globals/auto";
@@ -31,7 +29,6 @@ Notifications.setNotificationHandler({
 });
 
 export type RootStackParamList = {
-  LoadingScreen: undefined;
   Auth: undefined;
   TOS: undefined;
   PrivacyPolicy: undefined;
@@ -43,8 +40,8 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [fontsLoaded] = useFonts({
     "MontserratAlternates-Regular": require("../assets/fonts/MontserratAlternates-Regular.ttf"),
     "Inter_18pt-Medium": require("../assets/fonts/Inter_18pt-Medium.ttf"),
@@ -53,74 +50,41 @@ export default function App() {
     "SF-Pro-Text-Medium": require("../assets/fonts/SF-Pro-Text-Medium.otf"),
   });
 
-  // 1️⃣ Restore wallet session from storage once
+  // Check for existing session
   useEffect(() => {
-    (async () => {
+    const checkSession = async () => {
       try {
-        const stored = await AsyncStorage.getItem("walletAddress");
-        console.log("🔍 Checking stored wallet:", stored);
-        if (stored) {
-          console.log("✅ Found stored wallet, setting authenticated to true");
-          setIsAuthenticated(true);
-        } else {
-          console.log("❌ No stored wallet found");
-        }
-        setSessionChecked(true);
+        const walletAddress = await AsyncStorage.getItem("walletAddress");
+        console.log("🔍 Checking session:", walletAddress ? "Found" : "Not found");
+        setHasSession(!!walletAddress);
       } catch (error) {
         console.error("Error checking session:", error);
-        setSessionChecked(true);
+        setHasSession(false);
+      } finally {
+        setIsLoading(false);
       }
-    })();
+    };
+
+    checkSession();
   }, []);
 
-  // 2️⃣ Init WalletConnect only after session check & auth
-  useEffect(() => {
-    if (!sessionChecked) {
-      console.log("⏳ Waiting for session check");
-      return;
-    }
-
-    console.log("🚀 Initializing WalletConnect");
-    initializeWalletConnect(
-      async (walletAddress: string | null) => {
-        if (walletAddress) {
-          console.log("🔸 Received wallet address:", walletAddress);
-          await AsyncStorage.setItem("walletAddress", walletAddress);
-          setIsAuthenticated(true);
-        }
-      },
-      () => {
-        console.log("❌ Wallet disconnected - but maintaining auth state");
-        // Don't reset authentication state on disconnect
-      },
-      () => {
-        console.log("❌ Wallet connection failed - but maintaining auth state");
-        // Don't reset authentication state on connection failure
-      },
-      null
-    );
-  }, [sessionChecked]);
-
-  // 3️⃣ Block UI until fonts + session restore complete
-  if (!fontsLoaded || !sessionChecked) {
-    console.log("⏳ Loading state:", { fontsLoaded, sessionChecked });
+  // Show loading screen while checking session and loading fonts
+  if (isLoading || !fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading App...</Text>
+        <Text>Loading...</Text>
       </View>
     );
   }
-
-  console.log("🎯 Current auth state:", { isAuthenticated, sessionChecked });
 
   return (
     <ThemeProvider>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName={isAuthenticated ? "Main" : "Auth"}
+          initialRouteName={hasSession ? "Main" : "Auth"}
           screenOptions={{ headerShown: false }}
         >
-          {isAuthenticated ? (
+          {hasSession ? (
             // Authenticated stack
             <>
               <Stack.Screen name="Main" component={BottomTabs} />
