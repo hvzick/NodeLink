@@ -2,6 +2,7 @@ import 'react-native-get-random-values';
 import { Alert, Linking, AppState } from "react-native";
 import { Core } from "@walletconnect/core";
 import { SignClient } from "@walletconnect/sign-client";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type SignClientType = InstanceType<typeof SignClient>;
 
@@ -92,12 +93,6 @@ export const connectWallet = async (
     console.warn("⚠️ WalletConnect is not initialized (ignored)");
     return;
   }
-  //no need of logging while testing
-  // navigation.reset({   
-  //   index: 0,
-  //   routes: [{ name: "Main" }],
-  // });   
-  // setLoading(true);
 
   try {
     console.log("🔹 Creating WalletConnect session...");
@@ -126,6 +121,12 @@ export const connectWallet = async (
       if (session) {
         const walletAddress = session.namespaces.eip155.accounts[0].replace('eip155:1:', '');
         console.log("🔹 Connected Wallet Address:", walletAddress);
+        
+        // Store wallet address in AsyncStorage first
+        await AsyncStorage.setItem("walletAddress", walletAddress);
+        console.log("💾 Wallet address stored in AsyncStorage");
+        
+        // Update state after storage is confirmed
         setWalletAddress(walletAddress);
       }
 
