@@ -19,6 +19,7 @@ import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { getOrCreateUserData, UserData } from '../../backend/decentralized-database/GetUserData';
 import ArrowSVG from '../../assets/images/arrow-icon.svg';
 import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
+import { logout } from '../../utils/AuthenticationUtils/Logout'; // adjust path as needed
 
 export type SettingsStackParamList = {
   Settings: undefined;
@@ -181,10 +182,18 @@ export default function SettingsScreen() {
           </View>
           <RightArrow />
         </View>
-        <View style={[styles.settingsItem, styles.deleteAccountItem]}>
-          <Text style={styles.deleteTitle}>Delete Account</Text>
+        <TouchableOpacity onPress={() => logout(navigation)}>
+          <View style={[styles.settingsItem, styles.deleteAccountItem]}>
+          <Text style={styles.deleteTitle}>Logout</Text>
           <RightArrow />
         </View>
+        </TouchableOpacity>
+        <TouchableOpacity>
+          <View style={[styles.settingsItem, styles.deleteAccountItem]}>
+          <Text style={styles.deleteTitle}>Delete Account</Text>
+          <RightArrow />
+          </View>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
