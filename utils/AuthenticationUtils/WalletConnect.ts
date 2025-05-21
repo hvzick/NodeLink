@@ -1,7 +1,7 @@
 import 'react-native-get-random-values';
 import { Alert, Linking, AppState } from "react-native";
 import { Core } from "@walletconnect/core";
-import SignClient from "@walletconnect/sign-client";
+import { SignClient } from "@walletconnect/sign-client";
 
 type SignClientType = InstanceType<typeof SignClient>;
 
