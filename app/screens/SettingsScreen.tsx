@@ -17,6 +17,8 @@ import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 // Import your Gun.js user service
 import { getOrCreateUserData, UserData } from '../../backend/decentralized-database/GetUserData';
+import ArrowSVG from '../../assets/images/arrow-icon.svg';
+import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
 
 export type SettingsStackParamList = {
   Settings: undefined;
@@ -35,8 +37,6 @@ const lockIcon = require('../../assets/images/fc.jpg');
 const paintIcon = require('../../assets/images/fc.jpg');
 const hapticIcon = require('../../assets/images/fc.jpg');
 
-import ArrowSVG from '../../assets/images/arrow-icon.svg';
-import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
 
 export default function SettingsScreen() {
   // Retrieve the current theme and toggle function from your ThemeProvider.
@@ -50,22 +50,6 @@ export default function SettingsScreen() {
 
   // Here we use a fixed wallet address; in your app, you might get it from global state or props.
   const walletAddress = '0xe65EAC370d1079688fe1e4B9a35A41aac2bac';
-
-  // Fetch or create the user data on mount.
-  useEffect(() => {
-    getOrCreateUserData(walletAddress, {
-      username: '@hvzick',
-      avatar: 'default', // "default" identifier will be used for fallback.
-      name: 'Sheikh Hazik',
-      bio: 'Blockchain enthusiast and developer',
-    })
-      .then((data) => {
-        setUserData(data);
-      })
-      .catch((err) => {
-        console.error('Error fetching user data:', err);
-      });
-  }, []);
 
   const toggleDarkMode = async () => {
     await toggleTheme();
