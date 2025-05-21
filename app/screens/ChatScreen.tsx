@@ -25,9 +25,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
-import { ChatItemType } from "@/utils/ChatUtils/ChatItemsTypes";
-import { onRefresh } from "@/utils/ChatUtils/RefreshChats";
-import { handlePin } from "@/utils/ChatUtils/OnPin";
+import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
+import { onRefresh } from "../../utils/ChatUtils/RefreshChats";
+import { handlePin } from "../../utils/ChatUtils/OnPin";
 
 const chats: ChatItemType[] = [
   { id: "1", name: "Saved Messages", message: "image.jpeg", time: "Fri", avatar: require("../../assets/images/default-user-avatar.jpg") },
