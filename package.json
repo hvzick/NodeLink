@@ -92,7 +92,7 @@
     "@babel/core": "^7.27.1",
     "@react-native-community/cli": "^18.0.0",
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.15.17",
+    "@types/node": "^22.15.21",
     "@types/qrcode": "^1.5.5",
     "@types/react": "~19.1.4",
     "@types/react-test-renderer": "^19.0.0",
@@ -108,6 +108,7 @@
     "react-native-svg-transformer": "^1.5.1",
     "react-test-renderer": "19.0.0",
     "stream-browserify": "^3.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
   "private": true
