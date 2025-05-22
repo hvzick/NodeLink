@@ -21,65 +21,53 @@ export const DEFAULT_USER_DATA = {
 const gun = Gun({
   peers: ['https://gun-manhattan.herokuapp.com/gun'],
   localStorage: false,
+  radisk: false
 });
 
 const appRoot = gun.get('nodelink');
 const usersNode = appRoot.get('users');
 
-export async function getOrRegisterUser(
+export async function registerUser(
   userInfo: UserData
 ): Promise<{ user: UserData; isNew: boolean }> {
   return new Promise((resolve, reject) => {
+    console.log('🔍 Checking for existing user:', userInfo.walletAddress);
+    
+    // First, try to get the user
     const userRef = usersNode.get(userInfo.walletAddress);
-
+    
     userRef.once((data: any) => {
+      console.log('🔍 Existing user data:', data);
+      
       if (data && data.walletAddress) {
         console.log('👀 Loaded existing user');
         resolve({ user: data, isNew: false });
       } else {
         console.log('✨ Registering new user');
+        
+        // Put the data and wait for acknowledgment
         userRef.put(userInfo, (ack: any) => {
+          console.log('🔍 Put acknowledgment:', ack);
+          
           if (ack.err) {
+            console.error('❌ Error registering user:', ack.err);
             reject(new Error(ack.err));
           } else {
-            console.log('✅ User registered');
-            resolve({ user: userInfo, isNew: true });
+            // Verify the data was saved
+            userRef.once((savedData: any) => {
+              console.log('🔍 Verification of saved data:', savedData);
+              
+              if (savedData && savedData.walletAddress) {
+                console.log('✅ User registered and verified');
+                resolve({ user: savedData, isNew: true });
+              } else {
+                console.error('❌ Data not properly saved');
+                reject(new Error('Failed to save user data'));
+              }
+            });
           }
         });
       }
     });
   });
-}
-
-// Main function to handle user registration
-export async function registerUser(): Promise<void> {
-  try {
-    console.log("🔍 Starting user registration...");
-    
-    // Get wallet address from AsyncStorage
-    const walletAddress = await AsyncStorage.getItem("walletAddress");
-    console.log("📝 Retrieved wallet address:", walletAddress);
-    
-    if (!walletAddress) {
-      console.log("❌ No wallet address found in AsyncStorage");
-      return;
-    }
-
-    // Create user data using default configuration
-    const userData: UserData = {
-      walletAddress,
-      ...DEFAULT_USER_DATA
-    };
-
-    // Check if user exists or register new user
-    const { user, isNew } = await getOrRegisterUser(userData);
-    console.log(isNew ? '✨ User registered:' : '👀 User loaded:', user);
-
-    // Store user data locally
-    await AsyncStorage.setItem("userData", JSON.stringify(user));
-    console.log("💾 User data stored locally");
-
-  } catch (error) {
-    console.error("❌ Error in user registration:", error);
-  }
 }
