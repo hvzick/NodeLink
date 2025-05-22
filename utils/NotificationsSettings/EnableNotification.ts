@@ -51,8 +51,17 @@ async function disableNotifications(): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, 'false');
   console.log('[EnableNotification] saved DISABLED');
 
+  // Cancel all scheduled notifications
   await Notifications.cancelAllScheduledNotificationsAsync();
   console.log('[EnableNotification] canceled scheduled notifications');
+
+  // Unregister from push notifications
+  try {
+    await Notifications.unregisterForNotificationsAsync();
+    console.log('[EnableNotification] unregistered from push notifications');
+  } catch (err) {
+    console.error('[EnableNotification] error unregistering from push notifications:', err);
+  }
 }
 
 export async function loadNotificationEnabled(): Promise<boolean> {
