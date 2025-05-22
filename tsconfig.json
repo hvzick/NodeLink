@@ -3,6 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": "./",
+    "jsx": "react-native",
+    "esModuleInterop": true,
     "paths": {
       "@/*": [
         "./*"
