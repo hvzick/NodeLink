@@ -1,7 +1,7 @@
 import Gun from 'gun';
 import 'gun/sea.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserData, DEFAULT_USER_DATA } from './RegisterUser';
+import { UserData, DEFAULT_USER_DATA, registerUser } from './RegisterUser';
 import { searchUser } from './SearchUser';
 
 const gun = Gun({
@@ -14,37 +14,30 @@ const usersNode = appRoot.get('users');
 
 export async function handleUserData(): Promise<void> {
   try {
-    console.log("🔍 Starting user data handling...");
+    console.log("Starting user data handling...");
     
     // Get wallet address from AsyncStorage
     const walletAddress = await AsyncStorage.getItem("walletAddress");
-    console.log("📝 Retrieved wallet address:", walletAddress);
+    console.log("Retrieved wallet address:", walletAddress);
     
     if (!walletAddress) {
-      console.log("❌ No wallet address found - skipping user data handling");
-      return;
-    }
-
-    // Check if user is already stored locally
-    const storedUserData = await AsyncStorage.getItem("userData");
-    if (storedUserData) {
-      console.log("✅ User data already stored locally");
+      console.log("No wallet address found - skipping user data handling");
       return;
     }
 
     try {
-      // First try to search for existing user
-      console.log("🔎 Searching for existing user...");
+      // Always search for existing user in Gun.js first
+      console.log("Searching for existing user in Gun.js...");
       const existingUser = await searchUser(walletAddress);
-      console.log("👤 Found existing user:", existingUser);
+      console.log("Found existing user:");
       
-      // Store existing user data locally
+      // Store user data locally after fetching from Gun.js
       await AsyncStorage.setItem("userData", JSON.stringify(existingUser));
-      console.log("💾 Existing user data stored locally");
+      console.log("User data stored locally");
       
     } catch (error) {
       // If user not found, register new user
-      console.log("❌ User not found:", error);
+      console.log("User not found in Gun.js:", error);
       console.log("Registering new user...");
       
       // Create new user data
@@ -53,41 +46,16 @@ export async function handleUserData(): Promise<void> {
         ...DEFAULT_USER_DATA
       };
 
-      // Register new user
-      const { user } = await getOrRegisterUser(newUserData);
-      console.log("✨ New user registered:", user);
+      // Register new user using the imported function
+      const { user } = await registerUser(newUserData);
+      console.log("New user registered:", user);
 
       // Store new user data locally
       await AsyncStorage.setItem("userData", JSON.stringify(user));
-      console.log("💾 New user data stored locally");
+      console.log("New user data stored locally");
     }
 
   } catch (error) {
-    console.error("❌ Error in user data handling:", error);
+    console.error("Error in user data handling:", error);
   }
-}
-
-export async function getOrRegisterUser(
-  userInfo: UserData
-): Promise<{ user: UserData; isNew: boolean }> {
-  return new Promise((resolve, reject) => {
-    const userRef = usersNode.get(userInfo.walletAddress);
-
-    userRef.once((data: any) => {
-      if (data && data.walletAddress) {
-        console.log('👀 Loaded existing user');
-        resolve({ user: data, isNew: false });
-      } else {
-        console.log('✨ Registering new user');
-        userRef.put(userInfo, (ack: any) => {
-          if (ack.err) {
-            reject(new Error(ack.err));
-          } else {
-            console.log('✅ User registered');
-            resolve({ user: userInfo, isNew: true });
-          }
-        });
-      }
-    });
-  });
 }
