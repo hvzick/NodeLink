@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { triggerLightHapticFeedback } from '../../utils/GlobalUtils/HapticFeedback';
+import { triggerLightHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
 import {
   initConversationTones,
   playReceiveTone,

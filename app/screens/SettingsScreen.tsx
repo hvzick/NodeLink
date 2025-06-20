@@ -26,6 +26,7 @@ export type SettingsStackParamList = {
   Appearance: undefined;
   MyProfile: undefined;
   Notifications: undefined;
+  HapticFeedback: undefined;
 };
 
 type SettingsNavigationProp = StackNavigationProp<SettingsStackParamList, 'Settings'>;
@@ -201,15 +202,17 @@ export default function SettingsScreen() {
           </View>
         </TouchableOpacity>
 
-        <View style={styles.settingsItem}>
-          <View style={styles.itemLeft}>
-            <View style={[styles.iconBackground, { backgroundColor: '#5AC8FA' }]}>
-              <Image source={hapticIcon} style={styles.icon} />
+        <TouchableOpacity onPress={() => navigation.navigate('HapticFeedback')}>
+          <View style={styles.settingsItem}>
+            <View style={styles.itemLeft}>
+              <View style={[styles.iconBackground, { backgroundColor: '#5AC8FA' }]}>
+                <Image source={hapticIcon} style={styles.icon} />
+              </View>
+              <Text style={styles.itemTitle}>Turn on Haptic Feedback</Text>
             </View>
-            <Text style={styles.itemTitle}>Turn on Haptic Feedback</Text>
+            <RightArrow />
           </View>
-          <RightArrow />
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.accountActionsContainer}>
           <TouchableOpacity onPress={() => logout(navigation)}>

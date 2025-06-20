@@ -1,4 +1,3 @@
-// SettingsStackScreen.tsx
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import SettingsScreen from './SettingsScreen';
@@ -6,6 +5,7 @@ import AppearanceScreen from './Appearance';
 import MyProfile from './MyProfile';
 import NotificationsScreen from './Notifications';
 import AuthScreen from './Authentication';
+import HapticFeedback from './HapticFeedback';
 
 export type SettingsStackParamList = {
   SettingsScreen: undefined;
@@ -13,6 +13,7 @@ export type SettingsStackParamList = {
   MyProfile: undefined; 
   Notifications: undefined;
   Auth: undefined;
+  HapticFeedback: undefined;
 };
 
 const SettingsStack = createStackNavigator<SettingsStackParamList>();
@@ -25,6 +26,7 @@ export default function SettingsStackScreen() {
       <SettingsStack.Screen name="MyProfile" component={MyProfile} />
       <SettingsStack.Screen name="Notifications" component={NotificationsScreen} />
       <SettingsStack.Screen name="Auth" component={AuthScreen} />
+      <SettingsStack.Screen name="HapticFeedback" component={HapticFeedback} />
     </SettingsStack.Navigator>
   );
 }

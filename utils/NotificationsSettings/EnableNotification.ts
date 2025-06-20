@@ -1,7 +1,7 @@
 // NotificationsSettings/EnableNotification.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import { triggerLightHapticFeedback } from '../../utils/GlobalUtils/HapticFeedback';
+import { triggerLightHapticFeedback } from '../GlobalUtils/TapHapticFeedback';
 
 // ─── Foreground notification handler ─────────────────────────────────
 // Ensure notifications show alerts, sounds, banners, and list entries when the app is in the foreground

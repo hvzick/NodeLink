@@ -8,7 +8,7 @@ import { handleConnectPress} from "../../utils/AuthenticationUtils/WalletConnect
 import { handleSupport } from "../../utils/AuthenticationUtils/HandleAuthScreenSupport";
 import { handleExit } from "../../utils/AuthenticationUtils/HandleAuthScreenExit";
 import SignClient from "@walletconnect/sign-client";
-import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
+import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 

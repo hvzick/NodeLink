@@ -1,4 +1,4 @@
-import { triggerLightHapticFeedback } from "../GlobalUtils/HapticFeedback";
+import { triggerLightHapticFeedback } from "../GlobalUtils/TapHapticFeedback";
 
 export const onRefresh = () => {
   // Trigger haptic feedback

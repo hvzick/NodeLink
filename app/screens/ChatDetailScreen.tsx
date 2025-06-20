@@ -22,7 +22,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 import handleAttachment from '../../utils/ChatUtils/InsertAttachment';
-import { triggerLightHapticFeedback } from '../../utils/GlobalUtils/HapticFeedback';
+import { triggerLightHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
 import { initializeDatabase, insertMessage, fetchMessages, Message } from '../../backend/local database/SaveMessages';
 import MessageBubble from '../../utils/ChatUtils/MessageBubble';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';

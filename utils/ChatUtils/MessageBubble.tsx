@@ -10,7 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Video } from 'expo-av';
-import { triggerLightHapticFeedback } from '../../utils/GlobalUtils/HapticFeedback';
+import { triggerLightHapticFeedback } from '../GlobalUtils/TapHapticFeedback';
 import { Message } from '../../backend/local database/SaveMessages';
 
 export type MessageBubbleProps = {

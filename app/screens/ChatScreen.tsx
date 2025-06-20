@@ -24,7 +24,7 @@ import Animated, {
   SharedValue,
 } from "react-native-reanimated";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
-import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
+import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
 import { onRefresh } from "../../utils/ChatUtils/RefreshChats";
 import { handlePin } from "../../utils/ChatUtils/OnPin";

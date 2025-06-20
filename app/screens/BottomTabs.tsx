@@ -4,7 +4,7 @@ import { Image, View, Animated, ImageSourcePropType, StyleSheet, Pressable } fro
 import WalletScreen from "./WalletScreen";
 import ChatScreen from "./ChatScreen";
 import SettingsStackScreen from "./SettingStackScreen";
-import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedback";
+import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { triggerHoldHapticFeedback } from "../../utils/GlobalUtils/HoldHapticFeedback";
 // IMPORTANT: Import from ThemeProvider instead of CheckSystemTheme
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
@@ -149,7 +149,7 @@ export default function BottomTabs() {
             console.log("Wallet tab Hold pressed");
           },
           tabPress: () => {
-            triggerLightHapticFeedback();
+            triggerTapHapticFeedback();
             console.log("Wallet tab Pressed");
           },
         }}
@@ -163,7 +163,7 @@ export default function BottomTabs() {
             console.log("Chats tab Hold pressed");
           },
           tabPress: () => {
-            triggerLightHapticFeedback();
+            triggerTapHapticFeedback();
             console.log("Chats tab Pressed");
           },
         }}
@@ -177,7 +177,7 @@ export default function BottomTabs() {
             console.log("Settings tab Hold pressed");
           },
           tabPress: () => {
-            triggerLightHapticFeedback();
+            triggerTapHapticFeedback();
             console.log("Settings tab Pressed");
           },
         }}
