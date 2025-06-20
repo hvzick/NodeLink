@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet,
+import {
+  StyleSheet,
   Text,
   View,
   Image,
@@ -37,42 +38,59 @@ export default function UserProfile() {
     }
   }, [walletAddress]);
 
+  // --- MODIFIED loadUserData FUNCTION ---
   const loadUserData = async (address: string) => {
     try {
-      const cached = await AsyncStorage.getItem(address);
-      if (cached) {
-        setUserData(JSON.parse(cached));
-        console.log("📱 Loaded cached user data for", address);
-        return;
-      }
-
+      // 1. Prioritize fetching fresh data from Supabase
+      console.log("☁️ Fetching user profile from Supabase for", address);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('wallet_address', address)
         .single();
 
-      if (error || !data) {
-        console.error("❌ Error fetching user profile:", error?.message || "No data found");
-        return;
+      // 2. If fetch is successful, update UI and save to cache
+      if (data && !error) {
+        console.log("✅ Successfully fetched user profile from Supabase");
+        const formattedUser: UserData = {
+          walletAddress: data.wallet_address,
+          username: data.username,
+          name: data.name,
+          avatar: data.avatar,
+          bio: data.bio,
+          created_at: data.created_at,
+        };
+
+        // Update the UI with the fresh data
+        setUserData(formattedUser);
+
+        // Save the fresh data to AsyncStorage for caching
+        await AsyncStorage.setItem(address, JSON.stringify(formattedUser));
+        console.log("💾 User profile cached in AsyncStorage for", address);
+        return; // Exit function after successful operation
       }
 
-      const formattedUser: UserData = {
-        walletAddress: data.wallet_address,
-        username: data.username,
-        name: data.name,
-        avatar: data.avatar,
-        bio: data.bio,
-        created_at: data.created_at,
-      };
+      // 3. If fetching from Supabase fails, log the error
+      if (error) {
+        console.error("❌ Error fetching from Supabase:", error.message);
+      }
 
-      setUserData(formattedUser);
-      await AsyncStorage.setItem(address, JSON.stringify(formattedUser));
-      console.log("✅ User profile cached in AsyncStorage for", address);
+      // 4. As a fallback, try to load from the local cache
+      console.log("🤔 Fetch failed. Attempting to load from local cache...");
+      const cachedData = await AsyncStorage.getItem(address);
+      if (cachedData) {
+        setUserData(JSON.parse(cachedData));
+        console.log("📱 Loaded user data from cache for", address);
+      } else {
+        console.warn("🚫 No cached data found for this user.");
+      }
+
     } catch (err) {
-      console.error("❌ Failed to load user profile:", err);
+      // This will catch any other unexpected errors
+      console.error("❌ A critical error occurred in loadUserData:", err);
     }
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -86,20 +104,20 @@ export default function UserProfile() {
         </View>
       </View>
 
-      <Image 
-        source={userData?.avatar === "default" || !userData?.avatar 
+      <Image
+        source={userData?.avatar === "default" || !userData?.avatar
           ? require('../../assets/images/default-user-avatar.jpg')
           : { uri: userData?.avatar }
-        } 
-        style={styles.avatar} 
+        }
+        style={styles.avatar}
       />
       <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
 
       <View style={styles.infoBox}>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Wallet Address</Text>
-          <TouchableOpacity  onPress={() => handleCopyAddress(userData, setCopyWalletText)}
-          onLongPress={() => handleOpenEtherscan(userData)}>
+          <TouchableOpacity onPress={() => handleCopyAddress(userData, setCopyWalletText)}
+            onLongPress={() => handleOpenEtherscan(userData)}>
             <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
           </TouchableOpacity>
           {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
@@ -119,16 +137,16 @@ export default function UserProfile() {
           <Text style={styles.label}>Bio</Text>
           <Text style={styles.infoText}>{userData?.bio || "Im not being spied on!"}</Text>
         </View>
-          <View style={styles.separator} />
-<View style={styles.infoRow}>
-  <Text style={styles.label}>Joined</Text>
-  <Text style={styles.infoText}>
-    {userData?.created_at
-      ? format(new Date(userData.created_at), 'MMMM d, yyyy')
-      : "N/A"}
-  </Text>
-</View>
-</View>
+        <View style={styles.separator} />
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Joined</Text>
+          <Text style={styles.infoText}>
+            {userData?.created_at
+              ? format(new Date(userData.created_at), 'MMMM d, yyyy')
+              : "N/A"}
+          </Text>
+        </View>
+      </View>
 
       <StatusBar style="auto" />
     </SafeAreaView>

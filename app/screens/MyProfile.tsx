@@ -1,5 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import {
+  StyleSheet, Text, View, Image, TouchableOpacity,
+  TextInput, KeyboardAvoidingView, Platform, Alert
+} from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +11,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserData } from '../../backend/Supabase/RegisterUser';
 import { updateSupabaseUser } from '../../backend/Supabase/UpdateUserData';
-import { validateName, validateUsername, validateBio } from '../../utils/MyProfileUtils/Validators';
+import { checkUsernameExists } from '../../backend/Supabase/CheckUsername';
+import {
+  validateName, validateUsername, validateBio
+} from '../../utils/MyProfileUtils/Validators';
 import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
 import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
 import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
@@ -33,10 +39,9 @@ export default function MyProfile() {
   const [isNameValid, setIsNameValid] = useState(true);
   const [isUsernameValid, setIsUsernameValid] = useState(true);
   const [isBioValid, setIsBioValid] = useState(true);
+  const [usernameTaken, setUsernameTaken] = useState(false);
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
+  useEffect(() => { loadUserData(); }, []);
 
   useEffect(() => {
     if (userData) {
@@ -49,11 +54,9 @@ export default function MyProfile() {
   const loadUserData = async () => {
     try {
       const storedData = await AsyncStorage.getItem("userData");
-      if (storedData) {
-        setUserData(JSON.parse(storedData));
-      }
+      if (storedData) setUserData(JSON.parse(storedData));
     } catch (err) {
-      console.error("Error loading user data from AsyncStorage:", err);
+      console.error("Error loading user data:", err);
     }
   };
 
@@ -71,9 +74,7 @@ export default function MyProfile() {
       setEditedBio(userData.bio || '');
     }
     setIsEditing(false);
-    setIsNameValid(true);
-    setIsUsernameValid(true);
-    setIsBioValid(true);
+    setUsernameTaken(false);
   };
 
   const handleNameChange = (text: string) => {
@@ -82,10 +83,18 @@ export default function MyProfile() {
     setEditedName(text);
   };
 
-  const handleUsernameChange = (text: string) => {
+  const handleUsernameChange = async (text: string) => {
     const valid = validateUsername(text);
     setIsUsernameValid(valid);
     setEditedUsername(text);
+
+    if (valid && text.trim() !== userData?.username) {
+      const exists = await checkUsernameExists(text.trim(), userData?.walletAddress || '');
+
+      setUsernameTaken(exists);
+    } else {
+      setUsernameTaken(false);
+    }
   };
 
   const handleBioChange = (text: string) => {
@@ -104,21 +113,20 @@ export default function MyProfile() {
     const isFinalUsernameValid = validateUsername(editedUsername.trim());
     const isFinalBioValid = validateBio(editedBio);
 
-    if (!isFinalNameValid) {
-      setIsNameValid(false);
-      Alert.alert("Invalid Name", "Name must only contain letters and spaces (1–30 characters).");
+    if (!isFinalNameValid || !isFinalUsernameValid || !isFinalBioValid) {
+      setIsNameValid(isFinalNameValid);
+      setIsUsernameValid(isFinalUsernameValid);
+      setIsBioValid(isFinalBioValid);
+      Alert.alert("Invalid Input", "Please correct the highlighted fields.");
       return;
     }
 
-    if (!isFinalUsernameValid) {
-      setIsUsernameValid(false);
-      Alert.alert("Invalid Username", "Username must be 1–20 letters or numbers. No special characters.");
-      return;
-    }
-
-    if (!isFinalBioValid) {
-      setIsBioValid(false);
-      Alert.alert("Invalid Bio", "Bio must be 150 characters or fewer.");
+    if (
+      editedUsername.trim() !== userData.username &&
+       (await checkUsernameExists(editedUsername.trim(), userData.walletAddress))
+    ) {
+      setUsernameTaken(true);
+      Alert.alert("Username Taken", "Please choose a different username.");
       return;
     }
 
@@ -128,14 +136,14 @@ export default function MyProfile() {
       editedBio !== (userData.bio || '');
 
     if (!hasChanges) {
-      Alert.alert("No Changes", "You haven't made any changes to your profile.");
+      Alert.alert("No Changes", "You haven't made any changes.");
       setIsEditing(false);
       return;
     }
 
     setIsSaving(true);
-    const updates: { name?: string; username?: string; bio?: string } = {};
 
+    const updates: { name?: string; username?: string; bio?: string } = {};
     if (editedName !== userData.name) updates.name = editedName.trim();
     if (editedUsername !== userData.username) updates.username = editedUsername.trim();
     if (editedBio !== userData.bio) updates.bio = editedBio;
@@ -143,7 +151,7 @@ export default function MyProfile() {
     const { error: supabaseError } = await updateSupabaseUser(userData.walletAddress, updates);
 
     if (supabaseError) {
-      Alert.alert("Error", `Failed to save changes to server: ${supabaseError.message}`);
+      Alert.alert("Error", `Failed to update: ${supabaseError.message}`);
       setIsSaving(false);
       return;
     }
@@ -154,10 +162,11 @@ export default function MyProfile() {
       await AsyncStorage.setItem("userData", JSON.stringify(updatedUserData));
       setUserData(updatedUserData);
       setIsEditing(false);
-      Alert.alert("Success", "Profile updated successfully!");
-    } catch (error) {
-      console.error("Error saving user data to AsyncStorage:", error);
-      Alert.alert("Error", "Failed to save profile locally.");
+      setUsernameTaken(false);
+      Alert.alert("Success", "Profile updated.");
+    } catch (err) {
+      console.error("AsyncStorage error:", err);
+      Alert.alert("Error", "Failed to save locally.");
     } finally {
       setIsSaving(false);
     }
@@ -167,8 +176,9 @@ export default function MyProfile() {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%', alignItems: 'center' }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        
+        {/* Header */}
         <View style={styles.headerContainer}>
           {isEditing ? (
             <TouchableOpacity style={styles.backButton} onPress={handleCancelEdit} disabled={isSaving}>
@@ -180,9 +190,11 @@ export default function MyProfile() {
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           )}
+
           <View style={styles.headerTitleContainer} pointerEvents="none">
             <Text style={styles.headerTitleText}>My Profile</Text>
           </View>
+
           {isEditing ? (
             <View style={styles.editButtonsContainer}>
               <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile} disabled={isSaving}>
@@ -196,60 +208,69 @@ export default function MyProfile() {
           )}
         </View>
 
+        {/* Avatar + Name */}
         <Image
-          source={userData?.avatar === "default"
+          source={userData?.avatar === 'default'
             ? require('../../assets/images/default-user-avatar.jpg')
             : { uri: userData?.avatar }}
           style={styles.avatar}
         />
-
         {isEditing ? (
           <TextInput
             style={[styles.name, styles.editableText, !isNameValid && styles.invalidText]}
             value={editedName}
             onChangeText={handleNameChange}
             placeholder="Your Name"
-            placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}
             maxLength={30}
           />
-            ) : (
-              <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
-            )}
+        ) : (
+          <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
+        )}
 
+        {/* Profile Info */}
         <View style={styles.infoBox}>
+          {/* Wallet */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Wallet Address</Text>
-      <TouchableOpacity
-        onPress={() => handleCopyAddress(userData, setCopyWalletText)}
-        onLongPress={(event) => handleOpenEtherscan(userData)}
-      >
-        <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
-      </TouchableOpacity>
-
+            <TouchableOpacity
+              onPress={() => handleCopyAddress(userData, setCopyWalletText)}
+              onLongPress={() => handleOpenEtherscan(userData)}>
+              <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
+            </TouchableOpacity>
             {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
           </View>
+
           <View style={styles.separator} />
+
+          {/* Username */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Username</Text>
             {isEditing ? (
-              <TextInput
-                style={[styles.username, styles.editableText, !isUsernameValid && styles.invalidText]}
-                value={editedUsername}
-                onChangeText={handleUsernameChange}
-                placeholder="Your Username"
-                placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}
-                maxLength={20}
-                autoCapitalize="none"
-              />
+              <>
+                <TextInput
+                  style={[styles.username, styles.editableText, (!isUsernameValid || usernameTaken) && styles.invalidText]}
+                  value={editedUsername}
+                  onChangeText={handleUsernameChange}
+                  placeholder="Your Username"
+                  maxLength={20}
+                  autoCapitalize="none"
+                />
+                {usernameTaken && (
+                  <Text style={[styles.uCopyMessage, { color: '#EB5545' }]}>This username is already taken.</Text>
+                )}
+              </>
             ) : (
-      <TouchableOpacity onPress={() => handleCopyUsername(userData, setCopyUsernameText)} onLongPress={() => handleOpenEtherscan(userData)}>
-        <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
-      </TouchableOpacity>
-
+              <TouchableOpacity onPress={() => handleCopyUsername(userData, setCopyUsernameText)}
+                                onLongPress={() => handleOpenEtherscan(userData)}>
+                <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
+              </TouchableOpacity>
             )}
             {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
           </View>
+
           <View style={styles.separator} />
+
+          {/* Bio */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Bio</Text>
             {isEditing ? (
@@ -257,8 +278,7 @@ export default function MyProfile() {
                 style={[styles.infoText, styles.editableText, styles.bioInput, !isBioValid && styles.invalidText]}
                 value={editedBio}
                 onChangeText={handleBioChange}
-                placeholder="Tell us about yourself!"
-                placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}
+                placeholder="Tell us about yourself"
                 multiline
                 maxLength={150}
               />
@@ -266,23 +286,26 @@ export default function MyProfile() {
               <Text style={styles.infoText}>{userData?.bio || "I'm not being spied on!"}</Text>
             )}
           </View>
+
           <View style={styles.separator} />
-<View style={styles.infoRow}>
-  <Text style={styles.label}>Joined</Text>
-  <Text style={styles.infoText}>
-    {userData?.created_at
-      ? format(new Date(userData.created_at), 'MMMM d, yyyy')
-      : "N/A"}
-  </Text>
-</View>
-</View>
-        
+
+          {/* Join Date */}
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Joined</Text>
+            <Text style={styles.infoText}>
+              {userData?.created_at
+                ? format(new Date(userData.created_at), 'MMMM d, yyyy')
+                : "N/A"}
+            </Text>
+          </View>
+        </View>
 
         <StatusBar style="auto" />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
 
 const getStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
