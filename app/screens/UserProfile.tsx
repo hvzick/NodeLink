@@ -14,7 +14,7 @@ import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserData, DEFAULT_USER_DATA } from '../../backend/decentralized-database/RegisterUser';
+import { UserData, DEFAULT_USER_DATA } from '../../backend/Supabase/RegisterUser';
 
 export default function UserProfile() {
   const navigation = useNavigation();

@@ -28,8 +28,7 @@ import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedba
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
 import { onRefresh } from "../../utils/ChatUtils/RefreshChats";
 import { handlePin } from "../../utils/ChatUtils/OnPin";
-import { searchUser } from '../../backend/decentralized-database/SearchUser';
-
+// import { searchUser } from '../../backend/Supabase/FetchUser';
 const chats: ChatItemType[] = [
   { id: "1", name: "Saved Messages", message: "image.jpeg", time: "Fri", avatar: require("../../assets/images/default-user-avatar.jpg") },
   { id: "2", name: "Ahmed", message: "How u doin", time: "9/29", avatar: require("../../assets/images/default-user-avatar.jpg") },
@@ -205,25 +204,25 @@ const Chats = () => {
     }
   }, [searchQuery, chatList]);
 
-  const handleSearch = async (query: string) => {
-    setSearchError(""); // Clear any previous error
-    // Check if the query looks like a wallet address (starts with 0x and has 42 characters)
-    if (query.startsWith('0x') && query.length >= 15) {
-      try {
-        // Search for user in Gun.js database
-        const user = await searchUser(query);
-        if (!user || !user.walletAddress) {
-          setSearchError("User not found");
-          return;
-        }
-        // Navigate to UserProfile with the found user's wallet address
-        navigation.navigate('UserProfile', { walletAddress: query });
-      } catch (error) {
-        // console.error("❌ User not found:", error);
-        setSearchError("User not found");
-      }
-    }
-  };
+  // const handleSearch = async (query: string) => {
+  //   setSearchError(""); // Clear any previous error
+  //   // Check if the query looks like a wallet address (starts with 0x and has 42 characters)
+  //   if (query.startsWith('0x') && query.length >= 15) {
+  //     try {
+  //       // Search for user in Gun.js database
+  //       const user = await searchUser(query);
+  //       if (!user || !user.walletAddress) {
+  //         setSearchError("User not found");
+  //         return;
+  //       }
+  //       // Navigate to UserProfile with the found user's wallet address
+  //       navigation.navigate('UserProfile', { walletAddress: query });
+  //     } catch (error) {
+  //       // console.error("❌ User not found:", error);
+  //       setSearchError("User not found");
+  //     }
+  //   }
+  // };
 
   const handleSwipe = (id: string) => {
     Object.keys(swipeRefs.current).forEach((key) => {
@@ -289,7 +288,7 @@ const Chats = () => {
                   setSearchQuery(text);
                   setSearchError("");
                 }}
-                onSubmitEditing={() => handleSearch(searchQuery)}
+                // onSubmitEditing={() => handleSearch(searchQuery)}
                 returnKeyType="search"
                 blurOnSubmit={false}
               />
