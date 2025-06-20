@@ -1,11 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL!,
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
-);
-if (process.env.EXPO_PUBLIC_SUPABASE_URL! || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!) {
-  console.error('Supabase URL or Anon Key is missing. Please check your environment variables.');
-}
+import { supabase } from './Supabase';
 
 interface UserProfileUpdate {
   name?: string;

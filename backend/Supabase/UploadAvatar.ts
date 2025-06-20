@@ -1,14 +1,7 @@
-import { config } from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 
-config();
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
-);
+import { supabase } from './Supabase';
 
 const uploadImageAndUpdateUser = async () => {
   const wallet = '0xabc123...';

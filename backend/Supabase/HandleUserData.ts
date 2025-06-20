@@ -1,12 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserData, DEFAULT_USER_DATA, registerUser } from './RegisterUser';
-
-// ✅ Use EXPO_PUBLIC_ env vars if using Expo
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from './Supabase';
 
 export async function handleUserData(): Promise<void> {
   try {
@@ -22,9 +16,9 @@ export async function handleUserData(): Promise<void> {
     // 🔍 Check if user exists in Supabase
     const { data: user, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*') // created_at will be included automatically if present in the schema
       .eq('wallet_address', walletAddress)
-      .maybeSingle(); // safe alternative to .single()
+      .maybeSingle();
 
     if (error) {
       throw error;
@@ -34,13 +28,13 @@ export async function handleUserData(): Promise<void> {
 
     if (user) {
       console.log("✅ User found in Supabase:");
-      // Convert DB format to our format
       userData = {
         walletAddress: user.wallet_address,
         username: user.username,
         name: user.name,
         avatar: user.avatar,
-        bio: user.bio
+        bio: user.bio,
+        created_at: user.created_at, // ✅ include createdAt
       };
     } else {
       console.log("👤 User not found — registering new one...");

@@ -1,10 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL!,
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabase } from './Supabase';
 
 // User interface
 export interface UserData {
@@ -13,10 +8,11 @@ export interface UserData {
   name: string;
   avatar: string;
   bio: string;
+  created_at?: string;
 }
 
 // Default user data
-export const DEFAULT_USER_DATA: Omit<UserData, 'walletAddress'> = {
+export const DEFAULT_USER_DATA: Omit<UserData, 'walletAddress' | 'created_at'> = {
   name: "NodeLink User",
   bio: "Im not being spied on",
   avatar: "default",
@@ -45,7 +41,7 @@ export async function registerUser(
         username: existingUser.username,
         name: existingUser.name,
         avatar: existingUser.avatar,
-        bio: existingUser.bio,
+        bio: existingUser.bio
       };
 
       await AsyncStorage.setItem('userData', JSON.stringify(user));
@@ -76,10 +72,11 @@ export async function registerUser(
       name: newUser.name,
       avatar: newUser.avatar,
       bio: newUser.bio,
+      created_at: newUser.created_at, // ✅ Add here as well
     };
 
     await AsyncStorage.setItem('userData', JSON.stringify(user));
-    console.log("✅ New user registered and stored:");
+    console.log("✅ New user registered and stored:", user);
 
     return { user, isNew: true };
 

@@ -1,12 +1,4 @@
-import { config } from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
-
-config();
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
-);
+import { supabase } from './Supabase';
 
 const deleteUserByWallet = async (walletAddress: string) => {
   // Step 1: Fetch the user's avatar path from the DB
