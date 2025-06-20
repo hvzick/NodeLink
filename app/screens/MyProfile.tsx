@@ -1,16 +1,6 @@
 // At the top of your file
 import { StatusBar } from 'expo-status-bar';
-import {
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  TouchableOpacity,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -86,7 +76,6 @@ export default function MyProfile() {
     setIsBioValid(true);
   };
 
-  // ✅ Input Handlers
   const handleNameChange = (text: string) => {
     const valid = validateName(text);
     setIsNameValid(valid);
