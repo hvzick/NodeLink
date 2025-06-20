@@ -1,4 +1,3 @@
-// At the top of your file
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
@@ -13,6 +12,7 @@ import { validateName, validateUsername, validateBio } from '../../utils/MyProfi
 import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
 import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
 import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
+import { format } from 'date-fns';
 
 export default function MyProfile() {
   const navigation = useNavigation();
@@ -266,7 +266,17 @@ export default function MyProfile() {
               <Text style={styles.infoText}>{userData?.bio || "I'm not being spied on!"}</Text>
             )}
           </View>
-        </View>
+          <View style={styles.separator} />
+<View style={styles.infoRow}>
+  <Text style={styles.label}>Joined</Text>
+  <Text style={styles.infoText}>
+    {userData?.created_at
+      ? format(new Date(userData.created_at), 'MMMM d, yyyy')
+      : "N/A"}
+  </Text>
+</View>
+</View>
+        
 
         <StatusBar style="auto" />
       </KeyboardAvoidingView>

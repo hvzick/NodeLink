@@ -8,16 +8,20 @@ import {
   Linking,
 } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserData, DEFAULT_USER_DATA } from '../../backend/Supabase/RegisterUser';
+import { UserData } from '../../backend/Supabase/RegisterUser';
+import { supabase } from '../../backend/Supabase/Supabase';
 
 export default function UserProfile() {
   const navigation = useNavigation();
+  const route = useRoute();
+  const { walletAddress } = route.params as { walletAddress: string };
+
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === 'dark';
   const [copyWalletText, setCopyWalletText] = useState('');
@@ -26,37 +30,44 @@ export default function UserProfile() {
   const styles = getStyles(isDarkMode);
 
   useEffect(() => {
-    loadUserData();
-  }, []);
+    if (walletAddress) {
+      loadUserData(walletAddress);
+    }
+  }, [walletAddress]);
 
-  const loadUserData = async () => {
+  const loadUserData = async (address: string) => {
     try {
-      const storedData = await AsyncStorage.getItem("userData");
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        console.log("📱 Loaded user data:", parsedData);
-        setUserData(parsedData);
-      } else {
-        console.log("❌ No user data found in AsyncStorage, using default values");
-        // Get wallet address from AsyncStorage
-        const walletAddress = await AsyncStorage.getItem("walletAddress");
-        if (walletAddress) {
-          setUserData({
-            walletAddress,
-            ...DEFAULT_USER_DATA
-          });
-        }
+      const cached = await AsyncStorage.getItem(address);
+      if (cached) {
+        setUserData(JSON.parse(cached));
+        console.log("📱 Loaded cached user data for", address);
+        return;
       }
-    } catch (error) {
-      console.error("Error loading user data:", error);
-      // Get wallet address from AsyncStorage even if userData loading fails
-      const walletAddress = await AsyncStorage.getItem("walletAddress");
-      if (walletAddress) {
-        setUserData({
-          walletAddress,
-          ...DEFAULT_USER_DATA
-        });
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('wallet_address', address)
+        .single();
+
+      if (error || !data) {
+        console.error("❌ Error fetching user profile:", error?.message || "No data found");
+        return;
       }
+
+      const formattedUser: UserData = {
+        walletAddress: data.wallet_address,
+        username: data.username,
+        name: data.name,
+        avatar: data.avatar,
+        bio: data.bio,
+      };
+
+      setUserData(formattedUser);
+      await AsyncStorage.setItem(address, JSON.stringify(formattedUser));
+      console.log("✅ User profile cached in AsyncStorage for", address);
+    } catch (err) {
+      console.error("❌ Failed to load user profile:", err);
     }
   };
 
@@ -88,7 +99,6 @@ export default function UserProfile() {
     }
   };
 
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
@@ -96,17 +106,13 @@ export default function UserProfile() {
           <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-
-        {/* Centered title, non-touchable */}
         <View style={styles.headerTitleContainer} pointerEvents="none">
-          <Text style={styles.headerTitleText}>My Profile</Text>
+          <Text style={styles.headerTitleText}>User Profile</Text>
         </View>
-
       </View>
 
-      {/* Avatar */}
       <Image 
-        source={userData?.avatar === "default" 
+        source={userData?.avatar === "default" || !userData?.avatar 
           ? require('../../assets/images/default-user-avatar.jpg')
           : { uri: userData?.avatar }
         } 
@@ -114,7 +120,6 @@ export default function UserProfile() {
       />
       <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
 
-      {/* Info Box */}
       <View style={styles.infoBox}>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Wallet Address</Text>
