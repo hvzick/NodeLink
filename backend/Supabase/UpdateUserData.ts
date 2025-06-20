@@ -22,7 +22,7 @@ export const updateSupabaseUser = async (walletAddress: string, updates: UserPro
   if (error) {
     console.error('❌ Supabase Update Error:', error.message);
   } else {
-    console.log('✅ Supabase User Updated:', data);
+    console.log('✅ Supabase User Updated');
   }
   return { data, error };
 };

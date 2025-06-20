@@ -1,7 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
 import {
   StyleSheet, Text, View, Image, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, Alert
+  TextInput, KeyboardAvoidingView, Platform, Alert,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -19,9 +21,8 @@ import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
 import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
 import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
 import { format } from 'date-fns';
-// --- Add required imports ---
 import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '../../backend/Supabase/Supabase'; // Ensure you have this export
+import { supabase } from '../../backend/Supabase/Supabase';
 import 'react-native-url-polyfill/auto';
 
 export default function MyProfile() {
@@ -30,29 +31,40 @@ export default function MyProfile() {
   const isDarkMode = currentTheme === 'dark';
   const styles = getStyles(isDarkMode);
 
+  // --- STATE ---
   const [copyWalletText, setCopyWalletText] = useState('');
   const [copyUsernameText, setCopyUsernameText] = useState('');
   const [userData, setUserData] = useState<UserData | null>(null);
-
-  // --- EDITING STATE ---
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editedUsername, setEditedUsername] = useState('');
   const [editedBio, setEditedBio] = useState('');
-  // NEW STATE: Holds the local URI of a newly picked avatar
   const [editedAvatarUri, setEditedAvatarUri] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-  // --- VALIDATION STATE ---
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isNameValid, setIsNameValid] = useState(true);
   const [isUsernameValid, setIsUsernameValid] = useState(true);
   const [isBioValid, setIsBioValid] = useState(true);
   const [usernameTaken, setUsernameTaken] = useState(false);
 
-  useEffect(() => { loadUserData(); }, []);
+  const showNotification = (message: string, type: 'success' | 'error', duration = 3000) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setNotification({ message, type });
+    
+    setTimeout(() => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setNotification(null);
+    }, duration);
+  };
+  
+  useEffect(() => {
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+    loadUserData();
+  }, []);
 
   useEffect(() => {
-    // This effect now correctly populates the edit fields from the main userData state
     if (userData) {
       setEditedName(userData.name || '');
       setEditedUsername(userData.username || '');
@@ -71,7 +83,6 @@ export default function MyProfile() {
 
   const handleEditProfile = () => {
     setIsEditing(true);
-    // Reset validation states
     setIsNameValid(true);
     setIsUsernameValid(true);
     setIsBioValid(true);
@@ -83,7 +94,6 @@ export default function MyProfile() {
       setEditedUsername(userData.username || '');
       setEditedBio(userData.bio || '');
     }
-    // Reset all temporary edits, including the new avatar
     setEditedAvatarUri(null);
     setIsEditing(false);
     setUsernameTaken(false);
@@ -111,116 +121,75 @@ export default function MyProfile() {
     setIsBioValid(validateBio(text));
   };
   
-  // MODIFIED: This function now only PICKS an image. The upload happens on save.
   const handleAvatarPress = async () => {
     if (!isEditing) return;
-
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission Denied", "You need to allow access to your photos.");
       return;
     }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (result.canceled || !result.assets || result.assets.length === 0) {
-      return; // User cancelled the action
-    }
-    // Save the local URI to state to show a preview and flag the change
+    const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 0.8 });
+    if (result.canceled || !result.assets || result.assets.length === 0) return;
     setEditedAvatarUri(result.assets[0].uri);
   };
 
-  // REWRITTEN: This function handles all saves (text and avatar) together.
- const handleSaveProfile = async () => {
+  const handleSaveProfile = async () => {
     if (!userData?.walletAddress) {
-      Alert.alert("Error", "Wallet address not found.");
+      showNotification("Wallet address not found.", 'error');
       return;
     }
-
     if (!isNameValid || !isUsernameValid || !isBioValid || usernameTaken) {
-      Alert.alert("Invalid Input", "Please correct the highlighted fields before saving.");
+      showNotification("Please correct the highlighted fields.", 'error');
       return;
     }
-
     const avatarDidChange = editedAvatarUri !== null;
     const textDidChange =
       editedName.trim() !== (userData.name || '') ||
       editedUsername.trim() !== (userData.username || '') ||
       editedBio.trim() !== (userData.bio || '');
-
     if (!avatarDidChange && !textDidChange) {
-      Alert.alert("No Changes", "You haven't made any changes to your profile.");
-      return setIsEditing(false);
+      setIsEditing(false);
+      return;
     }
-
     setIsSaving(true);
     const updates: { name?: string; username?: string; bio?: string; avatar?: string } = {};
-
-    // --- Avatar Update Logic ---
-    let newAvatarUrl: string | null = null;
     if (avatarDidChange && editedAvatarUri) {
       try {
-        // Delete the old avatar if it's not the default one
         if (userData?.avatar && userData.avatar !== 'default' && !userData.avatar?.startsWith('require')) {
           const oldAvatarPathParts = userData.avatar.split('/');
-          // Assuming the path in storage is like walletAddress/avatar.ext
-          const oldAvatarPath = `${userData.walletAddress}/${oldAvatarPathParts.pop()}`;
-          const { error: deleteError } = await supabase.storage
-            .from('avatars')
-            .remove([oldAvatarPath]);
-
-          if (deleteError) {
-            console.error("Error deleting old avatar:", deleteError);
-            Alert.alert("Error", "Failed to delete the previous avatar. Please try again.");
-            setIsSaving(false);
-            return;
-          }
-          console.log("✅ Old avatar deleted:", oldAvatarPath);
+          const oldAvatarPath = `${userData.walletAddress}/${oldAvatarPathParts.pop()?.split('?')[0]}`;
+          await supabase.storage.from('avatars').remove([oldAvatarPath]);
         }
-
-        // Upload the new avatar
         const fileExtension = editedAvatarUri.split('.').pop()?.toLowerCase() || 'jpg';
         const contentType = `image/${fileExtension}`;
         const fileName = `avatar.${fileExtension}`;
         const filePath = `${userData.walletAddress}/${fileName}`;
-
         const formData = new FormData();
         formData.append('file', { uri: editedAvatarUri, name: fileName, type: contentType } as any);
-
         const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, formData, { upsert: true });
         if (uploadError) throw uploadError;
-
         const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        newAvatarUrl = `${publicUrlData.publicUrl}?t=${new Date().getTime()}`;
-        updates.avatar = newAvatarUrl;
+        updates.avatar = `${publicUrlData.publicUrl}?t=${new Date().getTime()}`;
       } catch (error) {
-        Alert.alert("Error", "Failed to upload new avatar. Please try again.");
+        const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+        showNotification(`Avatar upload failed: ${message}`, 'error');
         setIsSaving(false);
         return;
       }
     }
-
-    // --- Text Updates ---
     if (textDidChange) {
       if (editedName.trim() !== (userData.name || '')) updates.name = editedName.trim();
       if (editedUsername.trim() !== (userData.username || '')) updates.username = editedUsername.trim();
       if (editedBio.trim() !== (userData.bio || '')) updates.bio = editedBio.trim();
     }
-
-    // --- Perform Database Update ---
     if (Object.keys(updates).length > 0) {
       const { error: supabaseError } = await updateSupabaseUser(userData.walletAddress, updates);
       if (supabaseError) {
-        Alert.alert("Error", `Failed to update profile: ${supabaseError.message}`);
+        showNotification(`Update failed: ${supabaseError.message}`, 'error');
         setIsSaving(false);
         return;
       }
     }
-
-    // --- Update Local State and Storage ---
     const finalUserData = { ...userData, ...updates };
     try {
       await AsyncStorage.setItem("userData", JSON.stringify(finalUserData));
@@ -228,24 +197,22 @@ export default function MyProfile() {
       setIsEditing(false);
       setEditedAvatarUri(null);
       setUsernameTaken(false);
-      Alert.alert("Success", "Your profile has been updated.");
+      showNotification("Profile updated successfully!", 'success');
     } catch (err) {
-      console.error("AsyncStorage error:", err);
-      Alert.alert("Error", "Failed to save profile locally.");
+      showNotification("Failed to save profile locally.", 'error');
     } finally {
       setIsSaving(false);
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%', alignItems: 'center' }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         
-        {/* Header */}
         <View style={styles.headerContainer}>
-          {isEditing ? (
+           {isEditing ? (
             <TouchableOpacity style={styles.backButton} onPress={handleCancelEdit} disabled={isSaving}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -255,11 +222,9 @@ export default function MyProfile() {
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           )}
-
           <View style={styles.headerTitleContainer} pointerEvents="none">
             <Text style={styles.headerTitleText}>My Profile</Text>
           </View>
-
           {isEditing ? (
             <View style={styles.editButtonsContainer}>
               <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile} disabled={isSaving}>
@@ -273,13 +238,10 @@ export default function MyProfile() {
           )}
         </View>
 
-        {/* Avatar Section */}
         <View style={styles.avatarContainer}>
           <TouchableOpacity onPress={handleAvatarPress} disabled={!isEditing}>
             <Image
               source={
-                // If a new avatar has been picked, show its local URI for an instant preview.
-                // Otherwise, show the one from the saved userData.
                 editedAvatarUri
                   ? { uri: editedAvatarUri }
                   : (userData?.avatar === 'default' || !userData?.avatar
@@ -295,8 +257,7 @@ export default function MyProfile() {
             )}
           </TouchableOpacity>
         </View>
-
-        {/* Name Section */}
+        
         {isEditing ? (
           <TextInput
             style={[styles.name, styles.editableText, !isNameValid && styles.invalidText]}
@@ -309,9 +270,7 @@ export default function MyProfile() {
           <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
         )}
 
-        {/* Profile Info Box */}
         <View style={styles.infoBox}>
-          {/* Wallet */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Wallet Address</Text>
             <TouchableOpacity
@@ -324,7 +283,6 @@ export default function MyProfile() {
 
           <View style={styles.separator} />
 
-          {/* Username */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Username</Text>
             {isEditing ? (
@@ -352,7 +310,6 @@ export default function MyProfile() {
 
           <View style={styles.separator} />
 
-          {/* Bio */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Bio</Text>
             {isEditing ? (
@@ -371,7 +328,6 @@ export default function MyProfile() {
 
           <View style={styles.separator} />
 
-          {/* Join Date */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Joined</Text>
             <Text style={styles.infoText}>
@@ -382,13 +338,23 @@ export default function MyProfile() {
           </View>
         </View>
 
+        {/* --- Notification Area --- */}
+        {notification && (
+            <View style={[
+                styles.notificationContainer,
+                // --- THIS LINE IS CHANGED ---
+                { backgroundColor: notification.type === 'success' ? '#007AFF' : '#dc3545' }
+            ]}>
+                <Text style={styles.notificationText}>{notification.message}</Text>
+            </View>
+        )}
+
         <StatusBar style="auto" />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-// Your styles remain the same
 const getStyles = (isDarkMode: boolean) => StyleSheet.create({
     container: {
       flex: 1,
@@ -464,11 +430,10 @@ const getStyles = (isDarkMode: boolean) => StyleSheet.create({
       width: '90%',
       borderRadius: 12,
       paddingHorizontal: 15,
-      paddingVertical: 10,
-      marginVertical: 20,
+      marginBottom: 0, 
     },
     infoRow: {
-      paddingVertical: 10,
+      paddingVertical: 12,
     },
     label: {
       fontSize: 12,
@@ -492,7 +457,6 @@ const getStyles = (isDarkMode: boolean) => StyleSheet.create({
     separator: {
       height: 1,
       backgroundColor: isDarkMode ? '#333' : '#EFEFEF',
-      marginVertical: 0,
     },
     waCopyMessage: {
       fontSize: 14,
@@ -543,7 +507,20 @@ const getStyles = (isDarkMode: boolean) => StyleSheet.create({
       textAlignVertical: 'top',
     },
     invalidText: {
-      color: '#EB5545',
-      borderBottomColor: '#EB5545',
+      color: '#dc3545',
+      borderBottomColor: '#dc3545',
     },
-  });
+    notificationContainer: {
+      width: '90%',
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 15,
+      marginTop: 20,
+    },
+    notificationText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+});
