@@ -21,7 +21,10 @@
   "include": [
     "backend/**/*",
     "src/**/*",
-    "app/**/*"
+    "app/**/*",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "src/types/declarations.d.ts" // ✅ added declaration file
   ],
   "exclude": [
     "node_modules"

@@ -1,5 +1,4 @@
-// SettingsScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
@@ -38,21 +37,19 @@ const lockIcon = require('../../assets/images/fc.jpg');
 const paintIcon = require('../../assets/images/fc.jpg');
 const hapticIcon = require('../../assets/images/fc.jpg');
 
-
 export default function SettingsScreen() {
-  // Retrieve the current theme and toggle function from your ThemeProvider.
   const { currentTheme, toggleTheme } = useThemeToggle();
   const isDarkMode = currentTheme === 'dark';
   const [copied, setCopied] = useState(false);
   const navigation = useNavigation<SettingsNavigationProp>();
-  const rootNavigation = navigation.getParent();
 
-  // State to hold user data retrieved from the database.
   const [userData, setUserData] = useState<UserData | null>(null);
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadUserData();
+    }, [])
+  );
 
   const loadUserData = async () => {
     try {
@@ -62,24 +59,21 @@ export default function SettingsScreen() {
         console.log("📱 Loaded user data in settings");
         setUserData(parsedData);
       } else {
-        console.log("❌ No user data found in AsyncStorage, using default values");
-        // Get wallet address from AsyncStorage
         const walletAddress = await AsyncStorage.getItem("walletAddress");
         if (walletAddress) {
           setUserData({
             walletAddress,
-            ...DEFAULT_USER_DATA
+            ...DEFAULT_USER_DATA,
           });
         }
       }
     } catch (error) {
       console.error("Error loading user data:", error);
-      // Get wallet address from AsyncStorage even if userData loading fails
       const walletAddress = await AsyncStorage.getItem("walletAddress");
       if (walletAddress) {
         setUserData({
           walletAddress,
-          ...DEFAULT_USER_DATA
+          ...DEFAULT_USER_DATA,
         });
       }
     }
@@ -108,7 +102,6 @@ export default function SettingsScreen() {
     <ProfileArrowSvg width={styles.profileArrowIcon.width} height={styles.profileArrowIcon.height} />
   );
 
-  // Determine the image source based on user data
   const profileImageSource =
     userData && userData.avatar !== 'default'
       ? { uri: userData.avatar }
@@ -149,6 +142,7 @@ export default function SettingsScreen() {
           </View>
           <ProfileRightArrow />
         </TouchableOpacity>
+
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#4CD964' }]}>
@@ -158,7 +152,7 @@ export default function SettingsScreen() {
           </View>
           <RightArrow />
         </View>
-        {/* Change Theme row with extra text next to the switch */}
+
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#000' }]}>
@@ -172,6 +166,7 @@ export default function SettingsScreen() {
             <Switch value={isDarkMode} onValueChange={toggleDarkMode} />
           </View>
         </View>
+
         <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
@@ -183,6 +178,7 @@ export default function SettingsScreen() {
             <RightArrow />
           </View>
         </TouchableOpacity>
+
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#8E8E93' }]}>
@@ -192,6 +188,7 @@ export default function SettingsScreen() {
           </View>
           <RightArrow />
         </View>
+
         <TouchableOpacity onPress={() => navigation.navigate('Appearance')}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
@@ -203,6 +200,7 @@ export default function SettingsScreen() {
             <RightArrow />
           </View>
         </TouchableOpacity>
+
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
             <View style={[styles.iconBackground, { backgroundColor: '#5AC8FA' }]}>
@@ -212,6 +210,7 @@ export default function SettingsScreen() {
           </View>
           <RightArrow />
         </View>
+
         <View style={styles.accountActionsContainer}>
           <TouchableOpacity onPress={() => logout(navigation)}>
             <View style={styles.accountActionItem}>
@@ -230,7 +229,6 @@ export default function SettingsScreen() {
   );
 }
 
-// Function to generate styles based on isDarkMode.
 const getStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
     container: {
@@ -325,15 +323,11 @@ const getStyles = (isDarkMode: boolean) =>
     },
     deleteTitle: {
       fontSize: 16,
-      color: '#EB5545'
+      color: '#EB5545',
     },
     switchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-    },
-    deleteAccountItem: {
-      marginTop: 35,
-      borderBottomWidth: 0,
     },
     arrowIcon: {
       width: 7,
@@ -348,19 +342,18 @@ const getStyles = (isDarkMode: boolean) =>
       tintColor: '#3C3C43',
     },
     accountActionsContainer: {
-        marginTop: 35,
-        borderTopWidth: 1,
-        borderTopColor: isDarkMode ? '#333' : '#ddd',
+      marginTop: 35,
+      borderTopWidth: 1,
+      borderTopColor: isDarkMode ? '#333' : '#ddd',
     },
     accountActionItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: isDarkMode ? '#333' : '#EFEFEF',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: isDarkMode ? '#333' : '#EFEFEF',
     },
-
   });

@@ -19,6 +19,10 @@ import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
 import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
 import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
 import { format } from 'date-fns';
+// --- Add required imports ---
+import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../../backend/Supabase/Supabase'; // Ensure you have this export
+import 'react-native-url-polyfill/auto';
 
 export default function MyProfile() {
   const navigation = useNavigation();
@@ -30,12 +34,16 @@ export default function MyProfile() {
   const [copyUsernameText, setCopyUsernameText] = useState('');
   const [userData, setUserData] = useState<UserData | null>(null);
 
+  // --- EDITING STATE ---
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editedUsername, setEditedUsername] = useState('');
   const [editedBio, setEditedBio] = useState('');
+  // NEW STATE: Holds the local URI of a newly picked avatar
+  const [editedAvatarUri, setEditedAvatarUri] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // --- VALIDATION STATE ---
   const [isNameValid, setIsNameValid] = useState(true);
   const [isUsernameValid, setIsUsernameValid] = useState(true);
   const [isBioValid, setIsBioValid] = useState(true);
@@ -44,6 +52,7 @@ export default function MyProfile() {
   useEffect(() => { loadUserData(); }, []);
 
   useEffect(() => {
+    // This effect now correctly populates the edit fields from the main userData state
     if (userData) {
       setEditedName(userData.name || '');
       setEditedUsername(userData.username || '');
@@ -62,6 +71,7 @@ export default function MyProfile() {
 
   const handleEditProfile = () => {
     setIsEditing(true);
+    // Reset validation states
     setIsNameValid(true);
     setIsUsernameValid(true);
     setIsBioValid(true);
@@ -73,24 +83,23 @@ export default function MyProfile() {
       setEditedUsername(userData.username || '');
       setEditedBio(userData.bio || '');
     }
+    // Reset all temporary edits, including the new avatar
+    setEditedAvatarUri(null);
     setIsEditing(false);
     setUsernameTaken(false);
   };
 
   const handleNameChange = (text: string) => {
-    const valid = validateName(text);
-    setIsNameValid(valid);
     setEditedName(text);
+    setIsNameValid(validateName(text));
   };
 
   const handleUsernameChange = async (text: string) => {
+    setEditedUsername(text);
     const valid = validateUsername(text);
     setIsUsernameValid(valid);
-    setEditedUsername(text);
-
     if (valid && text.trim() !== userData?.username) {
       const exists = await checkUsernameExists(text.trim(), userData?.walletAddress || '');
-
       setUsernameTaken(exists);
     } else {
       setUsernameTaken(false);
@@ -98,80 +107,136 @@ export default function MyProfile() {
   };
 
   const handleBioChange = (text: string) => {
-    const valid = validateBio(text);
-    setIsBioValid(valid);
     setEditedBio(text);
+    setIsBioValid(validateBio(text));
+  };
+  
+  // MODIFIED: This function now only PICKS an image. The upload happens on save.
+  const handleAvatarPress = async () => {
+    if (!isEditing) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission Denied", "You need to allow access to your photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets || result.assets.length === 0) {
+      return; // User cancelled the action
+    }
+    // Save the local URI to state to show a preview and flag the change
+    setEditedAvatarUri(result.assets[0].uri);
   };
 
-  const handleSaveProfile = async () => {
+  // REWRITTEN: This function handles all saves (text and avatar) together.
+ const handleSaveProfile = async () => {
     if (!userData?.walletAddress) {
-      Alert.alert("Error", "Cannot save profile: Wallet address not found.");
+      Alert.alert("Error", "Wallet address not found.");
       return;
     }
 
-    const isFinalNameValid = validateName(editedName.trim());
-    const isFinalUsernameValid = validateUsername(editedUsername.trim());
-    const isFinalBioValid = validateBio(editedBio);
-
-    if (!isFinalNameValid || !isFinalUsernameValid || !isFinalBioValid) {
-      setIsNameValid(isFinalNameValid);
-      setIsUsernameValid(isFinalUsernameValid);
-      setIsBioValid(isFinalBioValid);
-      Alert.alert("Invalid Input", "Please correct the highlighted fields.");
+    if (!isNameValid || !isUsernameValid || !isBioValid || usernameTaken) {
+      Alert.alert("Invalid Input", "Please correct the highlighted fields before saving.");
       return;
     }
 
-    if (
-      editedUsername.trim() !== userData.username &&
-       (await checkUsernameExists(editedUsername.trim(), userData.walletAddress))
-    ) {
-      setUsernameTaken(true);
-      Alert.alert("Username Taken", "Please choose a different username.");
-      return;
-    }
+    const avatarDidChange = editedAvatarUri !== null;
+    const textDidChange =
+      editedName.trim() !== (userData.name || '') ||
+      editedUsername.trim() !== (userData.username || '') ||
+      editedBio.trim() !== (userData.bio || '');
 
-    const hasChanges =
-      editedName !== (userData.name || '') ||
-      editedUsername !== (userData.username || '') ||
-      editedBio !== (userData.bio || '');
-
-    if (!hasChanges) {
-      Alert.alert("No Changes", "You haven't made any changes.");
-      setIsEditing(false);
-      return;
+    if (!avatarDidChange && !textDidChange) {
+      Alert.alert("No Changes", "You haven't made any changes to your profile.");
+      return setIsEditing(false);
     }
 
     setIsSaving(true);
+    const updates: { name?: string; username?: string; bio?: string; avatar?: string } = {};
 
-    const updates: { name?: string; username?: string; bio?: string } = {};
-    if (editedName !== userData.name) updates.name = editedName.trim();
-    if (editedUsername !== userData.username) updates.username = editedUsername.trim();
-    if (editedBio !== userData.bio) updates.bio = editedBio;
+    // --- Avatar Update Logic ---
+    let newAvatarUrl: string | null = null;
+    if (avatarDidChange && editedAvatarUri) {
+      try {
+        // Delete the old avatar if it's not the default one
+        if (userData?.avatar && userData.avatar !== 'default' && !userData.avatar?.startsWith('require')) {
+          const oldAvatarPathParts = userData.avatar.split('/');
+          // Assuming the path in storage is like walletAddress/avatar.ext
+          const oldAvatarPath = `${userData.walletAddress}/${oldAvatarPathParts.pop()}`;
+          const { error: deleteError } = await supabase.storage
+            .from('avatars')
+            .remove([oldAvatarPath]);
 
-    const { error: supabaseError } = await updateSupabaseUser(userData.walletAddress, updates);
+          if (deleteError) {
+            console.error("Error deleting old avatar:", deleteError);
+            Alert.alert("Error", "Failed to delete the previous avatar. Please try again.");
+            setIsSaving(false);
+            return;
+          }
+          console.log("✅ Old avatar deleted:", oldAvatarPath);
+        }
 
-    if (supabaseError) {
-      Alert.alert("Error", `Failed to update: ${supabaseError.message}`);
-      setIsSaving(false);
-      return;
+        // Upload the new avatar
+        const fileExtension = editedAvatarUri.split('.').pop()?.toLowerCase() || 'jpg';
+        const contentType = `image/${fileExtension}`;
+        const fileName = `avatar.${fileExtension}`;
+        const filePath = `${userData.walletAddress}/${fileName}`;
+
+        const formData = new FormData();
+        formData.append('file', { uri: editedAvatarUri, name: fileName, type: contentType } as any);
+
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, formData, { upsert: true });
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        newAvatarUrl = `${publicUrlData.publicUrl}?t=${new Date().getTime()}`;
+        updates.avatar = newAvatarUrl;
+      } catch (error) {
+        Alert.alert("Error", "Failed to upload new avatar. Please try again.");
+        setIsSaving(false);
+        return;
+      }
     }
 
-    const updatedUserData = { ...userData, ...updates };
+    // --- Text Updates ---
+    if (textDidChange) {
+      if (editedName.trim() !== (userData.name || '')) updates.name = editedName.trim();
+      if (editedUsername.trim() !== (userData.username || '')) updates.username = editedUsername.trim();
+      if (editedBio.trim() !== (userData.bio || '')) updates.bio = editedBio.trim();
+    }
 
+    // --- Perform Database Update ---
+    if (Object.keys(updates).length > 0) {
+      const { error: supabaseError } = await updateSupabaseUser(userData.walletAddress, updates);
+      if (supabaseError) {
+        Alert.alert("Error", `Failed to update profile: ${supabaseError.message}`);
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    // --- Update Local State and Storage ---
+    const finalUserData = { ...userData, ...updates };
     try {
-      await AsyncStorage.setItem("userData", JSON.stringify(updatedUserData));
-      setUserData(updatedUserData);
+      await AsyncStorage.setItem("userData", JSON.stringify(finalUserData));
+      setUserData(finalUserData);
       setIsEditing(false);
+      setEditedAvatarUri(null);
       setUsernameTaken(false);
-      Alert.alert("Success", "Profile updated.");
+      Alert.alert("Success", "Your profile has been updated.");
     } catch (err) {
       console.error("AsyncStorage error:", err);
-      Alert.alert("Error", "Failed to save locally.");
+      Alert.alert("Error", "Failed to save profile locally.");
     } finally {
       setIsSaving(false);
     }
   };
-
+  
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -208,13 +273,30 @@ export default function MyProfile() {
           )}
         </View>
 
-        {/* Avatar + Name */}
-        <Image
-          source={userData?.avatar === 'default'
-            ? require('../../assets/images/default-user-avatar.jpg')
-            : { uri: userData?.avatar }}
-          style={styles.avatar}
-        />
+        {/* Avatar Section */}
+        <View style={styles.avatarContainer}>
+          <TouchableOpacity onPress={handleAvatarPress} disabled={!isEditing}>
+            <Image
+              source={
+                // If a new avatar has been picked, show its local URI for an instant preview.
+                // Otherwise, show the one from the saved userData.
+                editedAvatarUri
+                  ? { uri: editedAvatarUri }
+                  : (userData?.avatar === 'default' || !userData?.avatar
+                    ? require('../../assets/images/default-user-avatar.jpg')
+                    : { uri: userData.avatar })
+              }
+              style={styles.avatar}
+            />
+            {isEditing && (
+              <View style={styles.avatarEditOverlay}>
+                <Ionicons name="camera-outline" size={32} color="#FFF" />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Name Section */}
         {isEditing ? (
           <TextInput
             style={[styles.name, styles.editableText, !isNameValid && styles.invalidText]}
@@ -227,7 +309,7 @@ export default function MyProfile() {
           <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
         )}
 
-        {/* Profile Info */}
+        {/* Profile Info Box */}
         <View style={styles.infoBox}>
           {/* Wallet */}
           <View style={styles.infoRow}>
@@ -294,7 +376,7 @@ export default function MyProfile() {
             <Text style={styles.label}>Joined</Text>
             <Text style={styles.infoText}>
               {userData?.created_at
-                ? format(new Date(userData.created_at), 'MMMM d, yyyy')
+                ? format(new Date(userData.created_at), 'MMMM d, yy')
                 : "N/A"}
             </Text>
           </View>
@@ -306,9 +388,8 @@ export default function MyProfile() {
   );
 }
 
-
-const getStyles = (isDarkMode: boolean) =>
-  StyleSheet.create({
+// Your styles remain the same
+const getStyles = (isDarkMode: boolean) => StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: isDarkMode ? '#1C1C1D' : '#F2F2F2',
@@ -352,22 +433,33 @@ const getStyles = (isDarkMode: boolean) =>
       fontFamily: 'SF-Pro-Text-Medium',
       color: isDarkMode ? '#fff' : '#333333',
     },
+    avatarContainer: {
+      marginTop: 10,
+      position: 'relative',
+    },
     avatar: {
-      top: 10,
       width: 100,
       height: 100,
       borderRadius: 50,
     },
+    avatarEditOverlay: {
+      position: 'absolute',
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     name: {
-      top: 10,
+      marginTop: 20,
       fontSize: 22,
       fontFamily: 'SF-Pro-Text-Medium',
-      marginTop: 10,
       color: isDarkMode ? '#fff' : '#333333',
       textAlign: 'center',
     },
     infoBox: {
-      top: 10,
+      marginTop: 20,
       backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
       width: '90%',
       borderRadius: 12,
