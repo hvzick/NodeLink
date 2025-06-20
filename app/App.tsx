@@ -16,7 +16,7 @@ import '@ethersproject/shims';
 import "react-native-polyfill-globals/auto";
 import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider";
 import * as Notifications from 'expo-notifications';
-import { handleUserData } from "../backend/decentralized-database/HandleUserData";
+import { handleUserData } from "../backend/Supabase/HandleUserData";
 import UserProfile from './screens/UserProfile';
 
 Notifications.setNotificationHandler({

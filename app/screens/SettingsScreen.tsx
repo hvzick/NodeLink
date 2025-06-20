@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
-import { UserData, DEFAULT_USER_DATA } from '../../backend/decentralized-database/RegisterUser';
+import { UserData, DEFAULT_USER_DATA } from '../../backend/Supabase/RegisterUser';
 import ArrowSVG from '../../assets/images/arrow-icon.svg';
 import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
 import { logout } from '../../utils/AuthenticationUtils/Logout';

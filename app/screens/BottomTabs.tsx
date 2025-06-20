@@ -8,7 +8,7 @@ import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/HapticFeedba
 import { triggerHoldHapticFeedback } from "../../utils/GlobalUtils/HoldHapticFeedback";
 // IMPORTANT: Import from ThemeProvider instead of CheckSystemTheme
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
-import { handleUserData } from "../../backend/decentralized-database/HandleUserData";
+import { handleUserData } from "../../backend/Supabase/HandleUserData";
 
 const Tab = createBottomTabNavigator();
 

@@ -14,7 +14,8 @@ import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserData, DEFAULT_USER_DATA } from '../../backend/decentralized-database/RegisterUser';
+import { UserData } from '../../backend/Supabase/RegisterUser';
+import { createClient } from '@supabase/supabase-js';
 
 export default function MyProfile() {
   const navigation = useNavigation();
@@ -29,36 +30,21 @@ export default function MyProfile() {
     loadUserData();
   }, []);
 
-  const loadUserData = async () => {
-    try {
-      const storedData = await AsyncStorage.getItem("userData");
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        console.log("📱 Loaded user data:", parsedData);
-        setUserData(parsedData);
-      } else {
-        console.log("❌ No user data found in AsyncStorage, using default values");
-        // Get wallet address from AsyncStorage
-        const walletAddress = await AsyncStorage.getItem("walletAddress");
-        if (walletAddress) {
-          setUserData({
-            walletAddress,
-            ...DEFAULT_USER_DATA
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error loading user data:", error);
-      // Get wallet address from AsyncStorage even if userData loading fails
-      const walletAddress = await AsyncStorage.getItem("walletAddress");
-      if (walletAddress) {
-        setUserData({
-          walletAddress,
-          ...DEFAULT_USER_DATA
-        });
-      }
+const loadUserData = async () => {
+  try {
+    const storedData = await AsyncStorage.getItem("userData");
+
+    if (storedData) {
+      const parsedData = JSON.parse(storedData);
+      console.log("✅ User data loaded from AsyncStorage:");
+      setUserData(parsedData);
+    } else {
+      console.warn("⚠️ No user data found in AsyncStorage");
     }
-  };
+  } catch (err) {
+    console.error("❌ Error loading user data from AsyncStorage:", err);
+  }
+};
 
   const handleCopyAddress = async () => {
     if (!userData?.walletAddress) return;
