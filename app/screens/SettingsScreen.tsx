@@ -59,7 +59,7 @@ export default function SettingsScreen() {
       const storedData = await AsyncStorage.getItem("userData");
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        console.log("📱 Loaded user data in settings:");
+        console.log("📱 Loaded user data in settings");
         setUserData(parsedData);
       } else {
         console.log("❌ No user data found in AsyncStorage, using default values");
