@@ -1,3 +1,4 @@
+// At the top of your file
 import { StatusBar } from 'expo-status-bar';
 import {
   StyleSheet,
@@ -5,135 +6,281 @@ import {
   View,
   Image,
   TouchableOpacity,
-  Linking,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
-import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserData } from '../../backend/Supabase/RegisterUser';
-import { createClient } from '@supabase/supabase-js';
+import { updateSupabaseUser } from '../../backend/Supabase/UpdateUserData';
+import { validateName, validateUsername, validateBio } from '../../utils/MyProfileUtils/Validators';
+import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
+import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
+import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
 
 export default function MyProfile() {
   const navigation = useNavigation();
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === 'dark';
+  const styles = getStyles(isDarkMode);
+
   const [copyWalletText, setCopyWalletText] = useState('');
   const [copyUsernameText, setCopyUsernameText] = useState('');
   const [userData, setUserData] = useState<UserData | null>(null);
-  const styles = getStyles(isDarkMode);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [editedUsername, setEditedUsername] = useState('');
+  const [editedBio, setEditedBio] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [isNameValid, setIsNameValid] = useState(true);
+  const [isUsernameValid, setIsUsernameValid] = useState(true);
+  const [isBioValid, setIsBioValid] = useState(true);
 
   useEffect(() => {
     loadUserData();
   }, []);
 
-const loadUserData = async () => {
-  try {
-    const storedData = await AsyncStorage.getItem("userData");
-
-    if (storedData) {
-      const parsedData = JSON.parse(storedData);
-      console.log("✅ User data loaded from AsyncStorage:");
-      setUserData(parsedData);
-    } else {
-      console.warn("⚠️ No user data found in AsyncStorage");
+  useEffect(() => {
+    if (userData) {
+      setEditedName(userData.name || '');
+      setEditedUsername(userData.username || '');
+      setEditedBio(userData.bio || '');
     }
-  } catch (err) {
-    console.error("❌ Error loading user data from AsyncStorage:", err);
-  }
-};
+  }, [userData]);
 
-  const handleCopyAddress = async () => {
-    if (!userData?.walletAddress) return;
-    const success = await copyToClipboard(userData.walletAddress);
-    if (success) {
-      setCopyWalletText('Wallet Address Copied!');
-      setTimeout(() => setCopyWalletText(''), 2000);
-    }
-  };
-
-  const handleCopyUsername = async () => {
-    if (!userData?.username) return;
-    const success = await copyToClipboard(`@${userData.username}`);
-    if (success) {
-      setCopyUsernameText('Username Copied!');
-      setTimeout(() => setCopyUsernameText(''), 2000);
-    }
-  };
-
-  const handleOpenEtherscan = async () => {
-    if (!userData?.walletAddress) return;
-    const url = `https://sepolia.etherscan.io/address/${userData.walletAddress}`;
+  const loadUserData = async () => {
     try {
-      await Linking.openURL(url);
-    } catch (error) {
-      console.error('Error opening Etherscan:', error);
+      const storedData = await AsyncStorage.getItem("userData");
+      if (storedData) {
+        setUserData(JSON.parse(storedData));
+      }
+    } catch (err) {
+      console.error("Error loading user data from AsyncStorage:", err);
     }
   };
 
   const handleEditProfile = () => {
-    // TODO: Implement edit profile functionality
-    console.log('Edit profile pressed');
+    setIsEditing(true);
+    setIsNameValid(true);
+    setIsUsernameValid(true);
+    setIsBioValid(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (userData) {
+      setEditedName(userData.name || '');
+      setEditedUsername(userData.username || '');
+      setEditedBio(userData.bio || '');
+    }
+    setIsEditing(false);
+    setIsNameValid(true);
+    setIsUsernameValid(true);
+    setIsBioValid(true);
+  };
+
+  // ✅ Input Handlers
+  const handleNameChange = (text: string) => {
+    const valid = validateName(text);
+    setIsNameValid(valid);
+    setEditedName(text);
+  };
+
+  const handleUsernameChange = (text: string) => {
+    const valid = validateUsername(text);
+    setIsUsernameValid(valid);
+    setEditedUsername(text);
+  };
+
+  const handleBioChange = (text: string) => {
+    const valid = validateBio(text);
+    setIsBioValid(valid);
+    setEditedBio(text);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!userData?.walletAddress) {
+      Alert.alert("Error", "Cannot save profile: Wallet address not found.");
+      return;
+    }
+
+    const isFinalNameValid = validateName(editedName.trim());
+    const isFinalUsernameValid = validateUsername(editedUsername.trim());
+    const isFinalBioValid = validateBio(editedBio);
+
+    if (!isFinalNameValid) {
+      setIsNameValid(false);
+      Alert.alert("Invalid Name", "Name must only contain letters and spaces (1–30 characters).");
+      return;
+    }
+
+    if (!isFinalUsernameValid) {
+      setIsUsernameValid(false);
+      Alert.alert("Invalid Username", "Username must be 1–20 letters or numbers. No special characters.");
+      return;
+    }
+
+    if (!isFinalBioValid) {
+      setIsBioValid(false);
+      Alert.alert("Invalid Bio", "Bio must be 150 characters or fewer.");
+      return;
+    }
+
+    const hasChanges =
+      editedName !== (userData.name || '') ||
+      editedUsername !== (userData.username || '') ||
+      editedBio !== (userData.bio || '');
+
+    if (!hasChanges) {
+      Alert.alert("No Changes", "You haven't made any changes to your profile.");
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    const updates: { name?: string; username?: string; bio?: string } = {};
+
+    if (editedName !== userData.name) updates.name = editedName.trim();
+    if (editedUsername !== userData.username) updates.username = editedUsername.trim();
+    if (editedBio !== userData.bio) updates.bio = editedBio;
+
+    const { error: supabaseError } = await updateSupabaseUser(userData.walletAddress, updates);
+
+    if (supabaseError) {
+      Alert.alert("Error", `Failed to save changes to server: ${supabaseError.message}`);
+      setIsSaving(false);
+      return;
+    }
+
+    const updatedUserData = { ...userData, ...updates };
+
+    try {
+      await AsyncStorage.setItem("userData", JSON.stringify(updatedUserData));
+      setUserData(updatedUserData);
+      setIsEditing(false);
+      Alert.alert("Success", "Profile updated successfully!");
+    } catch (error) {
+      console.error("Error saving user data to AsyncStorage:", error);
+      Alert.alert("Error", "Failed to save profile locally.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-
-        {/* Centered title, non-touchable */}
-        <View style={styles.headerTitleContainer} pointerEvents="none">
-          <Text style={styles.headerTitleText}>My Profile</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1, width: '100%', alignItems: 'center' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.headerContainer}>
+          {isEditing ? (
+            <TouchableOpacity style={styles.backButton} onPress={handleCancelEdit} disabled={isSaving}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+          )}
+          <View style={styles.headerTitleContainer} pointerEvents="none">
+            <Text style={styles.headerTitleText}>My Profile</Text>
+          </View>
+          {isEditing ? (
+            <View style={styles.editButtonsContainer}>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile} disabled={isSaving}>
+                <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save'}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-          <Text style={styles.editButtonText}>Edit</Text>
-        </TouchableOpacity>
-      </View>
+        <Image
+          source={userData?.avatar === "default"
+            ? require('../../assets/images/default-user-avatar.jpg')
+            : { uri: userData?.avatar }}
+          style={styles.avatar}
+        />
 
-      {/* Avatar */}
-      <Image 
-        source={userData?.avatar === "default" 
-          ? require('../../assets/images/default-user-avatar.jpg')
-          : { uri: userData?.avatar }
-        } 
-        style={styles.avatar} 
-      />
-      <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
+        {isEditing ? (
+          <TextInput
+            style={[styles.name, styles.editableText, !isNameValid && styles.invalidText]}
+            value={editedName}
+            onChangeText={handleNameChange}
+            placeholder="Your Name"
+            placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}
+            maxLength={30}
+          />
+            ) : (
+              <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
+            )}
 
-      {/* Info Box */}
-      <View style={styles.infoBox}>
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Wallet Address</Text>
-          <TouchableOpacity onPress={handleCopyAddress} onLongPress={handleOpenEtherscan}>
-            <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
-          </TouchableOpacity>
-          {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
+        <View style={styles.infoBox}>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Wallet Address</Text>
+      <TouchableOpacity
+        onPress={() => handleCopyAddress(userData, setCopyWalletText)}
+        onLongPress={(event) => handleOpenEtherscan(userData)}
+      >
+        <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
+      </TouchableOpacity>
+
+            {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Username</Text>
+            {isEditing ? (
+              <TextInput
+                style={[styles.username, styles.editableText, !isUsernameValid && styles.invalidText]}
+                value={editedUsername}
+                onChangeText={handleUsernameChange}
+                placeholder="Your Username"
+                placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}
+                maxLength={20}
+                autoCapitalize="none"
+              />
+            ) : (
+      <TouchableOpacity onPress={() => handleCopyUsername(userData, setCopyUsernameText)}>
+        <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
+      </TouchableOpacity>
+
+            )}
+            {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Bio</Text>
+            {isEditing ? (
+              <TextInput
+                style={[styles.infoText, styles.editableText, styles.bioInput, !isBioValid && styles.invalidText]}
+                value={editedBio}
+                onChangeText={handleBioChange}
+                placeholder="Tell us about yourself!"
+                placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}
+                multiline
+                maxLength={150}
+              />
+            ) : (
+              <Text style={styles.infoText}>{userData?.bio || "I'm not being spied on!"}</Text>
+            )}
+          </View>
         </View>
-        <View style={styles.separator} />
 
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Username</Text>
-          <TouchableOpacity onPress={handleCopyUsername}>
-            <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
-          </TouchableOpacity>
-          {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
-        </View>
-        <View style={styles.separator} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Bio</Text>
-          <Text style={styles.infoText}>{userData?.bio || "Im not being spied on!"}</Text>
-        </View>
-      </View>
-
-      <StatusBar style="auto" />
+        <StatusBar style="auto" />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -161,6 +308,11 @@ const getStyles = (isDarkMode: boolean) =>
     backButtonText: {
       fontSize: 18,
       color: '#007AFF',
+    },
+    cancelButtonText: {
+      fontSize: 18,
+      left: 10,
+      color: '#EB5545',
     },
     headerTitleContainer: {
       position: 'absolute',
@@ -190,6 +342,7 @@ const getStyles = (isDarkMode: boolean) =>
       fontFamily: 'SF-Pro-Text-Medium',
       marginTop: 10,
       color: isDarkMode ? '#fff' : '#333333',
+      textAlign: 'center',
     },
     infoBox: {
       top: 10,
@@ -216,6 +369,7 @@ const getStyles = (isDarkMode: boolean) =>
     username: {
       fontSize: 16,
       color: '#007AFF',
+      textAlign: 'left',
     },
     infoText: {
       fontSize: 16,
@@ -248,5 +402,34 @@ const getStyles = (isDarkMode: boolean) =>
     editButtonText: {
       fontSize: 18,
       color: '#007AFF',
+    },
+    editButtonsContainer: {
+      position: 'absolute',
+      right: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    saveButton: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    saveButtonText: {
+      fontSize: 18,
+      color: '#007AFF',
+      fontWeight: '600',
+    },
+    editableText: {
+      borderBottomWidth: 1,
+      borderBottomColor: 'gray',
+      paddingBottom: 2,
+    },
+    bioInput: {
+      minHeight: 40,
+      textAlignVertical: 'top',
+    },
+    invalidText: {
+      color: '#EB5545',
+      borderBottomColor: '#EB5545',
     },
   });
