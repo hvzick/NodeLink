@@ -27,6 +27,7 @@ export type SettingsStackParamList = {
   MyProfile: undefined;
   Notifications: undefined;
   HapticFeedback: undefined;
+  PrivacyPolicy: undefined;
 };
 
 type SettingsNavigationProp = StackNavigationProp<SettingsStackParamList, 'Settings'>;
@@ -180,16 +181,6 @@ export default function SettingsScreen() {
           </View>
         </TouchableOpacity>
 
-        <View style={styles.settingsItem}>
-          <View style={styles.itemLeft}>
-            <View style={[styles.iconBackground, { backgroundColor: '#8E8E93' }]}>
-              <Image source={lockIcon} style={styles.icon} />
-            </View>
-            <Text style={styles.itemTitle}>Privacy and Security</Text>
-          </View>
-          <RightArrow />
-        </View>
-
         <TouchableOpacity onPress={() => navigation.navigate('Appearance')}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
@@ -212,6 +203,18 @@ export default function SettingsScreen() {
             </View>
             <RightArrow />
           </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+          <View style={styles.settingsItem}>
+            <View style={styles.itemLeft}>
+              <View style={[styles.iconBackground, { backgroundColor: '#8E8E93' }]}>
+                <Image source={lockIcon} style={styles.icon} />
+              </View>
+              <Text style={styles.itemTitle}>Privacy and Security</Text>
+            </View>
+          <RightArrow />
+         </View>
         </TouchableOpacity>
 
         <View style={styles.accountActionsContainer}>
