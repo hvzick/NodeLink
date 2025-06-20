@@ -242,7 +242,7 @@ export default function MyProfile() {
                 autoCapitalize="none"
               />
             ) : (
-      <TouchableOpacity onPress={() => handleCopyUsername(userData, setCopyUsernameText)}>
+      <TouchableOpacity onPress={() => handleCopyUsername(userData, setCopyUsernameText)} onLongPress={() => handleOpenEtherscan(userData)}>
         <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
       </TouchableOpacity>
 

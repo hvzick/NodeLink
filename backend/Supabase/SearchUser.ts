@@ -32,7 +32,7 @@ export const searchUser = async (input: string) => {
       return null;
     }
 
-    console.log('✅ User found:', data);
+    console.log('✅ User found');
     return data;
 
   } catch (err) {

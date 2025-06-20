@@ -1,6 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import {
-  StyleSheet,
+import { StyleSheet,
   Text,
   View,
   Image,
@@ -11,11 +10,14 @@ import { useState, useEffect } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
-import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserData } from '../../backend/Supabase/RegisterUser';
 import { supabase } from '../../backend/Supabase/Supabase';
+import { format } from 'date-fns';
+import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
+import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
+import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
 
 export default function UserProfile() {
   const navigation = useNavigation();
@@ -61,6 +63,7 @@ export default function UserProfile() {
         name: data.name,
         avatar: data.avatar,
         bio: data.bio,
+        created_at: data.created_at,
       };
 
       setUserData(formattedUser);
@@ -68,34 +71,6 @@ export default function UserProfile() {
       console.log("✅ User profile cached in AsyncStorage for", address);
     } catch (err) {
       console.error("❌ Failed to load user profile:", err);
-    }
-  };
-
-  const handleCopyAddress = async () => {
-    if (!userData?.walletAddress) return;
-    const success = await copyToClipboard(userData.walletAddress);
-    if (success) {
-      setCopyWalletText('Wallet Address Copied!');
-      setTimeout(() => setCopyWalletText(''), 2000);
-    }
-  };
-
-  const handleCopyUsername = async () => {
-    if (!userData?.username) return;
-    const success = await copyToClipboard(`@${userData.username}`);
-    if (success) {
-      setCopyUsernameText('Username Copied!');
-      setTimeout(() => setCopyUsernameText(''), 2000);
-    }
-  };
-
-  const handleOpenEtherscan = async () => {
-    if (!userData?.walletAddress) return;
-    const url = `https://sepolia.etherscan.io/address/${userData.walletAddress}`;
-    try {
-      await Linking.openURL(url);
-    } catch (error) {
-      console.error('Error opening Etherscan:', error);
     }
   };
 
@@ -123,7 +98,8 @@ export default function UserProfile() {
       <View style={styles.infoBox}>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Wallet Address</Text>
-          <TouchableOpacity onPress={handleCopyAddress} onLongPress={handleOpenEtherscan}>
+          <TouchableOpacity  onPress={() => handleCopyAddress(userData, setCopyWalletText)}
+          onLongPress={() => handleOpenEtherscan(userData)}>
             <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
           </TouchableOpacity>
           {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
@@ -132,7 +108,7 @@ export default function UserProfile() {
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Username</Text>
-          <TouchableOpacity onPress={handleCopyUsername}>
+          <TouchableOpacity onPress={() => handleCopyUsername(userData, setCopyUsernameText)}>
             <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
           </TouchableOpacity>
           {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
@@ -143,7 +119,16 @@ export default function UserProfile() {
           <Text style={styles.label}>Bio</Text>
           <Text style={styles.infoText}>{userData?.bio || "Im not being spied on!"}</Text>
         </View>
-      </View>
+          <View style={styles.separator} />
+<View style={styles.infoRow}>
+  <Text style={styles.label}>Joined</Text>
+  <Text style={styles.infoText}>
+    {userData?.created_at
+      ? format(new Date(userData.created_at), 'MMMM d, yyyy')
+      : "N/A"}
+  </Text>
+</View>
+</View>
 
       <StatusBar style="auto" />
     </SafeAreaView>
