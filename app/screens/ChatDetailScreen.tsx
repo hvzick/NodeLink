@@ -1,5 +1,5 @@
 // screens/ChatDetailScreen.tsx
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   FlatList, Image, ImageBackground, KeyboardAvoidingView, Keyboard, Modal, PanResponder,
   Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity,
@@ -9,9 +9,9 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
-import handleAttachment from '../../utils/ChatDetailUtils/InsertAttachment'; 
+import handleAttachment from '../../utils/ChatDetailUtils/InsertAttachment';
 import { Message } from '../../backend/local database/MessageStructure';
-import { fetchMessagesByConversation } from '../../backend/local database/MessageIndex'; 
+import { fetchMessagesByConversation } from '../../backend/local database/MessageIndex';
 import MessageBubble from '../../utils/ChatDetailUtils/MessageBubble';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { useChat } from '../../utils/ChatUtils/ChatContext';
@@ -54,7 +54,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
 
-  // Define handler dependencies using useMemo to ensure stability for external handlers
   const handlerDependencies: ChatDetailHandlerDependencies = useMemo(() => ({
     conversationId, name, avatar, addOrUpdateChat,
     messages,
@@ -83,6 +82,14 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     setSelectedMessageForMenu, setMenuPosition,
     flatListRef,
   ]);
+  
+  const handleReply = useCallback((message: Message) => {
+    setReplyMessage(message);
+  }, []);
+
+  const cancelReply = useCallback(() => {
+    setReplyMessage(null);
+  }, []);
 
   const modalPanResponder = useRef(
     PanResponder.create({
@@ -136,14 +143,22 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     return list;
   }, [messages]);
 
-
-  // Wrappers for the imported handler functions to pass the dependencies
   const handleSendMessageWrapper = () => handleSendMessage(handlerDependencies);
   const handleQuotedPressWrapper = (quoted: Message) => handleQuotedPress(handlerDependencies, quoted, dataWithSeparators, isMessage);
   const handleLongPressWrapper = (msg: Message, layout: { x: number; y: number; width: number; height: number }) => handleLongPress(handlerDependencies, msg, layout);
   const closeLongPressMenuWrapper = () => closeLongPressMenu(handlerDependencies);
+  
   const handleOptionSelectWrapper = async (option: MenuOption) => {
     if (!selectedMessageForMenu) return;
+
+    // --- SOLUTION: Check the option variable directly ---
+    if (option === 'Reply') {
+      handleReply(selectedMessageForMenu);
+      closeLongPressMenuWrapper();
+      return;
+    }
+    // ----------------------------------------------------
+
     await handleOptionSelect(handlerDependencies, option, selectedMessageForMenu);
   };
 
@@ -163,12 +178,11 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <MessageBubble
         message={item}
-        onReply={(msg) => handlerDependencies.setReplyMessage(msg)}
         onImagePress={(uri) => handlerDependencies.setSelectedImage(uri)}
         onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
         onQuotedPress={handleQuotedPressWrapper}
         onLongPress={handleLongPressWrapper}
-        highlighted={item.id === highlightedMessageId}
+        highlighted={item.id === highlightedMessageId || item.id === replyMessage?.id}
         isMenuVisibleForThisMessage={menuVisible && selectedMessageForMenu?.id === item.id}
       />
     );
@@ -221,24 +235,25 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.flatListContent}
+              extraData={replyMessage}
               onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             />
           )}
 
           {replyMessage && (
             <View style={styles.replyContainer}>
-              <TouchableOpacity onPress={() => handleQuotedPressWrapper(replyMessage!)} style={{ flex: 1 }}>
-                <Text style={styles.replyPreviewText}>
-                  Replying to: {replyMessage.text || (replyMessage.imageUrl ? 'Image' : 'Video')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handlerDependencies.setReplyMessage(null)}>
-                <Ionicons name="close" size={20} />
-              </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.replyingToUser}>Replying to {replyMessage.sender === 'Me' ? 'Yourself' : name}</Text>
+                    <Text style={styles.replyPreviewText} numberOfLines={1}>
+                        {replyMessage.text || (replyMessage.imageUrl ? 'Image' : 'Video')}
+                    </Text>
+                </View>
+                <TouchableOpacity onPress={cancelReply}>
+                    <Ionicons name="close-circle" size={22} color="#999" />
+                </TouchableOpacity>
             </View>
           )}
 
-          {/* Attachment Preview */}
           {attachment && (
             <View style={styles.previewContainer}>
               {attachment.imageUrl && (
@@ -257,7 +272,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
           )}
-          {/* Fullscreen Media Viewer */}
+
           {(selectedImage || selectedVideo) && (
             <Modal visible transparent animationType="fade">
               <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
@@ -290,7 +305,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </Modal>
           )}
 
-          {/* Bottom Bar */}
           <View style={styles.bottomBar}>
             <TouchableOpacity
               style={styles.iconContainer}
@@ -326,7 +340,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-// Original getStyles is kept as is.
 const getStyles = (theme: 'light' | 'dark') =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme === 'dark' ? '#222' : '#EDEDED' },
@@ -368,18 +381,26 @@ const getStyles = (theme: 'light' | 'dark') =>
     },
     chatBackground: { flex: 1, width: '100%', height: '100%' },
     flatListContent: { paddingHorizontal: 10, paddingVertical: 5 },
-    replyContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme === 'dark' ? '#333' : '#F5FFF2',
-      borderLeftColor: '#007AFF',
-      borderLeftWidth: 2,
-      padding: 8,
-      marginHorizontal: 10,
-      borderRadius: 8,
-      marginBottom: 4,
+    replyingToUser: {
+        fontWeight: 'bold',
+        color: '#007AFF',
+        fontSize: 13,
     },
-    replyPreviewText: { flex: 1, fontSize: 14, color: theme === 'dark' ? '#FFF' : '#333' },
+    replyContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme === 'dark' ? '#2C2C2E' : '#F0F0F0',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        marginHorizontal: 10,
+        borderLeftColor: '#007AFF',
+        borderLeftWidth: 4,
+        borderRadius: 8,
+    },
+    replyPreviewText: {
+        fontSize: 14,
+        color: theme === 'dark' ? '#B0B0B0' : '#555',
+    },
     previewContainer: {
       padding: 8,
       backgroundColor: theme === 'dark' ? '#222' : '#fff',

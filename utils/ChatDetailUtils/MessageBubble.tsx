@@ -1,15 +1,13 @@
-// MessageBubble.tsx
-import React, { useRef, useState, useEffect } from 'react'; // Import useEffect
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Image,
   Animated,
-  PanResponder,
-  Pressable, // Already using Pressable
+  Pressable,
 } from 'react-native';
-import { Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import { triggerTapHapticFeedback } from '../GlobalUtils/TapHapticFeedback';
 import { Message } from '../../backend/local database/MessageStructure';
 import { useThemeToggle } from '../GlobalUtils/ThemeProvider';
@@ -20,10 +18,9 @@ export type MessageBubbleProps = {
   onVideoPress: (uri: string) => void;
   onQuotedPress: (quoted: Message) => void;
   onLongPress: (message: Message, layout: { x: number; y: number; width: number; height: number }) => void;
-  onReply: (message: Message) => void;
+  // onReply prop is removed
   isHidden?: boolean;
   highlighted?: boolean;
-  // --- NEW PROP: indicates if the menu for THIS specific message is visible ---
   isMenuVisibleForThisMessage?: boolean;
 };
 
@@ -33,72 +30,42 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   onVideoPress,
   onQuotedPress,
   onLongPress,
-  onReply,
+  // onReply is removed
   isHidden = false,
   highlighted = false,
-  isMenuVisibleForThisMessage = false, // Default to false
+  isMenuVisibleForThisMessage = false,
 }) => {
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
   const isMe = message.sender === 'Me';
 
   const bubbleRef = useRef<View>(null);
-  const translateX = useRef(new Animated.Value(0)).current;
+  // translateX and PanResponder logic are completely removed
   const scale = useRef(new Animated.Value(1)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2,
-      onPanResponderMove: (_, gestureState) => {
-        const dx = gestureState.dx;
-        const clampedDx = Math.max(Math.min(dx, 60), -60);
-        if ((isMe && dx < 0) || (!isMe && dx > 0)) {
-          translateX.setValue(clampedDx);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const dx = gestureState.dx;
-        const swipeThreshold = 50;
-        if ((isMe && dx < -swipeThreshold) || (!isMe && dx > swipeThreshold)) {
-          triggerTapHapticFeedback();
-          onReply(message);
-        }
-        Animated.spring(translateX, {
-          toValue: 0,
-          friction: 7,
-          useNativeDriver: true,
-        }).start();
-      },
-    })
-  ).current;
-
-  // --- MODIFIED handleLongPress: Only scales UP ---
   const handleLongPress = () => {
     triggerTapHapticFeedback();
     Animated.timing(scale, {
-      toValue: 1.05, // Scale up
+      toValue: 1.05,
       duration: 100,
       useNativeDriver: true,
     }).start(() => {
-      // After scaling up, trigger the onLongPress callback to open the menu
       bubbleRef.current?.measureInWindow((x, y, width, height) => {
         onLongPress(message, { x, y, width, height });
       });
     });
   };
 
-  // --- NEW useEffect: Scales down when menu hides ---
   useEffect(() => {
-    if (!isMenuVisibleForThisMessage) { // If menu is no longer visible for this message
+    if (!isMenuVisibleForThisMessage) {
       Animated.timing(scale, {
-        toValue: 1, // Scale back down
-        duration: 200, // A slightly longer duration for a smoother reset
+        toValue: 1,
+        duration: 200,
         useNativeDriver: true,
       }).start();
     }
-  }, [isMenuVisibleForThisMessage, scale]); // Depend on the prop and the animated value
+  }, [isMenuVisibleForThisMessage]);
 
   if (isHidden) {
     return <View style={{ height: measuredHeight || 50 }} />;
@@ -106,18 +73,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
 
   return (
     <View onLayout={(event) => setMeasuredHeight(event.nativeEvent.layout.height)}>
-      <Animated.View style={{ transform: [{ translateX }, { scale }] }}>
-        <View // This is the bubbleRef container
+      {/* The transform no longer includes translateX and panHandlers are removed */}
+      <Animated.View
+        style={{ transform: [{ scale }] }}
+      >
+        <View
           ref={bubbleRef}
           style={[
             styles.bubbleContainer,
             isMe ? styles.bubbleRight : styles.bubbleLeft,
             highlighted && styles.highlighted,
           ]}
-          // Removed panResponder.panHandlers from here to allow nested Pressable to handle it
         >
-          {message.replyTo && (
-            <Pressable onPress={() => onQuotedPress(message.replyTo!)} style={styles.contentWrapper}> {/* Added contentWrapper style for consistency */}
+          {message.replyTo && typeof message.replyTo === 'object' && (
+            <Pressable
+              onPress={() => onQuotedPress(message.replyTo!)}
+              style={styles.contentWrapper}
+            >
               <View style={styles.replyPreview}>
                 <Text style={styles.replyLabel}>{`Replying to ${message.replyTo.sender}`}</Text>
                 <Text numberOfLines={1} style={styles.replyText}>
@@ -132,8 +104,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
               onPress={() => onImagePress(message.imageUrl!)}
               onLongPress={handleLongPress}
               delayLongPress={300}
-              style={styles.contentWrapper} // Added contentWrapper style for consistency
-              {...panResponder.panHandlers} // Apply panResponder to individual content Pressable
+              style={styles.contentWrapper}
             >
               <Image source={{ uri: message.imageUrl }} style={styles.chatImage} />
             </Pressable>
@@ -144,14 +115,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
               onPress={() => onVideoPress(message.videoUrl!)}
               onLongPress={handleLongPress}
               delayLongPress={300}
-              style={styles.contentWrapper} // Added contentWrapper style for consistency
-              {...panResponder.panHandlers} // Apply panResponder to individual content Pressable
+              style={styles.contentWrapper}
             >
               <Video
                 source={{ uri: message.videoUrl }}
                 style={styles.chatVideo}
                 useNativeControls={false}
-                resizeMode={'cover' as any}
+                resizeMode={ResizeMode.COVER}
               />
             </Pressable>
           )}
@@ -160,8 +130,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
             <Pressable
               onLongPress={handleLongPress}
               delayLongPress={300}
-              style={styles.contentWrapper} // Added contentWrapper style for consistency
-              {...panResponder.panHandlers} // Apply panResponder to individual content Pressable
+              style={styles.contentWrapper}
             >
               <Text style={styles.messageText}>{message.text}</Text>
             </Pressable>
@@ -182,6 +151,7 @@ const getStyles = (theme: 'light' | 'dark') =>
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 18,
+      overflow: 'hidden',
     },
     bubbleLeft: {
       alignSelf: 'flex-start',
@@ -232,9 +202,7 @@ const getStyles = (theme: 'light' | 'dark') =>
     },
     timeTextRight: { alignSelf: 'flex-end', marginRight: 5 },
     timeTextLeft: { alignSelf: 'flex-start', marginLeft: 5 },
-    contentWrapper: { // Added for consistent Pressable styling
-      // No specific styles needed here unless you want to add padding/margin directly to content
-    },
+    contentWrapper: {},
   });
 
 export default MessageBubble;
