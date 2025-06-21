@@ -1,6 +1,15 @@
-// ChatScreen.tsx
+// screens/ChatScreen.tsx
 import React, { useRef, memo, useState, useEffect } from "react";
-import { StyleSheet, RefreshControl, View, Text, FlatList, TextInput, Image, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  RefreshControl,
+  View,
+  Text,
+  FlatList,
+  TextInput,
+  Image,
+  TouchableOpacity,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
@@ -11,30 +20,10 @@ import { SharedValue } from "react-native-reanimated";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
-import { onRefresh } from "../../utils/ChatUtils/RefreshChats";
-import { handlePin } from "../../utils/ChatUtils/OnPin";
 import { searchUser } from '../../backend/Supabase/SearchUser';
 import RightActions from '../../utils/ChatUtils/RightActions';
+import { useChat } from '../../utils/ChatUtils/ChatContext';
 
-const chats: ChatItemType[] = [
-    { id: "1", name: "Saved Messages", message: "image.jpeg", time: "Fri", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "2", name: "Ahmed", message: "How u doin", time: "9/29", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "3", name: "Faik", message: "Sent image.jpeg", time: "Yesterday", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "4", name: "Babar", message: "wyd?", time: "1/20", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "5", name: "Hamza", message: "see u on sunday then", time: "02:20", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "6", name: "Hazim", message: "k ill do it", time: "6/09", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "7", name: "Zee", message: "lol", time: "Sat", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "8", name: "Zain", message: "tc bye", time: "Mon", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "9", name: "Faru", message: "ok bye", time: "Sat", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "10", name: "Mom", message: "do it", time: "11/01", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "11", name: "Zaid", message: "bgmi?", time: "Thu", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "12", name: "Waseem", message: "hi...", time: "Tue", avatar: require("../../assets/images/default-user-avatar.jpg") },
-];
-
-/**
- * FIXED: The type for swipeRefs is now described as an object with a 'current' property,
- * which avoids using the deprecated 'MutableRefObject' type directly.
- */
 interface ChatItemProps {
   item: ChatItemType;
   swipeRefs: { current: { [key: string]: SwipeableMethods | null } };
@@ -126,19 +115,24 @@ const ChatItem = memo(
 );
 
 const Chats = () => {
+  // This line correctly destructures the values from the context.
+  // The errors you're seeing should be resolved if the ChatContext.tsx file is saved correctly.
+  const { chatList, pinnedChats, togglePinChat } = useChat();
+
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
   const { currentTheme, toggleTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
-  const [pinnedChats, setPinnedChats] = useState<string[]>([]);
+
+  // Local state for UI purposes like search and refreshing
   const [refreshing, setRefreshing] = useState(false);
-  const [chatList, setChatList] = useState<ChatItemType[]>(chats);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredChats, setFilteredChats] = useState<ChatItemType[]>(chats);
+  const [filteredChats, setFilteredChats] = useState<ChatItemType[]>(chatList);
   const [searchError, setSearchError] = useState("");
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
+  // This effect now reacts to changes in the global chatList
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredChats(chatList);
@@ -150,18 +144,15 @@ const Chats = () => {
       setFilteredChats(filtered);
       setSearchError("");
     }
-  }, [searchQuery, chatList]);
+  }, [searchQuery, chatList]); // Depends on global chatList
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) return;
-
     const user = await searchUser(query.trim());
-
     if (!user) {
       setSearchError("User not found");
       return;
     }
-
     navigation.navigate("UserProfile", {
       walletAddress: user.wallet_address,
     });
@@ -175,8 +166,9 @@ const Chats = () => {
     });
   };
 
+  // This now calls the centralized pinning function from the context
   const onPinChat = (id: string) => {
-    handlePin(id, setPinnedChats, setChatList);
+    togglePinChat(id);
   };
 
   const handleChatPress = (item: ChatItemType) => {
@@ -185,6 +177,15 @@ const Chats = () => {
       name: item.name,
       avatar: item.avatar
     });
+  };
+  
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Add any logic to refetch chats from a server if needed
+    // For now, we just simulate a delay
+    setTimeout(() => {
+        setRefreshing(false);
+    }, 1000);
   };
 
   return (
@@ -237,11 +238,7 @@ const Chats = () => {
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
-                  onPress={() => {
-                    setSearchQuery("");
-                    setFilteredChats(chatList);
-                    setSearchError("");
-                  }}
+                  onPress={() => setSearchQuery("")}
                   style={styles.clearButton}
                 >
                   <Ionicons name="close-circle" size={20} color="#888" />
@@ -256,13 +253,14 @@ const Chats = () => {
           </View>
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => onRefresh(setRefreshing)} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       />
     </GestureHandlerRootView>
   );
 };
 
+// Styles remain the same
 const createStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
     container: {

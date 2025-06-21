@@ -1,4 +1,4 @@
-// ChatDetailScreen.tsx
+// screens/ChatDetailScreen.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import {
   FlatList,
@@ -26,6 +26,8 @@ import { triggerTapHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedb
 import { initializeDatabase, insertMessage, fetchMessages, Message } from '../../backend/local database/SaveMessages';
 import MessageBubble from '../../utils/ChatUtils/MessageBubble';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
+import { useChat } from '../../utils/ChatUtils/ChatContext'; // Import the useChat hook
+import { ChatItemType } from '../../utils/ChatUtils/ChatItemsTypes'; // Import the main chat item type
 
 type RootStackParamList = {
   ChatDetail: { conversationId: string; name: string; avatar: any };
@@ -41,17 +43,22 @@ type Props = {
 
 const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, name, avatar } = route.params;
+
+  // Get the global chat update function from the context
+  const { addOrUpdateChat } = useChat();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  // When storing attachments, omit only the 'id' property; conversationId is now required.
   const [attachment, setAttachment] = useState<Omit<Message, 'id'> | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState<Message | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const { currentTheme } = useThemeToggle();
+  const styles = getStyles(currentTheme);
 
-  // Pan responder for modals (for closing image/video preview)
+  // Pan responder for modals
   const modalPanResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => Math.abs(gestureState.dy) > 20,
@@ -64,7 +71,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     })
   ).current;
 
-  // Pan responder to dismiss the keyboard when swiping down on the chat background
+  // Pan responder to dismiss keyboard
   const keyboardDismissPanResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => Math.abs(gestureState.dy) > 20,
@@ -76,11 +83,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     })
   ).current;
 
-  // Get the current theme from our global ThemeProvider.
-  const { currentTheme } = useThemeToggle();
-  const styles = getStyles(currentTheme);
-
-  // Initialize the database and load messages on mount.
+  // Initialize DB and load messages on mount
   useEffect(() => {
     (async () => {
       await initializeDatabase();
@@ -93,18 +96,17 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     })();
   }, [conversationId]);
 
-  // Scroll to the bottom of the chat when messages change.
+  // Scroll to bottom when messages change
   useEffect(() => {
     if (messages.length > 0 && flatListRef.current) {
       flatListRef.current.scrollToEnd({ animated: false });
     }
   }, [messages]);
 
-  // Listen for the keyboard event. For iOS we use 'keyboardWillShow', for Android 'keyboardDidShow'.
+  // Keyboard show listener
   useEffect(() => {
     const eventName = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const keyboardListener = Keyboard.addListener(eventName, () => {
-      // Delay a little to allow the keyboard layout changes to take effect.
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
       }, 50);
@@ -126,17 +128,39 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() && !attachment) return;
     const newId = Date.now().toString();
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     let combinedMsg: Message = {
       id: newId,
-      conversationId, // assign conversationId from route params
+      conversationId,
       sender: 'Me',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp,
     };
+
     if (newMessage.trim()) combinedMsg.text = newMessage;
     if (attachment) combinedMsg = { ...combinedMsg, ...attachment };
     if (replyMessage) combinedMsg.replyTo = replyMessage;
 
-    // Update local state and clear inputs.
+    // --- Start of Key Changes ---
+
+    // 1. Create a ChatItemType object to send to the global context.
+    // This represents the updated state for the ChatScreen list.
+    const updatedChatItem: ChatItemType = {
+        id: conversationId,
+        name: name,
+        // Show a snippet of the new message.
+        message: combinedMsg.text || (combinedMsg.imageUrl ? 'Image' : 'Video'),
+        time: timestamp,
+        avatar: avatar,
+    };
+
+    // 2. Call the global update function.
+    // This will update the chat list and move this chat to the top.
+    addOrUpdateChat(updatedChatItem);
+
+    // --- End of Key Changes ---
+
+    // Update local state for this screen and clear inputs
     setMessages([...messages, combinedMsg]);
     setNewMessage('');
     setAttachment(null);
@@ -145,6 +169,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
     try {
       await insertMessage(combinedMsg);
+      // Refetching might be redundant if local state update is sufficient,
+      // but it ensures data consistency with the database.
       const fetchedMessages = await fetchMessages(conversationId);
       setMessages(fetchedMessages);
     } catch (error) {
@@ -165,14 +191,13 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Wrap the main view with TouchableWithoutFeedback to dismiss the keyboard on tap */}
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView
           style={styles.container}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          {/* CUSTOM HEADER */}
+          {/* HEADER */}
           <View style={styles.headerContainer}>
             <View style={styles.headerLeft}>
               <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -190,11 +215,10 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
-          {/* Moved "End-to-end encrypted" text inside the ImageBackground */}
+          
           <ImageBackground
             style={styles.chatBackground}
-            source={{ uri: 'https://via.placeholder.com/400' }}
-            // Add pan handlers to detect swipe-down and dismiss the keyboard.
+            source={{ uri: 'https://i.pinimg.com/564x/85/70/f6/8570f6339d3189914b16dab461e1b8c6.jpg' }}
             {...keyboardDismissPanResponder.panHandlers}
           >
             <Text style={styles.encryptedText}>End-to-end encrypted</Text>
@@ -207,19 +231,14 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               contentContainerStyle={styles.flatListContent}
               onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             />
-            {/* Reply preview above input */}
+            
+            {/* Reply preview */}
             {replyMessage && (
               <View style={styles.replyContainer}>
                 <TouchableOpacity onPress={() => handleQuotedPress(replyMessage)}>
                   <Text style={styles.replyPreviewText}>
                     Replying to:{' '}
-                    {replyMessage.text
-                      ? replyMessage.text
-                      : replyMessage.imageUrl
-                      ? 'Image'
-                      : replyMessage.videoUrl
-                      ? 'Video'
-                      : ''}
+                    {replyMessage.text ? replyMessage.text : (replyMessage.imageUrl ? 'Image' : 'Video')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setReplyMessage(null)}>
@@ -227,19 +246,20 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 </TouchableOpacity>
               </View>
             )}
+
             {/* Attachment preview */}
             {attachment && (
               <View style={styles.previewContainer}>
                 <Text style={styles.previewText}>Attachment selected</Text>
               </View>
             )}
+
             {/* BOTTOM INPUT BAR */}
             <View style={styles.bottomBar}>
               <TouchableOpacity
                 style={styles.iconContainer}
                 onPress={async () => {
                   const att = await handleAttachment();
-                  // Add conversationId to the attachment before setting state
                   if (att) setAttachment({ ...att, conversationId });
                 }}
               >
@@ -252,10 +272,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                   placeholderTextColor={currentTheme === 'dark' ? '#AAA' : '#999'}
                   value={newMessage}
                   onChangeText={setNewMessage}
-                  // Trigger a scroll when the TextInput receives focus.
-                  onFocus={() =>
-                    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 50)
-                  }
+                  onFocus={() => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 50)}
                 />
               </View>
               <TouchableOpacity style={styles.iconContainer} onPress={() => console.log('Mic pressed')}>
@@ -266,7 +283,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
           </ImageBackground>
-          {/* Modal for full-screen image preview */}
+
+          {/* Modals for image/video preview */}
           <Modal visible={!!selectedImage} transparent onRequestClose={() => setSelectedImage(null)}>
             <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
               <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
@@ -275,7 +293,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               {selectedImage && <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} />}
             </View>
           </Modal>
-          {/* Modal for full-screen video preview */}
           <Modal visible={!!selectedVideo} transparent onRequestClose={() => setSelectedVideo(null)}>
             <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
               <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedVideo(null)}>
@@ -297,9 +314,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-export default ChatDetailScreen;
-
-// Helper function to generate styles based on current theme.
+// Styles function remains the same
 const getStyles = (theme: 'light' | 'dark') =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme === 'dark' ? '#222' : '#EDEDED' },
@@ -394,7 +409,6 @@ const getStyles = (theme: 'light' | 'dark') =>
     fullScreenVideo: {
       width: '90%',
       height: '70%',
-      resizeMode: 'contain',
     },
     modalClose: {
       position: 'absolute',
@@ -403,3 +417,5 @@ const getStyles = (theme: 'light' | 'dark') =>
       zIndex: 1,
     },
   });
+
+export default ChatDetailScreen;

@@ -18,6 +18,7 @@ import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider";
 import * as Notifications from 'expo-notifications';
 import { handleUserData } from "../backend/Supabase/HandleUserData";
 import UserProfile from './screens/UserProfile';
+import { ChatProvider } from '../utils/ChatUtils/ChatContext';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -89,6 +90,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
+       <ChatProvider>
       <NavigationContainer>
         <Stack.Navigator
           initialRouteName={hasSession ? "Main" : "Auth"}
@@ -126,6 +128,7 @@ export default function App() {
           />
         </Stack.Navigator>
       </NavigationContainer>
+      </ChatProvider>
     </ThemeProvider>
   );
 }
