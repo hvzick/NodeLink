@@ -174,14 +174,25 @@ useEffect(() => {
     }
   };
 
-  const handleLongPress = (msg: Message, layout: { x: number; y: number; width: number; height: number }) => {
-    const screenWidth = Dimensions.get('window').width;
-    const menuWidth = 180;
-    const left = Math.max(10, Math.min(screenWidth - menuWidth - 10, msg.sender === 'Me' ? layout.x + layout.width - menuWidth : layout.x));
-    setSelectedMessageForMenu(msg);
-    setMenuPosition({ top: layout.y + layout.height, left });
-    setMenuVisible(true);
-  };
+const handleLongPress = (msg: Message, layout: { x: number; y: number; width: number; height: number }) => {
+  const screenWidth = Dimensions.get('window').width;
+  const screenHeight = Dimensions.get('window').height;
+  const menuWidth = 180;
+  const menuHeight = 130; // Estimate height of your menu
+  const topMargin = 10;
+
+  const left = Math.max(10, Math.min(screenWidth - menuWidth - 10, msg.sender === 'Me' ? layout.x + layout.width - menuWidth : layout.x));
+
+  let top = layout.y + layout.height;
+  if (top + menuHeight > screenHeight) {
+    top = layout.y - menuHeight - topMargin;
+    if (top < topMargin) top = topMargin; // keep on screen
+  }
+
+  setSelectedMessageForMenu(msg);
+  setMenuPosition({ top, left });
+  setMenuVisible(true);
+};
 
   const handleOptionSelect = async (option: MenuOption) => {
     if (!selectedMessageForMenu) return;
