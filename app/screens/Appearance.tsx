@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { triggerLightHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
+import { triggerTapHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
 import { useThemeToggle, ThemeOption as GlobalThemeOption } from '../../utils/GlobalUtils/ThemeProvider';
 
 type LocalThemeOption = 'automatic' | 'dark' | 'light';
@@ -23,7 +23,7 @@ export default function AppearanceScreen() {
     setSelectedTheme(option);
     const themeToSet: GlobalThemeOption = option === 'automatic' ? 'system' : option;
     setTheme(themeToSet);
-    triggerLightHapticFeedback();
+    triggerTapHapticFeedback();
     console.log(`Theme selected: ${option}`, userTheme);
   };
 

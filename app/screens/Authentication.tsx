@@ -8,7 +8,7 @@ import { handleConnectPress} from "../../utils/AuthenticationUtils/WalletConnect
 import { handleSupport } from "../../utils/AuthenticationUtils/HandleAuthScreenSupport";
 import { handleExit } from "../../utils/AuthenticationUtils/HandleAuthScreenExit";
 import SignClient from "@walletconnect/sign-client";
-import { triggerLightHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
+import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'>;
 
@@ -33,10 +33,10 @@ const AuthScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         {/* Exit Button*/}
-        <Text style={styles.headerButton} onPress={() => {handleExit(), triggerLightHapticFeedback()}}>Exit</Text>
+        <Text style={styles.headerButton} onPress={() => {handleExit(), triggerTapHapticFeedback()}}>Exit</Text>
 
         {/* Support Icon */}
-        <TouchableOpacity onPress={() => {handleSupport(), triggerLightHapticFeedback()}}>
+        <TouchableOpacity onPress={() => {handleSupport(), triggerTapHapticFeedback()}}>
           <Image source={supportIcon} style={styles.supportIcon}/>
         </TouchableOpacity>
       </View>
@@ -64,7 +64,7 @@ const AuthScreen = () => {
             navigation,
             setIsAuthenticated,// pass this function to update auth state
           );
-          triggerLightHapticFeedback();
+          triggerTapHapticFeedback();
           }} // Use the imported function here
       >
         <Image source={require('../../assets/images/metamask.png')} style={styles.icon} />
