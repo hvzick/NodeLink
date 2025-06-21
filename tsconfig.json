@@ -25,6 +25,8 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "src/types/declarations.d.ts" // ✅ added declaration file
+    ,
+    "utils/ChatDetailUtils/FormatDate.ts"
   ],
   "exclude": [
     "node_modules"

@@ -3,27 +3,35 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   FlatList, Image, ImageBackground, KeyboardAvoidingView, Keyboard, Modal, PanResponder,
   Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity,
-  TouchableWithoutFeedback, View, Alert, ActivityIndicator, Dimensions
+  View, ActivityIndicator
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
-import handleAttachment from '../../utils/ChatDetailUtils/InsertAttachment';
+
+// Only import what's still needed in the component's render logic or local state
+import handleAttachment from '../../utils/ChatDetailUtils/InsertAttachment'; // Assuming this is a UI-specific helper
 import { triggerTapHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
 import { Message } from '../../backend/local database/MessageStructure';
-import {
-  insertMessage,
-  fetchMessagesByConversation,
-  deleteMessage,
-} from '../../backend/local database/MessageIndex';
+import { fetchMessagesByConversation } from '../../backend/local database/MessageIndex'; // For initial load
+
 import MessageBubble from '../../utils/ChatDetailUtils/MessageBubble';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { useChat } from '../../utils/ChatUtils/ChatContext';
 import { ChatItemType } from '../../utils/ChatUtils/ChatItemsTypes';
-import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/MessageLongPressMenu';
+
+// Import the new handler functions and types from their specific files
+import { ChatDetailHandlerDependencies } from '../../utils/ChatDetailUtils/ChatHandlers/HandleDependencies';
+import { handleSendMessage } from '../../utils/ChatDetailUtils/ChatHandlers/HandleSendMessage';
+import { handleLongPress } from '../../utils/ChatDetailUtils/ChatHandlers/HandleLongPress';
+import { handleOptionSelect } from '../../utils/ChatDetailUtils/ChatHandlers/HandleOptionSelect';
+import { closeLongPressMenu } from '../../utils/ChatDetailUtils/ChatHandlers/CloseLongPressMenu';
+import { handleQuotedPress } from '../../utils/ChatDetailUtils/ChatHandlers/HandleQuotedPress';
+import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/ChatHandlers/HandleMessageLongPressMenu'; // Import MenuOption from here
+import { formatDateHeader } from '../../utils/ChatDetailUtils/FormatDate'; // Import formatDateHeader from here
 import { RootStackParamList } from '../App';
-import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
+
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, 'ChatDetail'>;
 type ChatDetailNavigationProp = StackNavigationProp<RootStackParamList, 'ChatDetail'>;
@@ -39,7 +47,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [attachment, setAttachment] = useState<Partial<Message> | null>(null); // Use Partial<Message>
+  const [attachment, setAttachment] = useState<Partial<Message> | null>(null);
   const [replyMessage, setReplyMessage] = useState<Message | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
@@ -52,15 +60,44 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
 
+  // Define handler dependencies using useMemo to ensure stability for external handlers
+  const handlerDependencies: ChatDetailHandlerDependencies = useMemo(() => ({
+    conversationId, name, avatar, addOrUpdateChat,
+    messages,
+    setMessages,
+    newMessage,
+    setNewMessage,
+    attachment,
+    setAttachment,
+    replyMessage,
+    setReplyMessage,
+    setSelectedImage,
+    setSelectedVideo,
+    setHighlightedMessageId,
+    setMenuVisible,
+    setSelectedMessageForMenu,
+    setMenuPosition,
+    flatListRef,
+  }), [
+    conversationId, name, avatar, addOrUpdateChat,
+    messages,
+    setMessages, setNewMessage, setAttachment, setReplyMessage,
+    replyMessage,
+    newMessage, attachment,
+    setSelectedImage, setSelectedVideo,
+    setHighlightedMessageId, setMenuVisible,
+    setSelectedMessageForMenu, setMenuPosition,
+    flatListRef,
+  ]);
+
   const modalPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 20; // vertical movement
+        return Math.abs(gestureState.dy) > 20;
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 80 || gestureState.dy < -80) {
-          // swipe down or up
           setSelectedImage(null);
           setSelectedVideo(null);
         }
@@ -79,12 +116,10 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     const loadMessages = async () => {
       setIsLoading(true);
       const fetched = await fetchMessagesByConversation(conversationId);
-      // Ensure fetched messages are sorted by a proper timestamp (like createdAt)
-      // If 'id' is a timestamp string, parseInt is okay, but `createdAt` is better if available.
       setMessages(fetched.sort((a, b) => (a.createdAt || parseInt(a.id, 10)) - (b.createdAt || parseInt(b.id, 10))));
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100); // delay ensures rendering completes first
+      }, 100);
       setIsLoading(false);
     };
     loadMessages();
@@ -96,7 +131,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     const list: (Message | { type: 'date'; date: string; id: string })[] = [];
     let lastDate = '';
     messages.forEach((msg) => {
-      // Use createdAt for date grouping if available, fallback to id
       const msgDate = new Date(msg.createdAt || parseInt(msg.id, 10));
       const dateString = msgDate.toDateString();
       if (dateString !== lastDate) {
@@ -108,49 +142,19 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     return list;
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() && !attachment) return;
-    const now = Date.now();
-    const timestamp = new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    const msg: Message = {
-      id: now.toString(), // Use Date.now() for unique ID
-      conversationId,
-      sender: 'Me', // Assuming 'Me' is the current user
-      timestamp,
-      createdAt: now, // Ensure createdAt is set for new messages
-      ...(newMessage.trim() && { text: newMessage.trim() }),
-      ...(attachment && { // Explicitly assign imageUrl and videoUrl
-        imageUrl: attachment.imageUrl,
-        videoUrl: attachment.videoUrl,
-      }),
-      ...(replyMessage && { replyTo: replyMessage }),
-    };
 
-    setMessages(prev => [...prev, msg].sort((a, b) => (a.createdAt || parseInt(a.id, 10)) - (b.createdAt || parseInt(b.id, 10)))); // Re-sort
-    setNewMessage('');
-    setAttachment(null); // Clear attachment after sending
-    setReplyMessage(null);
-    triggerTapHapticFeedback();
+  // Wrappers for the imported handler functions to pass the dependencies
+  const handleSendMessageWrapper = () => handleSendMessage(handlerDependencies);
+  const handleQuotedPressWrapper = (quoted: Message) => handleQuotedPress(handlerDependencies, quoted, dataWithSeparators, isMessage);
+  const handleLongPressWrapper = (msg: Message, layout: { x: number; y: number; width: number; height: number }) => handleLongPress(handlerDependencies, msg, layout);
+  const closeLongPressMenuWrapper = () => closeLongPressMenu(handlerDependencies);
+  const handleOptionSelectWrapper = async (option: MenuOption) => {
+    if (!selectedMessageForMenu) return;
+    await handleOptionSelect(handlerDependencies, option, selectedMessageForMenu);
+  };
 
-    try {
-      await insertMessage(msg);
-    } catch (e) {
-      console.error("Insert error:", e);
-      Alert.alert("Error", "Could not send message.");
-    }
-
-    const previewMessageContent = msg.text || (msg.imageUrl ? 'Image' : msg.videoUrl ? 'Video' : 'Attachment');
-    const updatedChatItem: ChatItemType = {
-      id: conversationId,
-      name,
-      message: previewMessageContent,
-      time: timestamp,
-      avatar,
-    };
-    addOrUpdateChat(updatedChatItem);
-
-    flatListRef.current?.scrollToEnd({ animated: true });
+  const clearAttachmentPreview = () => {
+    setAttachment(null);
   };
 
   const renderItem = ({ item }: { item: any }) => {
@@ -165,111 +169,15 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <MessageBubble
         message={item}
-        onReply={setReplyMessage}
-        onImagePress={setSelectedImage}
-        onVideoPress={setSelectedVideo}
-        onQuotedPress={handleQuotedPress}
-        onLongPress={handleLongPress}
+        onReply={(msg) => handlerDependencies.setReplyMessage(msg)}
+        onImagePress={(uri) => handlerDependencies.setSelectedImage(uri)}
+        onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
+        onQuotedPress={handleQuotedPressWrapper}
+        onLongPress={handleLongPressWrapper}
         highlighted={item.id === highlightedMessageId}
-        // --- Pass the new prop for menu visibility ---
         isMenuVisibleForThisMessage={menuVisible && selectedMessageForMenu?.id === item.id}
       />
     );
-  };
-
-  const handleQuotedPress = (quoted: Message) => {
-    const index = dataWithSeparators.findIndex(item => isMessage(item) && item.id === quoted.id);
-    if (index !== -1) {
-      flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 }); // Use viewPosition for better centering
-      setHighlightedMessageId(quoted.id);
-      setTimeout(() => setHighlightedMessageId(null), 1500);
-    }
-  };
-
-  const handleLongPress = (msg: Message, layout: { x: number; y: number; width: number; height: number }) => {
-    const screenWidth = Dimensions.get('window').width;
-    const screenHeight = Dimensions.get('window').height;
-    const menuWidth = 180;
-    const estimatedMenuHeight = 200; // This value is crucial to verify
-
-    const horizontalLeftPosition = Math.max(
-      10,
-      Math.min(
-        screenWidth - menuWidth - 10,
-        msg.sender === 'Me' ? layout.x + layout.width - menuWidth : layout.x
-      )
-    );
-
-    let verticalTopPosition;
-
-    const messageIndexInRawList = messages.findIndex(m => m.id === msg.id);
-    const isOneOfLastTwoMessages = messageIndexInRawList !== -1 &&
-                                   messageIndexInRawList >= messages.length - 2;
-
-    const spaceBelowMessage = screenHeight - (layout.y + layout.height);
-    const isTooCloseToBottom = spaceBelowMessage < (estimatedMenuHeight + 20);
-
-    if (isOneOfLastTwoMessages || isTooCloseToBottom) {
-      verticalTopPosition = layout.y - estimatedMenuHeight - 10;
-
-      if (verticalTopPosition < 20) {
-        verticalTopPosition = layout.y + layout.height + 10;
-      }
-    } else {
-      verticalTopPosition = layout.y + layout.height + 10;
-    }
-
-    setSelectedMessageForMenu(msg);
-    setMenuPosition({ top: verticalTopPosition, left: horizontalLeftPosition });
-    setMenuVisible(true);
-  };
-
-  // --- NEW: Unified function to close the menu and reset selected message ---
-  const closeLongPressMenu = () => {
-    setMenuVisible(false);
-    setSelectedMessageForMenu(null); // CRUCIAL: Resets the selected message, causing isMenuVisibleForThisMessage to become false
-  };
-
-  const handleOptionSelect = async (option: MenuOption) => {
-    if (!selectedMessageForMenu) return;
-    switch (option) {
-      case 'Reply':
-        setReplyMessage(selectedMessageForMenu);
-        break;
-      case 'Delete':
-        await handleDeleteMessage(selectedMessageForMenu.id);
-        break;
-      case 'Copy':
-        let contentToCopy = '';
-        if (selectedMessageForMenu.text) contentToCopy = selectedMessageForMenu.text;
-        else if (selectedMessageForMenu.imageUrl) contentToCopy = selectedMessageForMenu.imageUrl;
-        else if (selectedMessageForMenu.videoUrl) contentToCopy = selectedMessageForMenu.videoUrl;
-        
-        if (contentToCopy) {
-            await copyToClipboard(contentToCopy);
-            Alert.alert("Copied!", "Content copied to clipboard.");
-        } else {
-            Alert.alert("Info", "Nothing to copy from this message.");
-        }
-        break;
-      case 'Forward':
-        console.log('Forwarding message:', selectedMessageForMenu);
-        break;
-    }
-    closeLongPressMenu(); // Use the unified close function
-  };
-
-  const handleDeleteMessage = async (id: string) => {
-    try {
-      await deleteMessage(id);
-      setMessages(msgs => msgs.filter(m => m.id !== id));
-    } catch {
-      Alert.alert('Error', 'Could not delete message');
-    }
-  };
-
-  const clearAttachmentPreview = () => {
-    setAttachment(null);
   };
 
   return (
@@ -292,8 +200,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       {menuVisible && selectedMessageForMenu && (
         <MessageLongPressMenu
           isVisible={menuVisible}
-          onClose={closeLongPressMenu} // Use the unified close function
-          onOptionSelect={handleOptionSelect}
+          onClose={closeLongPressMenuWrapper}
+          onOptionSelect={handleOptionSelectWrapper}
           menuPosition={menuPosition}
           message={selectedMessageForMenu}
           isSender={selectedMessageForMenu.sender === 'Me'}
@@ -325,12 +233,12 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
           {replyMessage && (
             <View style={styles.replyContainer}>
-              <TouchableOpacity onPress={() => handleQuotedPress(replyMessage)} style={{ flex: 1 }}>
+              <TouchableOpacity onPress={() => handleQuotedPressWrapper(replyMessage!)} style={{ flex: 1 }}>
                 <Text style={styles.replyPreviewText}>
                   Replying to: {replyMessage.text || (replyMessage.imageUrl ? 'Image' : 'Video')}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setReplyMessage(null)}>
+              <TouchableOpacity onPress={() => handlerDependencies.setReplyMessage(null)}>
                 <Ionicons name="close" size={20} />
               </TouchableOpacity>
             </View>
@@ -350,7 +258,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                   useNativeControls
                 />
               )}
-              <TouchableOpacity onPress={() => setAttachment(null)} style={{ position: 'absolute', top: 5, right: 5 }}>
+              <TouchableOpacity onPress={clearAttachmentPreview} style={{ position: 'absolute', top: 5, right: 5 }}>
                 <Ionicons name="close-circle" size={24} color="red" />
               </TouchableOpacity>
             </View>
@@ -362,8 +270,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 <TouchableOpacity
                   style={styles.modalClose}
                   onPress={() => {
-                    setSelectedImage(null);
-                    setSelectedVideo(null);
+                    handlerDependencies.setSelectedImage(null);
+                    handlerDependencies.setSelectedVideo(null);
                   }}
                 >
                   <Ionicons name="close-circle" size={32} color="white" />
@@ -395,9 +303,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               onPress={async () => {
                 const att = await handleAttachment();
                 if (att) {
-                  const safeAttachment = { ...att, conversationId, sender: 'Me', timestamp: '', text: '' };
-                  delete (safeAttachment as any).id;
-                  setAttachment(safeAttachment);
+                  const safeAttachment: Partial<Message> = { imageUrl: att.imageUrl, videoUrl: att.videoUrl };
+                  handlerDependencies.setAttachment(safeAttachment);
                 }
               }}
             >
@@ -415,7 +322,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             <TouchableOpacity style={styles.iconContainer} onPress={() => console.log('Mic pressed')}>
               <Ionicons name="mic" size={24} color="#666" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconContainer} onPress={handleSendMessage}>
+            <TouchableOpacity style={styles.iconContainer} onPress={handleSendMessageWrapper}>
               <Ionicons name="send" size={24} color="#666" />
             </TouchableOpacity>
           </View>
@@ -425,15 +332,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const formatDateHeader = (date: Date): string => {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-
-  if (date.toDateString() === today.toDateString()) return 'Today';
-  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-  return date.toLocaleDateString();
-};
+// Original getStyles is kept as is.
 const getStyles = (theme: 'light' | 'dark') =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme === 'dark' ? '#222' : '#EDEDED' },
@@ -549,6 +448,5 @@ const getStyles = (theme: 'light' | 'dark') =>
       color: theme === 'dark' ? '#fff' : '#000',
     },
   });
-
 
 export default ChatDetailScreen;

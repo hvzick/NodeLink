@@ -3,7 +3,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Clipboard } from 'react-native'; // Import Alert and Clipboard
 import { Ionicons } from '@expo/vector-icons';
-import { Message } from '../../backend/local database/MessageStructure'; // Ensure this path is correct and Message has imageUrl/videoUrl
+import { Message } from '../../../backend/local database/MessageStructure'; // Ensure this path is correct and Message has imageUrl/videoUrl
 
 // Defines the options that can be selected from the menu
 export type MenuOption = 'Reply' | 'Copy' | 'Delete' | 'Forward';
