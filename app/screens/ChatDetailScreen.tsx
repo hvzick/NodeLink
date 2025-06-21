@@ -52,15 +52,22 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
 
-  const modalPanResponder = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 20,
-    onPanResponderRelease: (_, gs) => {
-      if (gs.dy > 100) {
+ const modalPanResponder = useRef(
+  PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dy) > 20; // vertical movement
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > 80 || gestureState.dy < -80) {
+        // swipe down or up
         setSelectedImage(null);
         setSelectedVideo(null);
       }
     },
-  })).current;
+  })
+).current;
+
 
   const keyboardDismissPanResponder = useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 20,
@@ -277,6 +284,38 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Ionicons name="close-circle" size={24} color="red" />
               </TouchableOpacity>
             </View>
+          )}
+          {/* Fullscreen Media Viewer */}
+          {(selectedImage || selectedVideo) && (
+            <Modal visible transparent animationType="fade">
+              <View style={styles.modalContainer} {...modalPanResponder.panHandlers}>
+                <TouchableOpacity
+                  style={styles.modalClose}
+                  onPress={() => {
+                    setSelectedImage(null);
+                    setSelectedVideo(null);
+                  }}
+                >
+                  <Ionicons name="close-circle" size={32} color="white" />
+                </TouchableOpacity>
+
+                {selectedImage ? (
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={styles.fullScreenImage}
+                    resizeMode="contain"
+                  />
+                ) : selectedVideo ? (
+                  <Video
+                    source={{ uri: selectedVideo }}
+                    style={styles.fullScreenVideo}
+                    useNativeControls
+                    resizeMode={ResizeMode.CONTAIN}
+                    shouldPlay
+                  />
+                ) : null}
+              </View>
+            </Modal>
           )}
 
           {/* Bottom Bar */}
