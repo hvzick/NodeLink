@@ -76,16 +76,20 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     },
   })).current;
 
-  useEffect(() => {
-    const loadMessages = async () => {
-      setIsLoading(true);
-      const fetched = await fetchMessagesByConversation(conversationId);
-      fetched.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
-      setMessages(fetched);
-      setIsLoading(false);
-    };
-    loadMessages();
-  }, [conversationId]);
+useEffect(() => {
+  const loadMessages = async () => {
+    setIsLoading(true);
+    const fetched = await fetchMessagesByConversation(conversationId);
+    fetched.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
+    setMessages(fetched);
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: false });
+    }, 100); // delay ensures rendering completes first
+    setIsLoading(false);
+  };
+  loadMessages();
+}, [conversationId]);
+
 
   const isMessage = (item: any): item is Message => item && 'sender' in item && 'id' in item;
 
