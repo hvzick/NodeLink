@@ -3,12 +3,12 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   FlatList, Image, ImageBackground, KeyboardAvoidingView, Keyboard, Modal, PanResponder,
   Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity,
-  TouchableWithoutFeedback, View, Clipboard, Alert, ActivityIndicator, Dimensions
+  TouchableWithoutFeedback, View, Alert, ActivityIndicator, Dimensions
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import handleAttachment from '../../utils/ChatDetailUtils/InsertAttachment';
 import { triggerTapHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
 import { Message } from '../../backend/local database/MessageStructure';
@@ -22,7 +22,7 @@ import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { useChat } from '../../utils/ChatUtils/ChatContext';
 import { ChatItemType } from '../../utils/ChatUtils/ChatItemsTypes';
 import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/MessageLongPressMenu';
-import { RootStackParamList } from '../App'; // Assuming App is in the parent directory
+import { RootStackParamList } from '../App';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, 'ChatDetail'>;
@@ -32,6 +32,7 @@ type Props = {
   route: ChatDetailRouteProp;
   navigation: ChatDetailNavigationProp;
 };
+
 const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, name, avatar } = route.params;
   const { addOrUpdateChat } = useChat();
@@ -215,7 +216,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Long Press Menu */}
       {menuVisible && selectedMessageForMenu && (
         <MessageLongPressMenu
           isVisible={menuVisible}
@@ -259,6 +259,26 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           )}
 
+          {/* Attachment Preview */}
+          {attachment && (
+            <View style={styles.previewContainer}>
+              {attachment.imageUrl && (
+                <Image source={{ uri: attachment.imageUrl }} style={{ width: 100, height: 100, borderRadius: 8 }} />
+              )}
+              {attachment.videoUrl && (
+                <Video
+                  source={{ uri: attachment.videoUrl }}
+                  style={{ width: 100, height: 100, borderRadius: 8 }}
+                   resizeMode={ResizeMode.COVER}
+                  useNativeControls
+                />
+              )}
+              <TouchableOpacity onPress={() => setAttachment(null)} style={{ position: 'absolute', top: 5, right: 5 }}>
+                <Ionicons name="close-circle" size={24} color="red" />
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Bottom Bar */}
           <View style={styles.bottomBar}>
             <TouchableOpacity
@@ -295,6 +315,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     </SafeAreaView>
   );
 };
+
 const formatDateHeader = (date: Date): string => {
   const today = new Date();
   const yesterday = new Date(today);
@@ -304,7 +325,6 @@ const formatDateHeader = (date: Date): string => {
   if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
   return date.toLocaleDateString();
 };
-
 const getStyles = (theme: 'light' | 'dark') =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme === 'dark' ? '#222' : '#EDEDED' },
