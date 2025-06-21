@@ -260,7 +260,6 @@ const Chats = () => {
   );
 };
 
-// Styles remain the same
 const createStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
     container: {
@@ -285,7 +284,7 @@ const createStyles = (isDarkMode: boolean) =>
     nodeLinkName: {
       fontSize: 25,
       fontWeight: "bold",
-      fontFamily: Platform.select({ ios: "MontserratAlternates-Regular", android: "sans-serif-medium" }), // Fallback for fonts
+      fontFamily: "MontserratAlternates-Regular",
       color: isDarkMode ? "#FFFFFF" : "#000",
     },
     themeIconContainer: {
@@ -307,7 +306,7 @@ const createStyles = (isDarkMode: boolean) =>
     searchInput: {
       fontSize: 17,
       flex: 1,
-      fontFamily: Platform.select({ ios: "SF-Pro-Text-Regular", android: "sans-serif" }), // Fallback for fonts
+      fontFamily: "SF-Pro-Text-Regular",
       marginLeft: 15,
       color: isDarkMode ? "#fff" : "#000",
     },
@@ -323,40 +322,38 @@ const createStyles = (isDarkMode: boolean) =>
       borderColor: isDarkMode ? "#333" : "#ddd",
       backgroundColor: isDarkMode ? "#121212" : "#fff",
       minHeight: 80,
-      maxHeight: 80, // Keep this fixed height
+      maxHeight: 80,
     },
     avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 12 },
     chatContent: {
-      flex: 1, // Takes up remaining space
-      flexShrink: 1, // Allows it to shrink if other content needs space
-      flexGrow: 1,   // Allows it to grow
-      justifyContent: 'center', // Vertically center content
+      flex: 1, 
+      flexShrink: 1,
+      flexGrow: 1,  
+      justifyContent: 'center',
     },
     chatName: {
       fontWeight: "bold",
       fontSize: 18,
-      fontFamily: Platform.select({ ios: "SF-Pro-Text-Medium", android: "sans-serif-medium" }), // Fallback for fonts
-      bottom: 7, // Adjust positioning as needed after flex layout
+      fontFamily:  "SF-Pro-Text-Medium",
+      bottom: 7, 
       color: isDarkMode ? "#fff" : "#000"
     },
     chatMessage: {
       color: isDarkMode ? "#aaa" : "#777",
-      fontFamily: Platform.select({ ios: "SF-Pro-Text-Regular", android: "sans-serif" }), // Fallback for fonts
+      fontFamily:  "SF-Pro-Text-Regular",
       fontSize: 15,
-      bottom: 4, // Adjust positioning as needed after flex layout
+      bottom: 4, 
     },
-    chatTimeContainer: { // New container for chatTime and pinned icon
+    chatTimeContainer: { 
       alignItems: "flex-end",
-      marginLeft: 10, // Add some margin to separate from chatContent
-      flexShrink: 0, // Prevent this container from shrinking
-      // Add a fixed width if times vary wildly and cause jumping
-      // width: 60,
+      marginLeft: 10, 
+      flexShrink: 0, 
     },
     chatTime: {
       color: isDarkMode ? "#aaa" : "#777",
       fontSize: 14,
-      marginBottom: 30, // Adjust as per your desired vertical alignment
-      top: 5, // Adjust as per your desired vertical alignment
+      marginBottom: 30,
+      top: 5, 
     },
     rightActions: { flexDirection: "row", alignItems: "center" },
     actionButton: {
@@ -382,7 +379,7 @@ const createStyles = (isDarkMode: boolean) =>
       marginLeft: 35,
       marginTop: 5,
       fontSize: 14,
-      fontFamily: Platform.select({ ios: "SF-Pro-Text-Regular", android: "sans-serif" }), // Fallback for fonts
+      fontFamily:  "SF-Pro-Text-Regular",
     },
   });
 
