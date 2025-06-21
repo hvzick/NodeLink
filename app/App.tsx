@@ -19,6 +19,7 @@ import * as Notifications from 'expo-notifications';
 import { handleUserData } from "../backend/Supabase/HandleUserData";
 import UserProfile from './screens/UserProfile';
 import { ChatProvider } from '../utils/ChatUtils/ChatContext';
+import { initializeDatabase } from '../backend/local database/InitialiseDatabase';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -55,29 +56,35 @@ export default function App() {
   });
 
   // Check for existing session and load user data
-  useEffect(() => {
-    const checkSession = async () => {
+    useEffect(() => {
+    const initializeApp = async () => {
       try {
+        // 1. Initialize the local database once when the app starts.
+        await initializeDatabase();
+        console.log('✅ Local database initialized successfully.');
+
+        // 2. Check for an active user session.
         const walletAddress = await AsyncStorage.getItem("walletAddress");
         console.log("🔍 Checking session:", walletAddress ? "Found" : "Not found");
         
         if (walletAddress) {
           setHasSession(true);
-          // Load user data if authenticated
-          await handleUserData();
+          await handleUserData(); // Load user data if authenticated
         } else {
           setHasSession(false);
         }
       } catch (error) {
-        console.error("Error checking session:", error);
-        setHasSession(false);
+        console.error("❌ Error during app initialization:", error);
+        setHasSession(false); // Ensure user is logged out on error
       } finally {
+        // This will run regardless of success or failure.
         setIsLoading(false);
       }
     };
 
-    checkSession();
-  }, []);
+    initializeApp();
+  }, []); // Empty dependency array ensures this runs only once on launch.
+
 
   // Show loading screen while checking session and loading fonts
   if (isLoading || !fontsLoaded) {
