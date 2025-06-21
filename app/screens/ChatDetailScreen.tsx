@@ -39,7 +39,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [attachment, setAttachment] = useState<Omit<Message, 'id'> | null>(null);
+  const [attachment, setAttachment] = useState<Partial<Message> | null>(null); // Use Partial<Message>
   const [replyMessage, setReplyMessage] = useState<Message | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
@@ -52,22 +52,21 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
 
- const modalPanResponder = useRef(
-  PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      return Math.abs(gestureState.dy) > 20; // vertical movement
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (gestureState.dy > 80 || gestureState.dy < -80) {
-        // swipe down or up
-        setSelectedImage(null);
-        setSelectedVideo(null);
-      }
-    },
-  })
-).current;
-
+  const modalPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dy) > 20; // vertical movement
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 80 || gestureState.dy < -80) {
+          // swipe down or up
+          setSelectedImage(null);
+          setSelectedVideo(null);
+        }
+      },
+    })
+  ).current;
 
   const keyboardDismissPanResponder = useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 20,
@@ -76,20 +75,20 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     },
   })).current;
 
-useEffect(() => {
-  const loadMessages = async () => {
-    setIsLoading(true);
-    const fetched = await fetchMessagesByConversation(conversationId);
-    fetched.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
-    setMessages(fetched);
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: false });
-    }, 100); // delay ensures rendering completes first
-    setIsLoading(false);
-  };
-  loadMessages();
-}, [conversationId]);
-
+  useEffect(() => {
+    const loadMessages = async () => {
+      setIsLoading(true);
+      const fetched = await fetchMessagesByConversation(conversationId);
+      // Ensure fetched messages are sorted by a proper timestamp (like createdAt)
+      // If 'id' is a timestamp string, parseInt is okay, but `createdAt` is better if available.
+      setMessages(fetched.sort((a, b) => (a.createdAt || parseInt(a.id, 10)) - (b.createdAt || parseInt(b.id, 10))));
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 100); // delay ensures rendering completes first
+      setIsLoading(false);
+    };
+    loadMessages();
+  }, [conversationId]);
 
   const isMessage = (item: any): item is Message => item && 'sender' in item && 'id' in item;
 
@@ -97,7 +96,8 @@ useEffect(() => {
     const list: (Message | { type: 'date'; date: string; id: string })[] = [];
     let lastDate = '';
     messages.forEach((msg) => {
-      const msgDate = new Date(parseInt(msg.id));
+      // Use createdAt for date grouping if available, fallback to id
+      const msgDate = new Date(msg.createdAt || parseInt(msg.id, 10));
       const dateString = msgDate.toDateString();
       if (dateString !== lastDate) {
         list.push({ type: 'date', date: formatDateHeader(msgDate), id: `sep-${dateString}` });
@@ -110,20 +110,26 @@ useEffect(() => {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() && !attachment) return;
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = Date.now();
+    const timestamp = new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
     const msg: Message = {
-      id: Date.now().toString(),
+      id: now.toString(), // Use Date.now() for unique ID
       conversationId,
-      sender: 'Me',
+      sender: 'Me', // Assuming 'Me' is the current user
       timestamp,
-      ...(newMessage.trim() && { text: newMessage }),
-      ...(attachment && attachment),
+      createdAt: now, // Ensure createdAt is set for new messages
+      ...(newMessage.trim() && { text: newMessage.trim() }),
+      ...(attachment && { // Explicitly assign imageUrl and videoUrl
+        imageUrl: attachment.imageUrl,
+        videoUrl: attachment.videoUrl,
+      }),
       ...(replyMessage && { replyTo: replyMessage }),
     };
 
-    setMessages(prev => [...prev, msg]);
+    setMessages(prev => [...prev, msg].sort((a, b) => (a.createdAt || parseInt(a.id, 10)) - (b.createdAt || parseInt(b.id, 10)))); // Re-sort
     setNewMessage('');
-    setAttachment(null);
+    setAttachment(null); // Clear attachment after sending
     setReplyMessage(null);
     triggerTapHapticFeedback();
 
@@ -131,16 +137,20 @@ useEffect(() => {
       await insertMessage(msg);
     } catch (e) {
       console.error("Insert error:", e);
+      Alert.alert("Error", "Could not send message.");
     }
 
-    const preview: ChatItemType = {
+    const previewMessageContent = msg.text || (msg.imageUrl ? 'Image' : msg.videoUrl ? 'Video' : 'Attachment');
+    const updatedChatItem: ChatItemType = {
       id: conversationId,
       name,
-      message: msg.text || (msg.imageUrl ? 'Image' : 'Video'),
+      message: previewMessageContent,
       time: timestamp,
       avatar,
     };
-    addOrUpdateChat(preview);
+    addOrUpdateChat(updatedChatItem);
+
+    flatListRef.current?.scrollToEnd({ animated: true });
   };
 
   const renderItem = ({ item }: { item: any }) => {
@@ -161,6 +171,8 @@ useEffect(() => {
         onQuotedPress={handleQuotedPress}
         onLongPress={handleLongPress}
         highlighted={item.id === highlightedMessageId}
+        // --- Pass the new prop for menu visibility ---
+        isMenuVisibleForThisMessage={menuVisible && selectedMessageForMenu?.id === item.id}
       />
     );
   };
@@ -168,31 +180,55 @@ useEffect(() => {
   const handleQuotedPress = (quoted: Message) => {
     const index = dataWithSeparators.findIndex(item => isMessage(item) && item.id === quoted.id);
     if (index !== -1) {
-      flatListRef.current?.scrollToIndex({ index, animated: true });
+      flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 }); // Use viewPosition for better centering
       setHighlightedMessageId(quoted.id);
       setTimeout(() => setHighlightedMessageId(null), 1500);
     }
   };
 
-const handleLongPress = (msg: Message, layout: { x: number; y: number; width: number; height: number }) => {
-  const screenWidth = Dimensions.get('window').width;
-  const screenHeight = Dimensions.get('window').height;
-  const menuWidth = 180;
-  const menuHeight = 130; // Estimate height of your menu
-  const topMargin = 10;
+  const handleLongPress = (msg: Message, layout: { x: number; y: number; width: number; height: number }) => {
+    const screenWidth = Dimensions.get('window').width;
+    const screenHeight = Dimensions.get('window').height;
+    const menuWidth = 180;
+    const estimatedMenuHeight = 200; // This value is crucial to verify
 
-  const left = Math.max(10, Math.min(screenWidth - menuWidth - 10, msg.sender === 'Me' ? layout.x + layout.width - menuWidth : layout.x));
+    const horizontalLeftPosition = Math.max(
+      10,
+      Math.min(
+        screenWidth - menuWidth - 10,
+        msg.sender === 'Me' ? layout.x + layout.width - menuWidth : layout.x
+      )
+    );
 
-  let top = layout.y + layout.height;
-  if (top + menuHeight > screenHeight) {
-    top = layout.y - menuHeight - topMargin;
-    if (top < topMargin) top = topMargin; // keep on screen
-  }
+    let verticalTopPosition;
 
-  setSelectedMessageForMenu(msg);
-  setMenuPosition({ top, left });
-  setMenuVisible(true);
-};
+    const messageIndexInRawList = messages.findIndex(m => m.id === msg.id);
+    const isOneOfLastTwoMessages = messageIndexInRawList !== -1 &&
+                                   messageIndexInRawList >= messages.length - 2;
+
+    const spaceBelowMessage = screenHeight - (layout.y + layout.height);
+    const isTooCloseToBottom = spaceBelowMessage < (estimatedMenuHeight + 20);
+
+    if (isOneOfLastTwoMessages || isTooCloseToBottom) {
+      verticalTopPosition = layout.y - estimatedMenuHeight - 10;
+
+      if (verticalTopPosition < 20) {
+        verticalTopPosition = layout.y + layout.height + 10;
+      }
+    } else {
+      verticalTopPosition = layout.y + layout.height + 10;
+    }
+
+    setSelectedMessageForMenu(msg);
+    setMenuPosition({ top: verticalTopPosition, left: horizontalLeftPosition });
+    setMenuVisible(true);
+  };
+
+  // --- NEW: Unified function to close the menu and reset selected message ---
+  const closeLongPressMenu = () => {
+    setMenuVisible(false);
+    setSelectedMessageForMenu(null); // CRUCIAL: Resets the selected message, causing isMenuVisibleForThisMessage to become false
+  };
 
   const handleOptionSelect = async (option: MenuOption) => {
     if (!selectedMessageForMenu) return;
@@ -204,13 +240,23 @@ const handleLongPress = (msg: Message, layout: { x: number; y: number; width: nu
         await handleDeleteMessage(selectedMessageForMenu.id);
         break;
       case 'Copy':
-        if (selectedMessageForMenu.text) await copyToClipboard(selectedMessageForMenu.text);
+        let contentToCopy = '';
+        if (selectedMessageForMenu.text) contentToCopy = selectedMessageForMenu.text;
+        else if (selectedMessageForMenu.imageUrl) contentToCopy = selectedMessageForMenu.imageUrl;
+        else if (selectedMessageForMenu.videoUrl) contentToCopy = selectedMessageForMenu.videoUrl;
+        
+        if (contentToCopy) {
+            await copyToClipboard(contentToCopy);
+            Alert.alert("Copied!", "Content copied to clipboard.");
+        } else {
+            Alert.alert("Info", "Nothing to copy from this message.");
+        }
         break;
       case 'Forward':
         console.log('Forwarding message:', selectedMessageForMenu);
         break;
     }
-    setMenuVisible(false);
+    closeLongPressMenu(); // Use the unified close function
   };
 
   const handleDeleteMessage = async (id: string) => {
@@ -222,6 +268,10 @@ const handleLongPress = (msg: Message, layout: { x: number; y: number; width: nu
     }
   };
 
+  const clearAttachmentPreview = () => {
+    setAttachment(null);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Bar */}
@@ -230,7 +280,7 @@ const handleLongPress = (msg: Message, layout: { x: number; y: number; width: nu
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color="#007AFF" />
           </TouchableOpacity>
-          <Image source={avatar} style={styles.detailAvatar} />
+          <Image source={avatar || { uri: 'https://via.placeholder.com/40' }} style={styles.detailAvatar} />
           <Text style={styles.detailUserName}>{name}</Text>
         </View>
         <TouchableOpacity style={styles.callButton}>
@@ -238,10 +288,11 @@ const handleLongPress = (msg: Message, layout: { x: number; y: number; width: nu
         </TouchableOpacity>
       </View>
 
+      {/* Long Press Menu */}
       {menuVisible && selectedMessageForMenu && (
         <MessageLongPressMenu
           isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
+          onClose={closeLongPressMenu} // Use the unified close function
           onOptionSelect={handleOptionSelect}
           menuPosition={menuPosition}
           message={selectedMessageForMenu}
@@ -249,7 +300,11 @@ const handleLongPress = (msg: Message, layout: { x: number; y: number; width: nu
         />
       )}
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         <ImageBackground
           style={styles.chatBackground}
           source={{ uri: 'https://via.placeholder.com/400' }}
@@ -270,7 +325,7 @@ const handleLongPress = (msg: Message, layout: { x: number; y: number; width: nu
 
           {replyMessage && (
             <View style={styles.replyContainer}>
-              <TouchableOpacity onPress={() => handleQuotedPress(replyMessage)}>
+              <TouchableOpacity onPress={() => handleQuotedPress(replyMessage)} style={{ flex: 1 }}>
                 <Text style={styles.replyPreviewText}>
                   Replying to: {replyMessage.text || (replyMessage.imageUrl ? 'Image' : 'Video')}
                 </Text>
@@ -291,7 +346,7 @@ const handleLongPress = (msg: Message, layout: { x: number; y: number; width: nu
                 <Video
                   source={{ uri: attachment.videoUrl }}
                   style={{ width: 100, height: 100, borderRadius: 8 }}
-                   resizeMode={ResizeMode.COVER}
+                  resizeMode={ResizeMode.COVER}
                   useNativeControls
                 />
               )}

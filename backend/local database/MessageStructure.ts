@@ -1,6 +1,7 @@
 // types.ts
 
 export type Message = {
+  createdAt: number;
   id: string;
   conversationId: string;
   sender: string;

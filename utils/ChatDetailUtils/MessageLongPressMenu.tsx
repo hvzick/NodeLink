@@ -1,7 +1,9 @@
+// utils/ChatDetailUtils/MessageLongPressMenu.tsx
+
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Clipboard } from 'react-native'; // Import Alert and Clipboard
 import { Ionicons } from '@expo/vector-icons';
-import { Message } from '../../backend/local database/MessageStructure';
+import { Message } from '../../backend/local database/MessageStructure'; // Ensure this path is correct and Message has imageUrl/videoUrl
 
 // Defines the options that can be selected from the menu
 export type MenuOption = 'Reply' | 'Copy' | 'Delete' | 'Forward';
@@ -28,10 +30,21 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
     { name: 'Reply', icon: 'arrow-undo' },
   ];
 
-  // Only show 'Copy' if there is text to copy
+  // --- MODIFIED COPY LOGIC ---
+  let copyContent: string | undefined;
   if (message.text) {
+    copyContent = message.text;
+  } else if (message.imageUrl) {
+    copyContent = message.imageUrl; // Copy the image URL
+  } else if (message.videoUrl) {
+    copyContent = message.videoUrl; // Copy the video URL
+  }
+
+  // Only show 'Copy' if there is any content (text, image URL, or video URL) to copy
+  if (copyContent) {
     menuOptions.push({ name: 'Copy', icon: 'copy-outline' });
   }
+  // --- END MODIFIED COPY LOGIC ---
 
   // 'Forward' is always an option
   menuOptions.push({ name: 'Forward', icon: 'arrow-redo' });
@@ -40,6 +53,17 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   if (isSender) {
     menuOptions.push({ name: 'Delete', icon: 'trash-outline' });
   }
+
+  // Handle the 'Copy' action directly within this component
+  const handleCopy = () => {
+    if (copyContent) {
+      Clipboard.setString(copyContent);
+      Alert.alert("Copied!", "Content copied to clipboard."); // User feedback
+    } else {
+      Alert.alert("Info", "Nothing to copy from this message.");
+    }
+    onClose(); // Close the menu after copying
+  };
 
   return (
     <Modal visible={isVisible} transparent animationType="fade" onRequestClose={onClose}>
@@ -57,7 +81,13 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
             <TouchableOpacity
               key={option.name}
               style={styles.optionButton}
-              onPress={() => onOptionSelect(option.name)}
+              onPress={() => {
+                if (option.name === 'Copy') {
+                  handleCopy(); // Handle copy action internally
+                } else {
+                  onOptionSelect(option.name); // Delegate other actions to parent (ChatDetailScreen)
+                }
+              }}
             >
               <Text style={styles.optionText}>{option.name}</Text>
               <Ionicons name={option.icon} size={22} color="#333" />
