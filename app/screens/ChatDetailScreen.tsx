@@ -9,27 +9,21 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
-
-// Only import what's still needed in the component's render logic or local state
-import handleAttachment from '../../utils/ChatDetailUtils/InsertAttachment'; // Assuming this is a UI-specific helper
-import { triggerTapHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
+import handleAttachment from '../../utils/ChatDetailUtils/InsertAttachment'; 
 import { Message } from '../../backend/local database/MessageStructure';
-import { fetchMessagesByConversation } from '../../backend/local database/MessageIndex'; // For initial load
-
+import { fetchMessagesByConversation } from '../../backend/local database/MessageIndex'; 
 import MessageBubble from '../../utils/ChatDetailUtils/MessageBubble';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { useChat } from '../../utils/ChatUtils/ChatContext';
-import { ChatItemType } from '../../utils/ChatUtils/ChatItemsTypes';
 
-// Import the new handler functions and types from their specific files
 import { ChatDetailHandlerDependencies } from '../../utils/ChatDetailUtils/ChatHandlers/HandleDependencies';
 import { handleSendMessage } from '../../utils/ChatDetailUtils/ChatHandlers/HandleSendMessage';
 import { handleLongPress } from '../../utils/ChatDetailUtils/ChatHandlers/HandleLongPress';
 import { handleOptionSelect } from '../../utils/ChatDetailUtils/ChatHandlers/HandleOptionSelect';
 import { closeLongPressMenu } from '../../utils/ChatDetailUtils/ChatHandlers/CloseLongPressMenu';
 import { handleQuotedPress } from '../../utils/ChatDetailUtils/ChatHandlers/HandleQuotedPress';
-import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/ChatHandlers/HandleMessageLongPressMenu'; // Import MenuOption from here
-import { formatDateHeader } from '../../utils/ChatDetailUtils/FormatDate'; // Import formatDateHeader from here
+import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/ChatHandlers/HandleMessageLongPressMenu';
+import { formatDateHeader } from '../../utils/ChatDetailUtils/FormatDate';
 import { RootStackParamList } from '../App';
 
 
