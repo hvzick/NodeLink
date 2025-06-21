@@ -1,51 +1,37 @@
-// InsertAttachment.ts
+// utils/ChatDetailUtils/InsertAttachment.ts
 import * as ImagePicker from 'expo-image-picker';
+import { Message } from '../../backend/local database/MessageStructure';
 
-export type Message = {
-  sender: string;
-  text?: string;
-  timestamp: string;
-  imageUrl?: string;
-  fileName?: string;
-  fileSize?: string;
-  videoUrl?: string;
-  audioUrl?: string;
-};
+export default async function handleAttachment(): Promise<Partial<Message> | null> {
+  try {
+    console.log('📎 Attachment pressed');
 
-const handleAttachment = async (): Promise<Omit<Message, 'id'> | undefined> => {
-  console.log('attachment pressed');
-  
-  const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permissionResult.granted) {
-    console.log('Permission to access media library is required!');
-    return undefined;
-  }
-  
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.All,
-    quality: 1,
-  });
-  console.log('launchImageLibrary result:', result);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All, // ✅ FIX: use correct enum
+      allowsEditing: false,
+      quality: 0.8,
+      videoMaxDuration: 30,
+    });
 
-  if (!result.canceled && result.assets && result.assets.length > 0) {
+    console.log('📁 Attachment result:', result);
+
+    if (result.canceled || !result.assets || result.assets.length === 0) return null;
+
     const asset = result.assets[0];
-    let newMsg: Omit<Message, 'id'> = {
-      sender: 'Me',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    
-    if (asset.type?.startsWith('image')) {
-      newMsg = { ...newMsg, imageUrl: asset.uri, fileName: asset.fileName ?? 'Selected Media' };
-    } else if (asset.type?.startsWith('video')) {
-      newMsg = { ...newMsg, videoUrl: asset.uri, fileName: asset.fileName ?? 'Selected Video' };
-    } else if (asset.type?.startsWith('audio')) {
-      newMsg = { ...newMsg, audioUrl: asset.uri, fileName: asset.fileName ?? 'Selected Audio' };
-    }
-    
-    return newMsg;
-  }
-  
-  return undefined;
-};
 
-export default handleAttachment;
+    if (asset.type === 'image') {
+      return {
+        imageUrl: asset.uri,
+      };
+    } else if (asset.type === 'video') {
+      return {
+        videoUrl: asset.uri,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('❌ Attachment error:', error);
+    return null;
+  }
+}

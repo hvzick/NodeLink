@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Message } from '../../backend/local database/SaveMessages';
+import { Message } from '../../backend/local database/MessageStructure';
 
 // Defines the options that can be selected from the menu
 export type MenuOption = 'Reply' | 'Copy' | 'Delete' | 'Forward';
