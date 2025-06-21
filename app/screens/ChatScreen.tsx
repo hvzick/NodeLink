@@ -9,6 +9,7 @@ import {
   TextInput,
   Image,
   TouchableOpacity,
+  Platform, // Import Platform for font family
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -16,7 +17,7 @@ import { RootStackParamList } from "../App";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReanimatedSwipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Ionicons } from "@expo/vector-icons";
-import { SharedValue } from "react-native-reanimated";
+import { SharedValue } from "react-native-reanimated"; // Keep if you use Reanimated elsewhere
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
@@ -95,9 +96,13 @@ const ChatItem = memo(
             />
             <View style={styles.chatContent}>
               <Text style={styles.chatName}>{item.name}</Text>
-              <Text style={styles.chatMessage}>{item.message}</Text>
+              {/* --- MODIFIED: Ensure single line with ellipsis --- */}
+              <Text style={styles.chatMessage} numberOfLines={1} ellipsizeMode="tail">
+                {item.message}
+              </Text>
             </View>
-            <View style={{ alignItems: "flex-end" }}>
+            {/* --- MODIFIED: Ensure time container doesn't push message too much --- */}
+            <View style={styles.chatTimeContainer}>
               <Text style={styles.chatTime}>{item.time}</Text>
               {isPinned && (
                 <Image
@@ -115,8 +120,6 @@ const ChatItem = memo(
 );
 
 const Chats = () => {
-  // This line correctly destructures the values from the context.
-  // The errors you're seeing should be resolved if the ChatContext.tsx file is saved correctly.
   const { chatList, pinnedChats, togglePinChat } = useChat();
 
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
@@ -124,7 +127,6 @@ const Chats = () => {
   const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
 
-  // Local state for UI purposes like search and refreshing
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredChats, setFilteredChats] = useState<ChatItemType[]>(chatList);
@@ -132,7 +134,6 @@ const Chats = () => {
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // This effect now reacts to changes in the global chatList
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredChats(chatList);
@@ -144,7 +145,7 @@ const Chats = () => {
       setFilteredChats(filtered);
       setSearchError("");
     }
-  }, [searchQuery, chatList]); // Depends on global chatList
+  }, [searchQuery, chatList]);
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) return;
@@ -166,7 +167,6 @@ const Chats = () => {
     });
   };
 
-  // This now calls the centralized pinning function from the context
   const onPinChat = (id: string) => {
     togglePinChat(id);
   };
@@ -285,7 +285,7 @@ const createStyles = (isDarkMode: boolean) =>
     nodeLinkName: {
       fontSize: 25,
       fontWeight: "bold",
-      fontFamily: "MontserratAlternates-Regular",
+      fontFamily: Platform.select({ ios: "MontserratAlternates-Regular", android: "sans-serif-medium" }), // Fallback for fonts
       color: isDarkMode ? "#FFFFFF" : "#000",
     },
     themeIconContainer: {
@@ -307,7 +307,7 @@ const createStyles = (isDarkMode: boolean) =>
     searchInput: {
       fontSize: 17,
       flex: 1,
-      fontFamily: "SF-Pro-Text-Regular",
+      fontFamily: Platform.select({ ios: "SF-Pro-Text-Regular", android: "sans-serif" }), // Fallback for fonts
       marginLeft: 15,
       color: isDarkMode ? "#fff" : "#000",
     },
@@ -323,28 +323,40 @@ const createStyles = (isDarkMode: boolean) =>
       borderColor: isDarkMode ? "#333" : "#ddd",
       backgroundColor: isDarkMode ? "#121212" : "#fff",
       minHeight: 80,
-      maxHeight: 80,
+      maxHeight: 80, // Keep this fixed height
     },
     avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 12 },
-    chatContent: { flex: 1 },
+    chatContent: {
+      flex: 1, // Takes up remaining space
+      flexShrink: 1, // Allows it to shrink if other content needs space
+      flexGrow: 1,   // Allows it to grow
+      justifyContent: 'center', // Vertically center content
+    },
     chatName: {
       fontWeight: "bold",
       fontSize: 18,
-      fontFamily: "SF-Pro-Text-Medium",
-      bottom: 7,
+      fontFamily: Platform.select({ ios: "SF-Pro-Text-Medium", android: "sans-serif-medium" }), // Fallback for fonts
+      bottom: 7, // Adjust positioning as needed after flex layout
       color: isDarkMode ? "#fff" : "#000"
     },
     chatMessage: {
       color: isDarkMode ? "#aaa" : "#777",
-      fontFamily: "SF-Pro-Text-Regular",
+      fontFamily: Platform.select({ ios: "SF-Pro-Text-Regular", android: "sans-serif" }), // Fallback for fonts
       fontSize: 15,
-      bottom: 4
+      bottom: 4, // Adjust positioning as needed after flex layout
+    },
+    chatTimeContainer: { // New container for chatTime and pinned icon
+      alignItems: "flex-end",
+      marginLeft: 10, // Add some margin to separate from chatContent
+      flexShrink: 0, // Prevent this container from shrinking
+      // Add a fixed width if times vary wildly and cause jumping
+      // width: 60,
     },
     chatTime: {
       color: isDarkMode ? "#aaa" : "#777",
       fontSize: 14,
-      marginBottom: 30,
-      top: 5
+      marginBottom: 30, // Adjust as per your desired vertical alignment
+      top: 5, // Adjust as per your desired vertical alignment
     },
     rightActions: { flexDirection: "row", alignItems: "center" },
     actionButton: {
@@ -357,7 +369,7 @@ const createStyles = (isDarkMode: boolean) =>
     pinned: {
       width: 25,
       height: 25,
-      bottom: 15,
+      bottom: 15, // Adjust positioning as needed
     },
     actionText: {
       color: "white",
@@ -370,7 +382,7 @@ const createStyles = (isDarkMode: boolean) =>
       marginLeft: 35,
       marginTop: 5,
       fontSize: 14,
-      fontFamily: "SF-Pro-Text-Regular",
+      fontFamily: Platform.select({ ios: "SF-Pro-Text-Regular", android: "sans-serif" }), // Fallback for fonts
     },
   });
 
