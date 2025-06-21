@@ -9,11 +9,11 @@ import { triggerTapHapticFeedback } from '../GlobalUtils/TapHapticFeedback';
 // …at top level, once when your app mounts:
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,       // REQUIRED to show notifications in foreground
+    shouldShowAlert: true, 
     shouldPlaySound: true,
     shouldSetBadge: false,
-    shouldShowBanner: true,      // NEW: needed for iOS 16+
-    shouldShowList: true         // NEW: iOS Notification Center
+    shouldShowBanner: true, 
+    shouldShowList: true  
   }),
 });
 

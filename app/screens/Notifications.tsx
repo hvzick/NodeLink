@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { triggerLightHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
+import { triggerTapHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
 import {
   initConversationTones,
   playReceiveTone,
@@ -68,7 +68,7 @@ export default function NotificationsScreen() {
     const t = quietRange[field];
     setTempH(t.h);
     setTempM(t.m);
-    triggerLightHapticFeedback();
+    triggerTapHapticFeedback();
     setTimeModalVisible(true);
   };
 
@@ -78,7 +78,7 @@ export default function NotificationsScreen() {
       [timeField]: { h: tempH, m: tempM },
     };
     await saveQuietRange(next);
-    triggerLightHapticFeedback();
+    triggerTapHapticFeedback();
     setTimeModalVisible(false);
   };
  const navigation = useNavigation();
@@ -123,7 +123,7 @@ export default function NotificationsScreen() {
   const [showMuteInfo, setShowMuteInfo] = useState(false);
 
   const openMuteModal = () => {
-    triggerLightHapticFeedback();
+    triggerTapHapticFeedback();
     setMuteModalVisible(true);
   };
 
@@ -132,7 +132,7 @@ export default function NotificationsScreen() {
     setter: React.Dispatch<React.SetStateAction<boolean>>
   ) => (v: boolean) => {
     setter(v);
-    triggerLightHapticFeedback();
+    triggerTapHapticFeedback();
   };
 
   return (

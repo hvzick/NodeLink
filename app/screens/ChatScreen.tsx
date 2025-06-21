@@ -1,111 +1,48 @@
 // ChatScreen.tsx
 import React, { useRef, memo, useState, useEffect } from "react";
-import {
-  StyleSheet,
-  RefreshControl,
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  Image,
-  TouchableOpacity,
-} from "react-native";
+import { StyleSheet, RefreshControl, View, Text, FlatList, TextInput, Image, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ReanimatedSwipeable, {
-  SwipeableMethods,
-} from "react-native-gesture-handler/ReanimatedSwipeable";
+import ReanimatedSwipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  interpolate,
-  useAnimatedStyle,
-  SharedValue,
-} from "react-native-reanimated";
+import { SharedValue } from "react-native-reanimated";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
 import { onRefresh } from "../../utils/ChatUtils/RefreshChats";
 import { handlePin } from "../../utils/ChatUtils/OnPin";
-import { searchUser }  from '../../backend/Supabase/SearchUser';
+import { searchUser } from '../../backend/Supabase/SearchUser';
+import RightActions from '../../utils/ChatUtils/RightActions';
 
 const chats: ChatItemType[] = [
-  { id: "1", name: "Saved Messages", message: "image.jpeg", time: "Fri", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "2", name: "Ahmed", message: "How u doin", time: "9/29", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "3", name: "Faik", message: "Sent image.jpeg", time: "Yesterday", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "4", name: "Babar", message: "wyd?", time: "1/20", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "5", name: "Hamza", message: "see u on sunday then", time: "02:20", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "6", name: "Hazim", message: "k ill do it", time: "6/09", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "7", name: "Zee", message: "lol", time: "Sat", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "8", name: "Zain", message: "tc bye", time: "Mon", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "9", name: "Faru", message: "ok bye", time: "Sat", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "10", name: "Mom", message: "do it", time: "11/01", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "11", name: "Zaid", message: "bgmi?", time: "Thu", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  { id: "12", name: "Waseem", message: "hi...", time: "Tue", avatar: require("../../assets/images/default-user-avatar.jpg") },
-  // More chat items...
+    { id: "1", name: "Saved Messages", message: "image.jpeg", time: "Fri", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "2", name: "Ahmed", message: "How u doin", time: "9/29", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "3", name: "Faik", message: "Sent image.jpeg", time: "Yesterday", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "4", name: "Babar", message: "wyd?", time: "1/20", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "5", name: "Hamza", message: "see u on sunday then", time: "02:20", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "6", name: "Hazim", message: "k ill do it", time: "6/09", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "7", name: "Zee", message: "lol", time: "Sat", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "8", name: "Zain", message: "tc bye", time: "Mon", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "9", name: "Faru", message: "ok bye", time: "Sat", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "10", name: "Mom", message: "do it", time: "11/01", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "11", name: "Zaid", message: "bgmi?", time: "Thu", avatar: require("../../assets/images/default-user-avatar.jpg") },
+    { id: "12", name: "Waseem", message: "hi...", time: "Tue", avatar: require("../../assets/images/default-user-avatar.jpg") },
 ];
 
+/**
+ * FIXED: The type for swipeRefs is now described as an object with a 'current' property,
+ * which avoids using the deprecated 'MutableRefObject' type directly.
+ */
 interface ChatItemProps {
   item: ChatItemType;
-  swipeRefs: React.MutableRefObject<{ [key: string]: SwipeableMethods | null }>;
+  swipeRefs: { current: { [key: string]: SwipeableMethods | null } };
   onSwipe: (id: string) => void;
   onPin: () => void;
   isPinned: boolean;
   onPress: (item: ChatItemType) => void;
 }
-
-const RightActions = ({ progress, onAction, isPinned, styles }: { 
-  progress: SharedValue<number>, 
-  onAction: (action: string) => void, 
-  isPinned: boolean,
-  styles: any 
-}) => {
-  const animatedStyle = useAnimatedStyle(() => {
-    const animatedTranslateX = interpolate(
-      progress.value,
-      [0, 1],
-      [100, 0],
-      { extrapolateRight: "clamp" }
-    );
-    return { transform: [{ translateX: animatedTranslateX }] };
-  });
-
-  return (
-    <Animated.View style={[styles.rightActions, animatedStyle]}>
-      <TouchableOpacity
-        style={[styles.actionButton, { backgroundColor: "#F09A37" }]}
-        onPress={() => onAction("Mute")}
-      >
-        <Image 
-          source={require("../../assets/images/mute.png")} 
-          style={{ width: 30, height: 30, resizeMode: "contain" }} 
-        />
-        <Text style={styles.actionText}>Mute</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.actionButton, { backgroundColor: isPinned ? "#999" : "#1EBE1E" }]}
-        onPress={() => onAction("Pin")}
-      >
-        <Image 
-          source={require("../../assets/images/pin.png")} 
-          style={{ width: 30, height: 30, resizeMode: "contain" }} 
-        />
-        <Text style={styles.actionText}>{isPinned ? "Unpin" : "Pin"}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.actionButton, { backgroundColor: "#FE3B30" }]}
-        onPress={() => onAction("Delete")}
-      >
-        <Image 
-          source={require("../../assets/images/delete.png")} 
-          style={{ width: 30, height: 30, resizeMode: "contain" }} 
-        />
-        <Text style={styles.actionText}>Delete</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
 
 const ChatItem = memo(
   ({ item, swipeRefs, onSwipe, onPin, isPinned, onPress }: ChatItemProps) => {
@@ -116,19 +53,30 @@ const ChatItem = memo(
 
     const renderRightActions = (progress: SharedValue<number>) => {
       const handleAction = (action: string) => {
-        swipeRefs.current[item.id]?.close?.();
+        if (swipeRefs.current) {
+            swipeRefs.current[item.id]?.close?.();
+        }
         console.log(`Action: ${action} performed on ${item.name}`);
         if (action === "Pin") {
           onPin();
         }
       };
 
-      return <RightActions progress={progress} onAction={handleAction} isPinned={isPinned} styles={styles} />;
+      return <RightActions
+        progress={progress}
+        onAction={handleAction}
+        isPinned={isPinned}
+        styles={{
+            rightActions: styles.rightActions,
+            actionButton: styles.actionButton,
+            actionText: styles.actionText
+        }}
+      />;
     };
 
     return (
       <ReanimatedSwipeable
-        ref={ref => { swipeRefs.current[item.id] = ref; }}
+        ref={ref => { if (ref && swipeRefs.current) swipeRefs.current[item.id] = ref; }}
         renderRightActions={renderRightActions}
         overshootRight={false}
         onSwipeableWillOpen={() => {
@@ -143,16 +91,18 @@ const ChatItem = memo(
           delayPressIn={200}
           onPress={() => {
             if (!isSwiping.current) {
-              swipeRefs.current[item.id]?.close?.();
+              if (swipeRefs.current) {
+                  swipeRefs.current[item.id]?.close?.();
+              }
               onPress(item);
             }
           }}
           activeOpacity={0.7}
         >
           <View style={styles.chatItem}>
-            <Image 
-              source={item.avatar} 
-              style={styles.avatar} 
+            <Image
+              source={item.avatar}
+              style={styles.avatar}
             />
             <View style={styles.chatContent}>
               <Text style={styles.chatName}>{item.name}</Text>
@@ -161,8 +111,8 @@ const ChatItem = memo(
             <View style={{ alignItems: "flex-end" }}>
               <Text style={styles.chatTime}>{item.time}</Text>
               {isPinned && (
-                <Image 
-                  source={require("../../assets/images/pinned-logo-white.png")} 
+                <Image
+                  source={require("../../assets/images/pinned-logo-white.png")}
                   style={styles.pinned}
                   resizeMode="contain"
                 />
@@ -189,38 +139,33 @@ const Chats = () => {
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // Add useEffect to handle chat filtering
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredChats(chatList);
       setSearchError("");
     } else {
-      // Always filter chats while searching
-      const filtered = chatList.filter(chat => 
+      const filtered = chatList.filter(chat =>
         chat.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredChats(filtered);
-      // Don't show error for local chat searches
       setSearchError("");
     }
   }, [searchQuery, chatList]);
 
-const handleSearch = async (query: string) => {
-  if (!query.trim()) return;
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) return;
 
-  const user = await searchUser(query.trim());
+    const user = await searchUser(query.trim());
 
-  if (!user) {
-    setSearchError("User not found");
-    return;
-  }
+    if (!user) {
+      setSearchError("User not found");
+      return;
+    }
 
-  navigation.navigate("UserProfile", {
-    walletAddress: user.wallet_address,
-  });
-};
-
-
+    navigation.navigate("UserProfile", {
+      walletAddress: user.wallet_address,
+    });
+  };
 
   const handleSwipe = (id: string) => {
     Object.keys(swipeRefs.current).forEach((key) => {
@@ -235,22 +180,22 @@ const handleSearch = async (query: string) => {
   };
 
   const handleChatPress = (item: ChatItemType) => {
-    navigation.push("ChatDetail", { 
-      conversationId: item.id, 
-      name: item.name, 
-      avatar: item.avatar 
+    navigation.push("ChatDetail", {
+      conversationId: item.id,
+      name: item.name,
+      avatar: item.avatar
     });
   };
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Image 
-          source={isDarkMode ? require('../../assets/images/logo-white.png') : require('../../assets/images/logo-black.png')} 
-          style={styles.chatAppLogo} 
+        <Image
+          source={isDarkMode ? require('../../assets/images/logo-white.png') : require('../../assets/images/logo-black.png')}
+          style={styles.chatAppLogo}
         />
         <Text style={styles.nodeLinkName}>NodeLink</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => {
             toggleTheme();
             triggerTapHapticFeedback();
@@ -260,14 +205,14 @@ const handleSearch = async (query: string) => {
           <Ionicons name={isDarkMode ? "moon" : "sunny"} size={24} color={isDarkMode ? "#FFF" : "#000"} />
         </TouchableOpacity>
       </View>
-      
+
       <FlatList
         data={filteredChats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ChatItem 
-            item={item} 
-            swipeRefs={swipeRefs} 
+          <ChatItem
+            item={item}
+            swipeRefs={swipeRefs}
             onSwipe={handleSwipe}
             onPin={() => onPinChat(item.id)}
             isPinned={pinnedChats.includes(item.id)}
@@ -278,9 +223,9 @@ const handleSearch = async (query: string) => {
           <View>
             <View style={styles.searchContainer}>
               <Ionicons name="search" size={20} color="#888" />
-              <TextInput 
-                placeholder="Search for messages, users, or enter wallet address" 
-                style={styles.searchInput} 
+              <TextInput
+                placeholder="Search for messages, users, or enter wallet address"
+                style={styles.searchInput}
                 value={searchQuery}
                 onChangeText={(text) => {
                   setSearchQuery(text);
@@ -291,7 +236,7 @@ const handleSearch = async (query: string) => {
                 blurOnSubmit={false}
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     setSearchQuery("");
                     setFilteredChats(chatList);
@@ -311,7 +256,7 @@ const handleSearch = async (query: string) => {
           </View>
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => onRefresh(setRefreshing)} />
         }
       />
     </GestureHandlerRootView>
@@ -320,8 +265,8 @@ const handleSearch = async (query: string) => {
 
 const createStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
-    container: { 
-      flex: 1, 
+    container: {
+      flex: 1,
       backgroundColor: isDarkMode ? "#1C1C1D" : "#F1F1F1",
     },
     headerContainer: {
@@ -337,7 +282,7 @@ const createStyles = (isDarkMode: boolean) =>
       height: 40,
       resizeMode: "contain",
       position: "absolute",
-      left: 20, 
+      left: 20,
     },
     nodeLinkName: {
       fontSize: 25,
@@ -361,11 +306,11 @@ const createStyles = (isDarkMode: boolean) =>
       marginLeft: 20,
       marginRight: 20,
     },
-    searchInput: { 
+    searchInput: {
       fontSize: 17,
-      flex: 1, 
+      flex: 1,
       fontFamily: "SF-Pro-Text-Regular",
-      marginLeft: 15, 
+      marginLeft: 15,
       color: isDarkMode ? "#fff" : "#000",
     },
     clearButton: {
@@ -384,21 +329,21 @@ const createStyles = (isDarkMode: boolean) =>
     },
     avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 12 },
     chatContent: { flex: 1 },
-    chatName: { 
-      fontWeight: "bold", 
-      fontSize: 18, 
+    chatName: {
+      fontWeight: "bold",
+      fontSize: 18,
       fontFamily: "SF-Pro-Text-Medium",
       bottom: 7,
-      color: isDarkMode ? "#fff" : "#000" 
+      color: isDarkMode ? "#fff" : "#000"
     },
-    chatMessage: { 
+    chatMessage: {
       color: isDarkMode ? "#aaa" : "#777",
       fontFamily: "SF-Pro-Text-Regular",
       fontSize: 15,
       bottom: 4
     },
-    chatTime: { 
-      color: isDarkMode ? "#aaa" : "#777", 
+    chatTime: {
+      color: isDarkMode ? "#aaa" : "#777",
       fontSize: 14,
       marginBottom: 30,
       top: 5
@@ -416,8 +361,8 @@ const createStyles = (isDarkMode: boolean) =>
       height: 25,
       bottom: 15,
     },
-    actionText: { 
-      color: "white", 
+    actionText: {
+      color: "white",
       fontSize: 12,
       fontWeight: "bold",
       marginTop: -5,

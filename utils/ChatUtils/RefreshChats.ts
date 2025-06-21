@@ -1,8 +1,8 @@
-import { triggerLightHapticFeedback } from "../GlobalUtils/TapHapticFeedback";
+import { triggerTapHapticFeedback } from "../GlobalUtils/TapHapticFeedback";
 
-export const onRefresh = () => {
+export const onRefresh = (setRefreshing: unknown) => {
   // Trigger haptic feedback
-  triggerLightHapticFeedback();
+  triggerTapHapticFeedback();
 
   // Return a promise that resolves after 2 seconds
   return new Promise<void>((resolve) => {
