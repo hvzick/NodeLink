@@ -19,7 +19,6 @@ import ArrowSVG from '../../assets/images/arrow-icon.svg';
 import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
 import { logout } from '../../utils/AuthenticationUtils/Logout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RootStackParamList } from '../App';
 
 export type SettingsStackParamList = {
   Settings: undefined;
