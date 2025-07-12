@@ -90,7 +90,7 @@ const AnimatedTabBarButton = (props: any) => {
 
 export default function BottomTabs() {
   const { currentTheme } = useThemeToggle();
-  console.log("BottomTabs currentTheme:", currentTheme);
+  // console.log("BottomTabs currentTheme:", currentTheme);
   const isDarkMode = currentTheme === "dark";
 
   useEffect(() => {
