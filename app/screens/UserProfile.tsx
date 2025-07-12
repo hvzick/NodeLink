@@ -76,6 +76,7 @@ export default function UserProfile() {
           avatar: data.avatar,
           bio: data.bio,
           created_at: data.created_at,
+          publicKey: data.public_key,
         };
         setUserData(formattedUser);
         // --- Store the fetched data locally ---
@@ -189,6 +190,14 @@ export default function UserProfile() {
         <View style={styles.infoRow}>
           <Text style={styles.label}>Bio</Text>
           <Text style={styles.infoText}>{userData?.bio || "Im not being spied on!"}</Text>
+        </View>
+        <View style={styles.separator} />
+        {/* Public Key Row */}
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Public Key</Text>
+          <Text style={styles.infoText} selectable numberOfLines={2} ellipsizeMode="middle">
+            {userData?.publicKey || 'Loading...'}
+          </Text>
         </View>
         <View style={styles.separator} />
         <View style={styles.infoRow}>

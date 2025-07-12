@@ -24,6 +24,7 @@ import { format } from 'date-fns';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../backend/Supabase/Supabase';
 import 'react-native-url-polyfill/auto';
+import { handleAndPublishKeys } from '../../backend/Encryption/HandleKeys';
 
 export default function MyProfile() {
   const navigation = useNavigation();
@@ -46,6 +47,8 @@ export default function MyProfile() {
   const [isUsernameValid, setIsUsernameValid] = useState(true);
   const [isBioValid, setIsBioValid] = useState(true);
   const [usernameTaken, setUsernameTaken] = useState(false);
+  const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [privateKey, setPrivateKey] = useState<string | null>(null);
 
   const showNotification = (message: string, type: 'success' | 'error', duration = 3000) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -63,6 +66,29 @@ export default function MyProfile() {
     }
     loadUserData();
   }, []);
+
+  useEffect(() => {
+    if (userData?.walletAddress) {
+      (async () => {
+        // Try to load the key pair from local storage
+        const stored = await AsyncStorage.getItem(`crypto_key_pair_${userData.walletAddress}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setPublicKey(parsed.publicKey);
+          setPrivateKey(parsed.privateKey);
+        } else {
+          // If not found, generate and publish, then reload
+          await handleAndPublishKeys(userData.walletAddress);
+          const newStored = await AsyncStorage.getItem(`crypto_key_pair_${userData.walletAddress}`);
+          if (newStored) {
+            const parsed = JSON.parse(newStored);
+            setPublicKey(parsed.publicKey);
+            setPrivateKey(parsed.privateKey);
+          }
+        }
+      })();
+    }
+  }, [userData?.walletAddress]);
 
   useEffect(() => {
     if (userData) {
@@ -324,6 +350,24 @@ export default function MyProfile() {
             ) : (
               <Text style={styles.infoText}>{userData?.bio || "I'm not being spied on!"}</Text>
             )}
+          </View>
+
+          <View style={styles.separator} />
+
+          {/* Public Key Row */}
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Public Key</Text>
+            <Text style={styles.infoText} selectable numberOfLines={2} ellipsizeMode="middle">
+              {publicKey || 'Loading...'}
+            </Text>
+          </View>
+
+          {/* Private Key Row */}
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Private Key</Text>
+            <Text style={styles.infoText} selectable numberOfLines={2} ellipsizeMode="middle">
+              {privateKey || 'Loading...'}
+            </Text>
           </View>
 
           <View style={styles.separator} />

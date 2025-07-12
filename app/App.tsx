@@ -20,6 +20,7 @@ import UserProfile from './screens/UserProfile';
 import { ChatProvider } from '../utils/ChatUtils/ChatContext';
 import { initializeDatabase } from '../backend/local database/InitialiseDatabase';
 import LoadingScreen from './screens/LoadingScreen';
+import { handleAndPublishKeys } from '../backend/Encryption/HandleKeys'; // 1. Import the key handler
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -47,7 +48,6 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
   const [ready, setReady] = useState(false);
-  const [initialRoute, setInitialRoute] = useState<'LoadingScreen' | 'Auth' | 'Main'>('LoadingScreen');
   const [session, setSession] = useState(false);
 
   const [fontsLoaded] = useFonts({
@@ -66,6 +66,8 @@ export default function App() {
       if (walletAddress) {
         setSession(true);
         await handleUserData();
+        await handleAndPublishKeys(walletAddress); // 2. Call the key handler
+
       } else {
         setSession(false);
       }

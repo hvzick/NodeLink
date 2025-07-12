@@ -9,6 +9,7 @@ export interface UserData {
   avatar: string;
   bio: string;
   created_at?: string;
+  publicKey?: string;
 }
 
 // Default user data

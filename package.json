@@ -71,6 +71,7 @@
     "react-native": "0.79.2",
     "react-native-bottom-tabs": "^0.9.1",
     "react-native-crypto": "^2.2.0",
+    "react-native-fast-crypto": "^2.2.1",
     "react-native-feather": "^1.1.2",
     "react-native-gesture-handler": "~2.25.0",
     "react-native-get-random-values": "^1.11.0",
