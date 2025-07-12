@@ -8,20 +8,24 @@ import {
   Linking,
 } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { UserData } from '../../backend/Supabase/RegisterUser';
 import { supabase } from '../../backend/Supabase/Supabase';
 import { format } from 'date-fns';
 import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
 import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
 import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
+import { RootStackParamList } from '../App'; // Adjust path if needed
 
 export default function UserProfile() {
-  const navigation = useNavigation();
+  // Correctly type the navigation prop using your RootStackParamList
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute();
   const { walletAddress } = route.params as { walletAddress: string };
 
@@ -30,6 +34,9 @@ export default function UserProfile() {
   const [copyWalletText, setCopyWalletText] = useState('');
   const [copyUsernameText, setCopyUsernameText] = useState('');
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isButtonPressed, setIsButtonPressed] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const styles = getStyles(isDarkMode);
 
   useEffect(() => {
@@ -38,10 +45,8 @@ export default function UserProfile() {
     }
   }, [walletAddress]);
 
-  // --- MODIFIED loadUserData FUNCTION ---
   const loadUserData = async (address: string) => {
     try {
-      // 1. Prioritize fetching fresh data from Supabase
       console.log("☁️ Fetching user profile from Supabase for", address);
       const { data, error } = await supabase
         .from('profiles')
@@ -49,7 +54,6 @@ export default function UserProfile() {
         .eq('wallet_address', address)
         .single();
 
-      // 2. If fetch is successful, update UI and save to cache
       if (data && !error) {
         console.log("✅ Successfully fetched user profile from Supabase");
         const formattedUser: UserData = {
@@ -60,22 +64,16 @@ export default function UserProfile() {
           bio: data.bio,
           created_at: data.created_at,
         };
-
-        // Update the UI with the fresh data
         setUserData(formattedUser);
-
-        // Save the fresh data to AsyncStorage for caching
         await AsyncStorage.setItem(address, JSON.stringify(formattedUser));
         console.log("💾 User profile cached in AsyncStorage for", address);
-        return; // Exit function after successful operation
+        return;
       }
 
-      // 3. If fetching from Supabase fails, log the error
       if (error) {
         console.error("❌ Error fetching from Supabase:", error.message);
       }
 
-      // 4. As a fallback, try to load from the local cache
       console.log("🤔 Fetch failed. Attempting to load from local cache...");
       const cachedData = await AsyncStorage.getItem(address);
       if (cachedData) {
@@ -84,13 +82,54 @@ export default function UserProfile() {
       } else {
         console.warn("🚫 No cached data found for this user.");
       }
-
     } catch (err) {
-      // This will catch any other unexpected errors
       console.error("❌ A critical error occurred in loadUserData:", err);
     }
   };
 
+  const handleConnect = async () => {
+    console.log("Handling connect...");
+    setIsConnecting(true);
+
+    setTimeout(() => {
+      console.log("Connection successful!");
+      setIsConnecting(false);
+      setIsConnected(true);
+    }, 2000);
+  };
+
+  // --- THIS IS THE CORRECTED FUNCTION ---
+  const handleSendMessage = () => {
+    // Guard clauses to ensure we can navigate
+    if (!isConnected || !userData) {
+      console.log("Cannot send message, not connected or user data is missing.");
+      return;
+    }
+    console.log("Navigating to chat screen and resetting stack...");
+
+    // Use CommonActions.reset to replace the navigation state.
+    // This ensures that when the user presses 'back' on the ChatDetail screen,
+    // they are taken to the 'Main' screen (your BottomTabs with the chat list),
+    // not back to the UserProfile.
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 1, // Set the active screen to the second one in the array (ChatDetail)
+        routes: [
+          // The first screen in the new stack is your main screen with the tabs.
+          { name: 'Main' }, 
+          // The second screen is the chat detail screen we are navigating to.
+          {
+            name: 'ChatDetail',
+            params: {
+              conversationId: `convo_${userData.walletAddress}`, // Create a unique ID
+              name: userData.name || 'NodeLink User',
+              avatar: userData.avatar,
+            },
+          },
+        ],
+      })
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -146,6 +185,49 @@ export default function UserProfile() {
               : "N/A"}
           </Text>
         </View>
+      </View>
+
+      <View style={styles.buttonContainer}>
+        {/* Connect Button */}
+        <TouchableOpacity
+          style={[
+            styles.sideBySideButton,
+            isConnected ? styles.connectButtonConnected : styles.connectButtonDefault,
+            isButtonPressed && !isConnected && styles.connectButtonPressed,
+            (!userData || isConnecting) && styles.buttonDisabled,
+          ]}
+          onPress={handleConnect}
+          onPressIn={() => setIsButtonPressed(true)}
+          onPressOut={() => setIsButtonPressed(false)}
+          activeOpacity={0.8}
+          disabled={!userData || isConnecting || isConnected}
+        >
+          <Text style={[
+              styles.buttonText,
+              isConnected ? styles.connectButtonTextConnected : styles.connectButtonTextDefault,
+          ]}>
+            {isConnecting ? 'Connecting...' : isConnected ? 'Connected' : 'Connect'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Send Message Button */}
+        <TouchableOpacity
+          style={[
+            styles.sideBySideButton,
+            styles.sendMessageButton,
+            isConnected && styles.sendMessageButtonEnabled,
+            !isConnected && styles.buttonDisabled,
+          ]}
+          onPress={handleSendMessage}
+          disabled={!isConnected}
+        >
+          <Text style={[
+            styles.buttonText,
+            isConnected ? styles.sendMessageButtonTextEnabled : styles.buttonTextDisabled,
+          ]}>
+            Message
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <StatusBar style="auto" />
@@ -215,53 +297,63 @@ const getStyles = (isDarkMode: boolean) =>
       paddingVertical: 10,
       marginVertical: 20,
     },
-    infoRow: {
-      paddingVertical: 10,
+    infoRow: { paddingVertical: 10 },
+    label: { fontSize: 12, color: 'gray', marginBottom: 4 },
+    wallet: { fontSize: 16, color: '#00A86B', flexWrap: 'wrap' },
+    username: { fontSize: 16, color: '#007AFF' },
+    infoText: { fontSize: 16, color: isDarkMode ? '#fff' : '#333333' },
+    separator: { height: 1, backgroundColor: isDarkMode ? '#333' : '#EFEFEF' },
+    waCopyMessage: { fontSize: 14, color: '#00A86B', marginTop: 5, fontWeight: '400' },
+    uCopyMessage: { fontSize: 14, color: '#007AFF', marginTop: 5, fontWeight: '400' },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '90%',
+        marginTop: 10,
     },
-    label: {
-      fontSize: 12,
-      color: 'gray',
-      marginBottom: 4,
+    sideBySideButton: {
+        width: '48%',
+        padding: 15,
+        borderRadius: 12,
+        alignItems: 'center',
+        borderWidth: 1,
     },
-    wallet: {
-      fontSize: 16,
-      color: '#00A86B',
-      flexWrap: 'wrap',
+    buttonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
-    username: {
-      fontSize: 16,
-      color: '#007AFF',
+    connectButtonDefault: {
+        backgroundColor: 'transparent',
+        borderColor: isDarkMode ? '#fff' : '#000',
     },
-    infoText: {
-      fontSize: 16,
-      color: isDarkMode ? '#fff' : '#333333',
+    connectButtonTextDefault: {
+        color: isDarkMode ? '#fff' : '#000',
     },
-    separator: {
-      height: 1,
-      backgroundColor: isDarkMode ? '#333' : '#EFEFEF',
-      marginVertical: 0,
+    connectButtonPressed: {
+        backgroundColor: 'rgba(0, 122, 255, 0.2)',
+        borderColor: 'rgba(0, 122, 255, 0.4)',
     },
-    waCopyMessage: {
-      fontSize: 14,
-      color: '#00A86B',
-      marginTop: 5,
-      fontWeight: '400',
+    connectButtonConnected: {
+        backgroundColor: '#007AFF',
+        borderColor: '#007AFF',
     },
-    uCopyMessage: {
-      fontSize: 14,
-      color: '#007AFF',
-      marginTop: 5,
-      fontWeight: '400',
+    connectButtonTextConnected: {
+        color: '#FFFFFF',
     },
-    editButton: {
-      position: 'absolute',
-      right: 20,
-      flexDirection: 'row',
-      alignItems: 'center',
-      zIndex: 1,
+    sendMessageButton: {
+        backgroundColor: 'transparent',
+        borderColor: isDarkMode ? '#555' : '#ccc',
     },
-    editButtonText: {
-      fontSize: 18,
-      color: '#007AFF',
+    sendMessageButtonEnabled: {
+        borderColor: isDarkMode ? '#fff' : '#000',
+    },
+    sendMessageButtonTextEnabled: {
+        color: isDarkMode ? '#fff' : '#000',
+    },
+    buttonDisabled: {
+        opacity: 0.5,
+    },
+    buttonTextDisabled: {
+        color: isDarkMode ? '#555' : '#ccc',
     },
   });

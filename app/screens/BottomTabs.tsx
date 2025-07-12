@@ -74,7 +74,7 @@ const AnimatedTabBarButton = (props: any) => {
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      style={style} // preserve any style passed by the navigator
+      style={style}
     >
       <Animated.View
         style={[
@@ -90,7 +90,7 @@ const AnimatedTabBarButton = (props: any) => {
 
 export default function BottomTabs() {
   const { currentTheme } = useThemeToggle();
-  console.log("BottomTabs currentTheme:", currentTheme); // Should log "light" or "dark"
+  console.log("BottomTabs currentTheme:", currentTheme);
   const isDarkMode = currentTheme === "dark";
 
   useEffect(() => {
