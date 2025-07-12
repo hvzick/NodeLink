@@ -126,6 +126,17 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     loadMessages();
   }, [conversationId]);
 
+  // --- NEW: Function to handle tapping on the user's profile in the header ---
+  const handleProfilePress = () => {
+    // The conversationId is expected to be in the format "convo_WALLET_ADDRESS"
+    const walletAddress = conversationId.replace('convo_', '');
+    if (walletAddress) {
+      navigation.navigate('UserProfile', { walletAddress });
+    } else {
+      console.warn("Could not determine wallet address from conversationId:", conversationId);
+    }
+  };
+
   const isMessage = (item: any): item is Message => item && 'sender' in item && 'id' in item;
 
   const dataWithSeparators = useMemo(() => {
@@ -151,13 +162,11 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleOptionSelectWrapper = async (option: MenuOption) => {
     if (!selectedMessageForMenu) return;
 
-    // --- SOLUTION: Check the option variable directly ---
     if (option === 'Reply') {
       handleReply(selectedMessageForMenu);
       closeLongPressMenuWrapper();
       return;
     }
-    // ----------------------------------------------------
 
     await handleOptionSelect(handlerDependencies, option, selectedMessageForMenu);
   };
@@ -192,12 +201,15 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       {/* Top Bar */}
       <View style={styles.headerContainer}>
+        {/* --- MODIFICATION: The user avatar and name are now tappable --- */}
         <View style={styles.headerLeft}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color="#007AFF" />
           </TouchableOpacity>
-          <Image source={avatar || { uri: 'https://via.placeholder.com/40' }} style={styles.detailAvatar} />
-          <Text style={styles.detailUserName}>{name}</Text>
+          <TouchableOpacity style={styles.profileTapArea} onPress={handleProfilePress}>
+            <Image source={avatar || { uri: 'https://via.placeholder.com/40' }} style={styles.detailAvatar} />
+            <Text style={styles.detailUserName} onPress={handleProfilePress}>{name}</Text>
+          </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.callButton}>
           <Ionicons name="call-outline" size={24} color="#000" />
@@ -353,8 +365,12 @@ const getStyles = (theme: 'light' | 'dark') =>
       borderBottomWidth: 1,
       borderBottomColor: theme === 'dark' ? '#444' : '#ccc',
     },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', top: -5 },
-    backButton: { marginRight: 5 },
+    headerLeft: { flexDirection: 'row', alignItems: 'center' },
+    profileTapArea: { // Added style for the new tappable area
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    backButton: { paddingRight: 10 }, // Adjusted padding for better spacing
     chatsText: {
       color: theme === 'dark' ? '#FFF' : '#037EE5',
       fontSize: 15,

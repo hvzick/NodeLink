@@ -1,5 +1,5 @@
 // screens/ChatScreen.tsx
-import React, { useRef, memo, useState, useEffect } from "react";
+import React, { useRef, memo, useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   RefreshControl,
@@ -25,37 +25,39 @@ import { searchUser } from '../../backend/Supabase/SearchUser';
 import RightActions, { SwipeAction } from '../../utils/ChatUtils/RightActions';
 import { useChat } from '../../utils/ChatUtils/ChatContext';
 import { handleDeleteChat } from "../../utils/ChatUtils/DeleteChat";
+import { fetchAndCacheUserProfile, UserProfileCache } from "../../backend/Supabase/FetchAvatarAndName";
+import { refreshAllChatProfiles } from '../../utils/ChatUtils/Refresh';
+
+
+
 
 interface ChatItemProps {
   item: ChatItemType;
+  currentName: string;
+  currentAvatar: any;
   swipeRefs: { current: { [key: string]: SwipeableMethods | null } };
   onSwipe: (id: string) => void;
   onPin: () => void;
-  onDelete: () => void; // Added onDelete prop
+  onDelete: () => void;
   isPinned: boolean;
   onPress: (item: ChatItemType) => void;
 }
 
 const ChatItem = memo(
-  ({ item, swipeRefs, onSwipe, onPin, onDelete, isPinned, onPress }: ChatItemProps) => {
+  ({ item, currentName, currentAvatar, swipeRefs, onSwipe, onPin, onDelete, isPinned, onPress }: ChatItemProps) => {
     const { currentTheme } = useThemeToggle();
     const isDarkMode = currentTheme === "dark";
     const styles = createStyles(isDarkMode);
     const isSwiping = useRef(false);
 
     const renderRightActions = (progress: SharedValue<number>) => {
-      // This handler connects the UI action to the logic
       const handleAction = (action: SwipeAction) => {
         if (swipeRefs.current) {
             swipeRefs.current[item.id]?.close?.();
         }
-        if (action === "Pin") {
-          onPin();
-        } else if (action === "Delete") {
-          onDelete(); // Trigger the delete logic passed via props
-        } else if (action === "Mute") {
-          console.log(`Mute action for ${item.name}`);
-        }
+        if (action === "Pin") onPin();
+        else if (action === "Delete") onDelete();
+        else if (action === "Mute") console.log(`Mute action for ${currentName}`);
       };
 
       return <RightActions
@@ -75,46 +77,27 @@ const ChatItem = memo(
         ref={ref => { if (ref && swipeRefs.current) swipeRefs.current[item.id] = ref; }}
         renderRightActions={renderRightActions}
         overshootRight={false}
-        onSwipeableWillOpen={() => {
-          isSwiping.current = true;
-          onSwipe(item.id);
-        }}
-        onSwipeableClose={() => {
-          isSwiping.current = false;
-        }}
+        onSwipeableWillOpen={() => { isSwiping.current = true; onSwipe(item.id); }}
+        onSwipeableClose={() => { isSwiping.current = false; }}
       >
         <TouchableOpacity
           delayPressIn={200}
           onPress={() => {
             if (!isSwiping.current) {
-              if (swipeRefs.current) {
-                  swipeRefs.current[item.id]?.close?.();
-              }
-              onPress(item);
+              onPress({ ...item, name: currentName, avatar: currentAvatar });
             }
           }}
           activeOpacity={0.7}
         >
           <View style={styles.chatItem}>
-            <Image
-              source={item.avatar}
-              style={styles.avatar}
-            />
+            <Image source={currentAvatar} style={styles.avatar} />
             <View style={styles.chatContent}>
-              <Text style={styles.chatName}>{item.name}</Text>
-              <Text style={styles.chatMessage} numberOfLines={1} ellipsizeMode="tail">
-                {item.message}
-              </Text>
+              <Text style={styles.chatName}>{currentName}</Text>
+              <Text style={styles.chatMessage} numberOfLines={1} ellipsizeMode="tail">{item.message}</Text>
             </View>
             <View style={styles.chatTimeContainer}>
               <Text style={styles.chatTime}>{item.time}</Text>
-              {isPinned && (
-                <Image
-                  source={require("../../assets/images/pinned-logo-white.png")}
-                  style={styles.pinned}
-                  resizeMode="contain"
-                />
-              )}
+              {isPinned && <Image source={require("../../assets/images/pinned-logo-white.png")} style={styles.pinned} resizeMode="contain" />}
             </View>
           </View>
         </TouchableOpacity>
@@ -124,9 +107,7 @@ const ChatItem = memo(
 );
 
 const Chats = () => {
-  // Destructure deleteChat and isLoading from the context
   const { chatList, pinnedChats, togglePinChat, deleteChat, isLoading } = useChat();
-
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
   const { currentTheme, toggleTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
@@ -136,21 +117,56 @@ const Chats = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredChats, setFilteredChats] = useState<ChatItemType[]>([]);
   const [searchError, setSearchError] = useState("");
+  const [profileData, setProfileData] = useState<Record<string, UserProfileCache>>({});
+  const [initialFetchDone, setInitialFetchDone] = useState(false);
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
+  // This function is for the pull-to-refresh action
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    const newProfileData = await refreshAllChatProfiles(chatList);
+    setProfileData(prevData => ({ ...prevData, ...newProfileData }));
+    setRefreshing(false);
+  }, [chatList]);
+
+  // --- MODIFIED: This useEffect no longer has a dependency that causes a loop ---
   useEffect(() => {
+    // This function will run once when the component loads with the chat list
+    const performInitialFetch = async () => {
+      console.log("Performing initial profile fetch...");
+      // We can call the same logic as handleRefresh
+      const newProfileData = await refreshAllChatProfiles(chatList);
+      setProfileData(prevData => ({ ...prevData, ...newProfileData }));
+      setInitialFetchDone(true); // Mark as done to prevent re-running
+    };
+
+    if (!isLoading && chatList.length > 0 && !initialFetchDone) {
+      performInitialFetch();
+    }
+  }, [isLoading, chatList, initialFetchDone]);
+
+
+  useEffect(() => {
+    const initialProfiles: Record<string, UserProfileCache> = {};
+    chatList.forEach(chat => {
+      initialProfiles[chat.id] = { name: chat.name, avatar: chat.avatar?.uri || null };
+    });
+    setProfileData(prevData => ({ ...prevData, ...initialProfiles }));
+
     if (searchQuery.trim() === "") {
       setFilteredChats(chatList);
       setSearchError("");
     } else {
-      const filtered = chatList.filter(chat =>
-        chat.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const lowercasedQuery = searchQuery.toLowerCase();
+      const filtered = chatList.filter(chat => {
+        // Search using the most up-to-date name from profileData, with a fallback
+        const currentName = profileData[chat.id]?.name || chat.name;
+        return currentName.toLowerCase().includes(lowercasedQuery);
+      });
       setFilteredChats(filtered);
-      setSearchError("");
     }
-  }, [searchQuery, chatList]);
+  }, [searchQuery, chatList]); // Removed profileData from dependency array to prevent potential loops
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) return;
@@ -159,49 +175,34 @@ const Chats = () => {
       setSearchError("User not found");
       return;
     }
-    navigation.navigate("UserProfile", {
-      walletAddress: user.wallet_address,
-    });
+    navigation.navigate("UserProfile", { walletAddress: user.wallet_address });
   };
 
   const handleSwipe = (id: string) => {
     Object.keys(swipeRefs.current).forEach((key) => {
-      if (key !== id) {
-        swipeRefs.current[key]?.close?.();
-      }
+      if (key !== id) swipeRefs.current[key]?.close?.();
     });
   };
 
   const handleChatPress = (item: ChatItemType) => {
+    // Ensure we pass the latest profile info when navigating
+    const currentProfile = profileData[item.id];
+    const name = currentProfile?.name || item.name;
+    const avatar = currentProfile?.avatar ? { uri: currentProfile.avatar } : item.avatar;
+
     navigation.push("ChatDetail", {
       conversationId: item.id,
-      name: item.name,
-      avatar: item.avatar
+      name: name,
+      avatar: avatar
     });
   };
-  
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-        setRefreshing(false);
-    }, 1000);
-  }; 
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Image
-          source={isDarkMode ? require('../../assets/images/logo-white.png') : require('../../assets/images/logo-black.png')}
-          style={styles.chatAppLogo}
-        />
+        <Image source={isDarkMode ? require('../../assets/images/logo-white.png') : require('../../assets/images/logo-black.png')} style={styles.chatAppLogo} />
         <Text style={styles.nodeLinkName}>NodeLink</Text>
-        <TouchableOpacity
-          onPress={() => {
-            toggleTheme();
-            triggerTapHapticFeedback();
-          }}
-          style={styles.themeIconContainer}
-        >
+        <TouchableOpacity onPress={() => { toggleTheme(); triggerTapHapticFeedback(); }} style={styles.themeIconContainer}>
           <Ionicons name={isDarkMode ? "moon" : "sunny"} size={24} color={isDarkMode ? "#FFF" : "#000"} />
         </TouchableOpacity>
       </View>
@@ -209,48 +210,44 @@ const Chats = () => {
       <FlatList
         data={filteredChats}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ChatItem
-            item={item}
-            swipeRefs={swipeRefs}
-            onSwipe={handleSwipe}
-            onPin={() => togglePinChat(item.id)}
-            // Connect the delete logic here
-            onDelete={() => handleDeleteChat(item.id, item.name, () => deleteChat(item.id))}
-            isPinned={pinnedChats.includes(item.id)}
-            onPress={handleChatPress}
-          />
-        )}
+        renderItem={({ item }) => {
+          const currentProfile = profileData[item.id];
+          const name = currentProfile?.name || item.name;
+          const avatar = currentProfile?.avatar ? { uri: currentProfile.avatar } : item.avatar;
+
+          return (
+            <ChatItem
+              item={item}
+              currentName={name}
+              currentAvatar={avatar}
+              swipeRefs={swipeRefs}
+              onSwipe={handleSwipe}
+              onPin={() => togglePinChat(item.id)}
+              onDelete={() => handleDeleteChat(item.id, name, () => deleteChat(item.id))}
+              isPinned={pinnedChats.includes(item.id)}
+              onPress={handleChatPress}
+            />
+          );
+        }}
         ListHeaderComponent={
           <View>
             <View style={styles.searchContainer}>
               <Ionicons name="search" size={20} color="#888" />
               <TextInput
-                placeholder="Search for messages, users, or enter wallet address"
+                placeholder="Search..."
                 style={styles.searchInput}
                 value={searchQuery}
-                onChangeText={(text) => {
-                  setSearchQuery(text);
-                  setSearchError("");
-                }}
+                onChangeText={(text) => { setSearchQuery(text); setSearchError(""); }}
                 onSubmitEditing={() => handleSearch(searchQuery)}
                 returnKeyType="search"
-                blurOnSubmit={false}
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setSearchQuery("")}
-                  style={styles.clearButton}
-                >
+                <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearButton}>
                   <Ionicons name="close-circle" size={20} color="#888" />
                 </TouchableOpacity>
               )}
             </View>
-            {searchError ? (
-              <Text style={[styles.errorText, { color: isDarkMode ? '#ff6b6b' : '#ff0000' }]}>
-                {searchError}
-              </Text>
-            ) : null}
+            {searchError ? <Text style={[styles.errorText, { color: isDarkMode ? '#ff6b6b' : '#ff0000' }]}>{searchError}</Text> : null}
           </View>
         }
         refreshControl={

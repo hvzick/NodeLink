@@ -5,6 +5,7 @@ import {
   View,
   Image,
   TouchableOpacity,
+  ActivityIndicator, // Import ActivityIndicator
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -12,6 +13,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserData } from '../../backend/Supabase/RegisterUser';
 import { supabase } from '../../backend/Supabase/Supabase';
 import { format } from 'date-fns';
@@ -36,6 +38,7 @@ export default function UserProfile() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isButtonPressed, setIsButtonPressed] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true); // New loading state
   const styles = getStyles(isDarkMode);
 
   useEffect(() => {
@@ -54,8 +57,9 @@ export default function UserProfile() {
     }
   }, [userData, chatList]);
 
-
+  // --- MODIFIED: This function now fetches and caches data locally ---
   const loadUserData = async (address: string) => {
+    setIsProfileLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -64,6 +68,7 @@ export default function UserProfile() {
         .single();
 
       if (data && !error) {
+        console.log("✅ Fetched user profile from Supabase");
         const formattedUser: UserData = {
           walletAddress: data.wallet_address,
           username: data.username,
@@ -73,11 +78,27 @@ export default function UserProfile() {
           created_at: data.created_at,
         };
         setUserData(formattedUser);
-      } else if (error) {
-        console.error("Error fetching from Supabase:", error.message);
+        // --- Store the fetched data locally ---
+        await AsyncStorage.setItem(`user_profile_${address}`, JSON.stringify(formattedUser));
+        console.log("💾 Cached user profile locally.");
+      } else {
+        // If Supabase fails, try to load from local cache
+        console.warn("Could not fetch from Supabase, attempting to load from cache...");
+        const cachedData = await AsyncStorage.getItem(`user_profile_${address}`);
+        if (cachedData) {
+          setUserData(JSON.parse(cachedData));
+          console.log("📱 Loaded user profile from local cache.");
+        } else {
+          console.error("❌ No cached data found for this user.");
+        }
+        if (error) {
+            console.error("Supabase error:", error.message);
+        }
       }
     } catch (err) {
-      console.error("A critical error occurred in loadUserData:", err);
+      console.error("❌ A critical error occurred in loadUserData:", err);
+    } finally {
+      setIsProfileLoading(false);
     }
   };
 
@@ -89,19 +110,15 @@ export default function UserProfile() {
     }, 2000);
   };
 
-  // --- MODIFIED NAVIGATION LOGIC ---
   const handleSendMessage = () => {
     if (!isConnected || !userData) {
       return;
     }
-
     const conversationId = `convo_${userData.walletAddress}`;
     const avatarSource = userData.avatar === "default" || !userData.avatar
       ? require('../../assets/images/default-user-avatar.jpg')
       : { uri: userData.avatar };
-
     const chatExists = chatList.some(chat => chat.id === conversationId);
-
     if (!chatExists) {
       addOrUpdateChat({
         id: conversationId,
@@ -111,18 +128,21 @@ export default function UserProfile() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       });
     }
-
-    // This ensures the correct navigation stack.
-    // 1. Navigate to the Main screen (your BottomTabs navigator). This action replaces
-    //    the current screen (UserProfile) and any screens above Main (like Search).
     navigation.navigate('Main');
-    
-    // 2. Immediately push the ChatDetail screen on top of the Main screen.
     navigation.navigate('ChatDetail', {
         conversationId: conversationId,
         name: userData.name || 'NodeLink User',
         avatar: avatarSource,
     });
+  };
+
+  // Show a loading indicator while fetching profile data
+  if (isProfileLoading) {
+    return (
+        <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
+            <ActivityIndicator size="large" color={isDarkMode ? '#fff' : '#000'} />
+        </SafeAreaView>
+    );
   }
 
   return (
