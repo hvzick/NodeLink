@@ -1,30 +1,23 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+// utils/ChatUtils/ChatContext.tsx
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatItemType } from './ChatItemsTypes';
+import { EventBus } from './EventBus';
+const ASYNC_STORAGE_KEY = 'chat_list_storage';
 
-// Initial data for the chats
-const initialChats: ChatItemType[] = [
-    { id: "1", name: "Saved Messages", message: "image.jpeg", time: "Fri", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "2", name: "Ahmed", message: "How u doin", time: "9/29", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "3", name: "Faik", message: "Sent image.jpeg", time: "Yesterday", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "4", name: "Babar", message: "wyd?", time: "1/20", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "5", name: "Hamza", message: "see u on sunday then", time: "02:20", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "6", name: "Hazim", message: "k ill do it", time: "6/09", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "7", name: "Zee", message: "lol", time: "Sat", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "8", name: "Zain", message: "tc bye", time: "Mon", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "9", name: "Faru", message: "ok bye", time: "Sat", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "10", name: "Mom", message: "do it", time: "11/01", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "11", name: "Zaid", message: "bgmi?", time: "Thu", avatar: require("../../assets/images/default-user-avatar.jpg") },
-    { id: "12", name: "Waseem", message: "hi...", time: "Tue", avatar: require("../../assets/images/default-user-avatar.jpg") },
-];
+// The predefined chats have been removed. The list now starts empty on first launch.
+const initialChats: ChatItemType[] = [];
 
 /**
  * Defines the complete shape of the context, including all state and functions.
+ * isLoading is added to handle asynchronous loading from storage.
  */
 interface ChatContextType {
   chatList: ChatItemType[];
   pinnedChats: string[];
   addOrUpdateChat: (newItem: ChatItemType) => void;
   togglePinChat: (id: string) => void;
+  isLoading: boolean;
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -38,9 +31,60 @@ export const useChat = () => {
 };
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
-  const [chatList, setChatList] = useState<ChatItemType[]>(initialChats);
+  const [chatList, setChatList] = useState<ChatItemType[]>([]);
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // Added for persistence
 
+  // Effect to load data from AsyncStorage on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const storedChats = await AsyncStorage.getItem(ASYNC_STORAGE_KEY);
+        if (storedChats) {
+          setChatList(JSON.parse(storedChats));
+        } else {
+          setChatList(initialChats); // Fallback to the (now empty) initial data
+        }
+      } catch (error) {
+        console.error("Failed to load chats from storage", error);
+        setChatList(initialChats); // Fallback on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Effect to save data to AsyncStorage whenever chatList changes
+  useEffect(() => {
+    // We don't want to save during the initial loading phase
+    if (!isLoading) {
+      const saveData = async () => {
+        try {
+          // Note: Storing require() results in AsyncStorage is not ideal for production.
+          // For a robust solution, avatar paths should be URIs.
+          const jsonValue = JSON.stringify(chatList);
+          await AsyncStorage.setItem(ASYNC_STORAGE_KEY, jsonValue);
+        } catch (error) {
+          console.error("Failed to save chats to storage", error);
+        }
+      };
+      saveData();
+    }
+  }, [chatList, isLoading]);
+
+  // Effect to listen for external events to add a chat
+  useEffect(() => {
+    const handleExternalAddChat = (newChat: ChatItemType) => {
+        addOrUpdateChat(newChat);
+    };
+    EventBus.on('add-chat', handleExternalAddChat);
+    return () => {
+        EventBus.off('add-chat', handleExternalAddChat);
+    };
+  }, []); // Empty array ensures this effect runs only once
+
+  // Using your addOrUpdateChat logic
   const addOrUpdateChat = (newItem: ChatItemType) => {
     setChatList(prevList => {
       const existingChatIndex = prevList.findIndex(chat => chat.id === newItem.id);
@@ -57,6 +101,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  // Using your togglePinChat logic
   const togglePinChat = (id: string) => {
     const newPinnedChats = pinnedChats.includes(id)
       ? pinnedChats.filter(pinnedId => pinnedId !== id)
@@ -82,6 +127,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     pinnedChats,
     addOrUpdateChat,
     togglePinChat,
+    isLoading,
   };
 
   return (

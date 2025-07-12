@@ -9,6 +9,7 @@ import {
   TextInput,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -16,7 +17,7 @@ import { RootStackParamList } from "../App";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReanimatedSwipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Ionicons } from "@expo/vector-icons";
-import { SharedValue } from "react-native-reanimated"; // Keep if you use Reanimated elsewhere
+import { SharedValue } from "react-native-reanimated";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
@@ -95,12 +96,10 @@ const ChatItem = memo(
             />
             <View style={styles.chatContent}>
               <Text style={styles.chatName}>{item.name}</Text>
-              {/* --- MODIFIED: Ensure single line with ellipsis --- */}
               <Text style={styles.chatMessage} numberOfLines={1} ellipsizeMode="tail">
                 {item.message}
               </Text>
             </View>
-            {/* --- MODIFIED: Ensure time container doesn't push message too much --- */}
             <View style={styles.chatTimeContainer}>
               <Text style={styles.chatTime}>{item.time}</Text>
               {isPinned && (
@@ -119,7 +118,8 @@ const ChatItem = memo(
 );
 
 const Chats = () => {
-  const { chatList, pinnedChats, togglePinChat } = useChat();
+  // Destructure isLoading from the useChat hook
+  const { chatList, pinnedChats, togglePinChat, isLoading } = useChat();
 
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
   const { currentTheme, toggleTheme } = useThemeToggle();
@@ -128,12 +128,14 @@ const Chats = () => {
 
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredChats, setFilteredChats] = useState<ChatItemType[]>(chatList);
+  const [filteredChats, setFilteredChats] = useState<ChatItemType[]>([]);
   const [searchError, setSearchError] = useState("");
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
+    // This effect correctly updates the local filtered list whenever the
+    // main chatList from the context changes.
     if (searchQuery.trim() === "") {
       setFilteredChats(chatList);
       setSearchError("");
@@ -177,15 +179,24 @@ const Chats = () => {
       avatar: item.avatar
     });
   };
-  
+
   const handleRefresh = () => {
     setRefreshing(true);
-    // Add any logic to refetch chats from a server if needed
-    // For now, we just simulate a delay
+    // You can add logic here to refetch from a server.
+    // The context will handle loading from local storage automatically.
     setTimeout(() => {
         setRefreshing(false);
     }, 1000);
   };
+  
+  // Conditionally render a loading indicator
+  if (isLoading) {
+    return (
+        <View style={[styles.container, styles.centered]}>
+            <ActivityIndicator size="large" color={isDarkMode ? "#FFFFFF" : "#000000"} />
+        </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -265,6 +276,10 @@ const createStyles = (isDarkMode: boolean) =>
       flex: 1,
       backgroundColor: isDarkMode ? "#1C1C1D" : "#F1F1F1",
     },
+    centered: { // Added for the loading indicator
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     headerContainer: {
       flexDirection: "row",
       alignItems: "center",
@@ -325,34 +340,34 @@ const createStyles = (isDarkMode: boolean) =>
     },
     avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 12 },
     chatContent: {
-      flex: 1, 
+      flex: 1,
       flexShrink: 1,
-      flexGrow: 1,  
+      flexGrow: 1,
       justifyContent: 'center',
     },
     chatName: {
       fontWeight: "bold",
       fontSize: 18,
       fontFamily:  "SF-Pro-Text-Medium",
-      bottom: 7, 
+      bottom: 7,
       color: isDarkMode ? "#fff" : "#000"
     },
     chatMessage: {
       color: isDarkMode ? "#aaa" : "#777",
       fontFamily:  "SF-Pro-Text-Regular",
       fontSize: 15,
-      bottom: 4, 
+      bottom: 4,
     },
-    chatTimeContainer: { 
+    chatTimeContainer: {
       alignItems: "flex-end",
-      marginLeft: 10, 
-      flexShrink: 0, 
+      marginLeft: 10,
+      flexShrink: 0,
     },
     chatTime: {
       color: isDarkMode ? "#aaa" : "#777",
       fontSize: 14,
       marginBottom: 30,
-      top: 5, 
+      top: 5,
     },
     rightActions: { flexDirection: "row", alignItems: "center" },
     actionButton: {
@@ -365,7 +380,7 @@ const createStyles = (isDarkMode: boolean) =>
     pinned: {
       width: 25,
       height: 25,
-      bottom: 15, // Adjust positioning as needed
+      bottom: 15,
     },
     actionText: {
       color: "white",
