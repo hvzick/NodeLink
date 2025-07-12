@@ -22,33 +22,39 @@ import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
 import { searchUser } from '../../backend/Supabase/SearchUser';
-import RightActions from '../../utils/ChatUtils/RightActions';
+import RightActions, { SwipeAction } from '../../utils/ChatUtils/RightActions';
 import { useChat } from '../../utils/ChatUtils/ChatContext';
+import { handleDeleteChat } from "../../utils/ChatUtils/DeleteChat";
 
 interface ChatItemProps {
   item: ChatItemType;
   swipeRefs: { current: { [key: string]: SwipeableMethods | null } };
   onSwipe: (id: string) => void;
   onPin: () => void;
+  onDelete: () => void; // Added onDelete prop
   isPinned: boolean;
   onPress: (item: ChatItemType) => void;
 }
 
 const ChatItem = memo(
-  ({ item, swipeRefs, onSwipe, onPin, isPinned, onPress }: ChatItemProps) => {
+  ({ item, swipeRefs, onSwipe, onPin, onDelete, isPinned, onPress }: ChatItemProps) => {
     const { currentTheme } = useThemeToggle();
     const isDarkMode = currentTheme === "dark";
     const styles = createStyles(isDarkMode);
     const isSwiping = useRef(false);
 
     const renderRightActions = (progress: SharedValue<number>) => {
-      const handleAction = (action: string) => {
+      // This handler connects the UI action to the logic
+      const handleAction = (action: SwipeAction) => {
         if (swipeRefs.current) {
             swipeRefs.current[item.id]?.close?.();
         }
-        console.log(`Action: ${action} performed on ${item.name}`);
         if (action === "Pin") {
           onPin();
+        } else if (action === "Delete") {
+          onDelete(); // Trigger the delete logic passed via props
+        } else if (action === "Mute") {
+          console.log(`Mute action for ${item.name}`);
         }
       };
 
@@ -118,8 +124,8 @@ const ChatItem = memo(
 );
 
 const Chats = () => {
-  // Destructure isLoading from the useChat hook
-  const { chatList, pinnedChats, togglePinChat, isLoading } = useChat();
+  // Destructure deleteChat and isLoading from the context
+  const { chatList, pinnedChats, togglePinChat, deleteChat, isLoading } = useChat();
 
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
   const { currentTheme, toggleTheme } = useThemeToggle();
@@ -134,8 +140,6 @@ const Chats = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
-    // This effect correctly updates the local filtered list whenever the
-    // main chatList from the context changes.
     if (searchQuery.trim() === "") {
       setFilteredChats(chatList);
       setSearchError("");
@@ -168,10 +172,6 @@ const Chats = () => {
     });
   };
 
-  const onPinChat = (id: string) => {
-    togglePinChat(id);
-  };
-
   const handleChatPress = (item: ChatItemType) => {
     navigation.push("ChatDetail", {
       conversationId: item.id,
@@ -179,24 +179,13 @@ const Chats = () => {
       avatar: item.avatar
     });
   };
-
+  
   const handleRefresh = () => {
     setRefreshing(true);
-    // You can add logic here to refetch from a server.
-    // The context will handle loading from local storage automatically.
     setTimeout(() => {
         setRefreshing(false);
     }, 1000);
-  };
-  
-  // Conditionally render a loading indicator
-  if (isLoading) {
-    return (
-        <View style={[styles.container, styles.centered]}>
-            <ActivityIndicator size="large" color={isDarkMode ? "#FFFFFF" : "#000000"} />
-        </View>
-    );
-  }
+  }; 
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -225,7 +214,9 @@ const Chats = () => {
             item={item}
             swipeRefs={swipeRefs}
             onSwipe={handleSwipe}
-            onPin={() => onPinChat(item.id)}
+            onPin={() => togglePinChat(item.id)}
+            // Connect the delete logic here
+            onDelete={() => handleDeleteChat(item.id, item.name, () => deleteChat(item.id))}
             isPinned={pinnedChats.includes(item.id)}
             onPress={handleChatPress}
           />
@@ -275,10 +266,6 @@ const createStyles = (isDarkMode: boolean) =>
     container: {
       flex: 1,
       backgroundColor: isDarkMode ? "#1C1C1D" : "#F1F1F1",
-    },
-    centered: { // Added for the loading indicator
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     headerContainer: {
       flexDirection: "row",
@@ -340,34 +327,34 @@ const createStyles = (isDarkMode: boolean) =>
     },
     avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 12 },
     chatContent: {
-      flex: 1,
+      flex: 1, 
       flexShrink: 1,
-      flexGrow: 1,
+      flexGrow: 1,  
       justifyContent: 'center',
     },
     chatName: {
       fontWeight: "bold",
       fontSize: 18,
       fontFamily:  "SF-Pro-Text-Medium",
-      bottom: 7,
+      bottom: 5, 
       color: isDarkMode ? "#fff" : "#000"
     },
     chatMessage: {
       color: isDarkMode ? "#aaa" : "#777",
       fontFamily:  "SF-Pro-Text-Regular",
-      fontSize: 15,
-      bottom: 4,
+      fontSize: 12,
+      bottom: 0, 
     },
-    chatTimeContainer: {
+    chatTimeContainer: { 
       alignItems: "flex-end",
-      marginLeft: 10,
-      flexShrink: 0,
+      marginLeft: 10, 
+      flexShrink: 0, 
     },
     chatTime: {
       color: isDarkMode ? "#aaa" : "#777",
       fontSize: 14,
       marginBottom: 30,
-      top: 5,
+      top: 5, 
     },
     rightActions: { flexDirection: "row", alignItems: "center" },
     actionButton: {
@@ -380,7 +367,7 @@ const createStyles = (isDarkMode: boolean) =>
     pinned: {
       width: 25,
       height: 25,
-      bottom: 15,
+      bottom: 15, // Adjust positioning as needed
     },
     actionText: {
       color: "white",

@@ -7,12 +7,11 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserData } from '../../backend/Supabase/RegisterUser';
 import { supabase } from '../../backend/Supabase/Supabase';
 import { format } from 'date-fns';
@@ -23,13 +22,11 @@ import { RootStackParamList } from '../App';
 import { useChat } from '../../utils/ChatUtils/ChatContext';
 
 export default function UserProfile() {
-  // Correctly type the navigation prop using your RootStackParamList
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute();
   const { walletAddress } = route.params as { walletAddress: string };
 
-  // Get the function to add chats from the context
-  const { addOrUpdateChat } = useChat();
+  const { addOrUpdateChat, chatList } = useChat();
 
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === 'dark';
@@ -47,9 +44,19 @@ export default function UserProfile() {
     }
   }, [walletAddress]);
 
+  useEffect(() => {
+    if (userData && chatList) {
+      const conversationId = `convo_${userData.walletAddress}`;
+      const exists = chatList.some(chat => chat.id === conversationId);
+      if (exists) {
+        setIsConnected(true);
+      }
+    }
+  }, [userData, chatList]);
+
+
   const loadUserData = async (address: string) => {
     try {
-      console.log("☁️ Fetching user profile from Supabase for", address);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -57,7 +64,6 @@ export default function UserProfile() {
         .single();
 
       if (data && !error) {
-        console.log("✅ Successfully fetched user profile from Supabase");
         const formattedUser: UserData = {
           walletAddress: data.wallet_address,
           username: data.username,
@@ -67,80 +73,56 @@ export default function UserProfile() {
           created_at: data.created_at,
         };
         setUserData(formattedUser);
-        await AsyncStorage.setItem(address, JSON.stringify(formattedUser));
-        console.log("💾 User profile cached in AsyncStorage for", address);
-        return;
-      }
-
-      if (error) {
-        console.error("❌ Error fetching from Supabase:", error.message);
-      }
-
-      console.log("🤔 Fetch failed. Attempting to load from local cache...");
-      const cachedData = await AsyncStorage.getItem(address);
-      if (cachedData) {
-        setUserData(JSON.parse(cachedData));
-        console.log("📱 Loaded user data from cache for", address);
-      } else {
-        console.warn("🚫 No cached data found for this user.");
+      } else if (error) {
+        console.error("Error fetching from Supabase:", error.message);
       }
     } catch (err) {
-      console.error("❌ A critical error occurred in loadUserData:", err);
+      console.error("A critical error occurred in loadUserData:", err);
     }
   };
 
   const handleConnect = async () => {
-    console.log("Handling connect...");
     setIsConnecting(true);
-
     setTimeout(() => {
-      console.log("Connection successful!");
       setIsConnecting(false);
       setIsConnected(true);
     }, 2000);
   };
 
-  // --- THIS IS THE UPDATED FUNCTION ---
+  // --- MODIFIED NAVIGATION LOGIC ---
   const handleSendMessage = () => {
-    // Guard clauses to ensure we can navigate
     if (!isConnected || !userData) {
-      console.log("Cannot send message, not connected or user data is missing.");
       return;
     }
-    console.log("Adding chat to list and navigating...");
 
+    const conversationId = `convo_${userData.walletAddress}`;
     const avatarSource = userData.avatar === "default" || !userData.avatar
       ? require('../../assets/images/default-user-avatar.jpg')
       : { uri: userData.avatar };
 
-    // 1. Add the chat to the global chat list via context
-    addOrUpdateChat({
-      id: `convo_${userData.walletAddress}`,
-      name: userData.name || 'NodeLink User',
-      avatar: avatarSource,
-      message: 'Conversation started.', // A placeholder message
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-    });
+    const chatExists = chatList.some(chat => chat.id === conversationId);
 
-    // 2. Navigate to the chat detail screen and reset the stack
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 1, // Set the active screen to the second one in the array (ChatDetail)
-        routes: [
-          // The first screen in the new stack is your main screen with the tabs.
-          { name: 'Main' }, 
-          // The second screen is the chat detail screen we are navigating to.
-          {
-            name: 'ChatDetail',
-            params: {
-              conversationId: `convo_${userData.walletAddress}`,
-              name: userData.name || 'NodeLink User',
-              avatar: avatarSource,
-            },
-          },
-        ],
-      })
-    );
+    if (!chatExists) {
+      addOrUpdateChat({
+        id: conversationId,
+        name: userData.name || 'NodeLink User',
+        avatar: avatarSource,
+        message: 'Conversation started.',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+      });
+    }
+
+    // This ensures the correct navigation stack.
+    // 1. Navigate to the Main screen (your BottomTabs navigator). This action replaces
+    //    the current screen (UserProfile) and any screens above Main (like Search).
+    navigation.navigate('Main');
+    
+    // 2. Immediately push the ChatDetail screen on top of the Main screen.
+    navigation.navigate('ChatDetail', {
+        conversationId: conversationId,
+        name: userData.name || 'NodeLink User',
+        avatar: avatarSource,
+    });
   }
 
   return (
@@ -200,7 +182,6 @@ export default function UserProfile() {
       </View>
 
       <View style={styles.buttonContainer}>
-        {/* Connect Button */}
         <TouchableOpacity
           style={[
             styles.sideBySideButton,
@@ -222,7 +203,6 @@ export default function UserProfile() {
           </Text>
         </TouchableOpacity>
 
-        {/* Send Message Button */}
         <TouchableOpacity
           style={[
             styles.sideBySideButton,
@@ -246,7 +226,6 @@ export default function UserProfile() {
     </SafeAreaView>
   );
 }
-
 const getStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
     container: {

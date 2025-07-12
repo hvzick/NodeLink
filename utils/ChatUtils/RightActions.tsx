@@ -1,19 +1,21 @@
+// utils/ChatUtils/RightActions.tsx
 import React from 'react';
-import { TouchableOpacity, Image, Text, View, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { TouchableOpacity, Image, Text, ViewStyle, TextStyle } from 'react-native';
 import Animated, { useAnimatedStyle, interpolate, SharedValue } from 'react-native-reanimated';
 
 /**
+ * Defines the possible actions that can be performed from the swipe menu.
+ * Using a specific type instead of a generic 'string' improves code safety.
+ */
+export type SwipeAction = 'Mute' | 'Pin' | 'Delete';
+
+/**
  * Interface for the props accepted by the RightActions component.
- * It now correctly includes the 'styles' property.
  */
 interface RightActionsProps {
   progress: SharedValue<number>;
-  onAction: (action: string) => void;
+  onAction: (action: SwipeAction) => void;
   isPinned: boolean;
-  /**
-   * We expect a 'styles' object containing the specific styles
-   * needed for this component, which are passed down from ChatItem.
-   */
   styles: {
     rightActions: ViewStyle;
     actionButton: ViewStyle;
@@ -22,13 +24,15 @@ interface RightActionsProps {
 }
 
 const RightActions = ({ progress, onAction, isPinned, styles }: RightActionsProps) => {
-  // This animated style will slide the actions into view.
+  // This animated style will slide the actions into view as the user swipes.
   const animatedStyle = useAnimatedStyle(() => {
+    // The interpolation maps the swipe progress (0 to 1) to a translation value.
+    // The output range should correspond to the total width of the action buttons.
     const animatedTranslateX = interpolate(
       progress.value,
-      [0, 1], // Input range
-      [100, 0], // Output range
-      { extrapolateRight: "clamp" }
+      [0, 1], // Input range (from no swipe to full swipe)
+      [100, 0], // Output range (from off-screen to on-screen)
+      { extrapolateRight: "clamp" } // Prevents swiping beyond the buttons
     );
     return { transform: [{ translateX: animatedTranslateX }] };
   });

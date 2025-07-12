@@ -2,21 +2,18 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatItemType } from './ChatItemsTypes';
-import { EventBus } from './EventBus';
+import { EventBus } from './EventBus'; // Make sure you are using named import
+
 const ASYNC_STORAGE_KEY = 'chat_list_storage';
 
-// The predefined chats have been removed. The list now starts empty on first launch.
-const initialChats: ChatItemType[] = [];
-
-/**
- * Defines the complete shape of the context, including all state and functions.
- * isLoading is added to handle asynchronous loading from storage.
- */
+// --- TYPE DEFINITION UPDATED HERE ---
+// The interface now correctly includes the 'deleteChat' function.
 interface ChatContextType {
   chatList: ChatItemType[];
   pinnedChats: string[];
   addOrUpdateChat: (newItem: ChatItemType) => void;
   togglePinChat: (id: string) => void;
+  deleteChat: (id: string) => void;
   isLoading: boolean;
 }
 
@@ -33,9 +30,8 @@ export const useChat = () => {
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [chatList, setChatList] = useState<ChatItemType[]>([]);
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // Added for persistence
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Effect to load data from AsyncStorage on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -43,11 +39,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         if (storedChats) {
           setChatList(JSON.parse(storedChats));
         } else {
-          setChatList(initialChats); // Fallback to the (now empty) initial data
+          setChatList([]); // Start with an empty list
         }
       } catch (error) {
         console.error("Failed to load chats from storage", error);
-        setChatList(initialChats); // Fallback on error
+        setChatList([]);
       } finally {
         setIsLoading(false);
       }
@@ -55,14 +51,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     loadData();
   }, []);
 
-  // Effect to save data to AsyncStorage whenever chatList changes
   useEffect(() => {
-    // We don't want to save during the initial loading phase
     if (!isLoading) {
       const saveData = async () => {
         try {
-          // Note: Storing require() results in AsyncStorage is not ideal for production.
-          // For a robust solution, avatar paths should be URIs.
           const jsonValue = JSON.stringify(chatList);
           await AsyncStorage.setItem(ASYNC_STORAGE_KEY, jsonValue);
         } catch (error) {
@@ -73,7 +65,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [chatList, isLoading]);
 
-  // Effect to listen for external events to add a chat
   useEffect(() => {
     const handleExternalAddChat = (newChat: ChatItemType) => {
         addOrUpdateChat(newChat);
@@ -82,14 +73,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     return () => {
         EventBus.off('add-chat', handleExternalAddChat);
     };
-  }, []); // Empty array ensures this effect runs only once
+  }, []);
 
-  // Using your addOrUpdateChat logic
   const addOrUpdateChat = (newItem: ChatItemType) => {
     setChatList(prevList => {
       const existingChatIndex = prevList.findIndex(chat => chat.id === newItem.id);
       let newList = [...prevList];
-
       if (existingChatIndex > -1) {
         const existingChat = newList.splice(existingChatIndex, 1)[0];
         const updatedChat = { ...existingChat, message: newItem.message, time: newItem.time };
@@ -101,7 +90,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  // Using your togglePinChat logic
   const togglePinChat = (id: string) => {
     const newPinnedChats = pinnedChats.includes(id)
       ? pinnedChats.filter(pinnedId => pinnedId !== id)
@@ -121,12 +109,21 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       return newList;
     });
   };
+
+  const deleteChat = (id: string) => {
+    setChatList(prevList => prevList.filter(chat => chat.id !== id));
+    setPinnedChats(prevPinned => prevPinned.filter(pinnedId => pinnedId !== id));
+    console.log(`Chat with id: ${id} deleted.`);
+  };
   
+  // --- CONTEXT VALUE UPDATED HERE ---
+  // The value object now provides the deleteChat function to the context.
   const value = {
     chatList,
     pinnedChats,
     addOrUpdateChat,
     togglePinChat,
+    deleteChat, // This line is added
     isLoading,
   };
 
