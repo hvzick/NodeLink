@@ -1,25 +1,25 @@
 // App.tsx
 import 'react-native-get-random-values';
-import "react-native-gesture-handler";
-import React, { useEffect, useState } from "react";
-import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
-import { useFonts } from "expo-font";
-import { View, Text } from "react-native";
+import 'react-native-gesture-handler';
+import React, { useEffect, useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { useFonts } from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import AuthScreen from "./screens/Authentication";
-import TermsOfServiceScreen from "./screens/TermsOfService";
-import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
-import ChatDetailScreen from "./screens/ChatDetailScreen";
-import BottomTabs from "./screens/BottomTabs";
+import AuthScreen from './screens/Authentication';
+import TermsOfServiceScreen from './screens/TermsOfService';
+import PrivacyPolicyScreen from './screens/PrivacyPolicy';
+import ChatDetailScreen from './screens/ChatDetailScreen';
+import BottomTabs from './screens/BottomTabs';
 import '@ethersproject/shims';
-import "react-native-polyfill-globals/auto";
-import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider";
+import 'react-native-polyfill-globals/auto';
+import { ThemeProvider } from '../utils/GlobalUtils/ThemeProvider';
 import * as Notifications from 'expo-notifications';
-import { handleUserData } from "../backend/Supabase/HandleUserData";
+import { handleUserData } from '../backend/Supabase/HandleUserData';
 import UserProfile from './screens/UserProfile';
 import { ChatProvider } from '../utils/ChatUtils/ChatContext';
 import { initializeDatabase } from '../backend/local database/InitialiseDatabase';
+import LoadingScreen from './screens/LoadingScreen';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -32,6 +32,7 @@ Notifications.setNotificationHandler({
 });
 
 export type RootStackParamList = {
+  LoadingScreen: { hasSession: boolean };
   Auth: undefined;
   TOS: undefined;
   PrivacyPolicy: undefined;
@@ -45,96 +46,54 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
-  const [hasSession, setHasSession] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [initialRoute, setInitialRoute] = useState<'LoadingScreen' | 'Auth' | 'Main'>('LoadingScreen');
+  const [session, setSession] = useState(false);
+
   const [fontsLoaded] = useFonts({
-    "MontserratAlternates-Regular": require("../assets/fonts/MontserratAlternates-Regular.ttf"),
-    "Inter_18pt-Medium": require("../assets/fonts/Inter_18pt-Medium.ttf"),
-    "Inter_28pt-Medium": require("../assets/fonts/Inter_28pt-Medium.ttf"),
-    "SF-Pro-Text-Regular": require("../assets/fonts/SF-Pro-Text-Regular.otf"),
-    "SF-Pro-Text-Medium": require("../assets/fonts/SF-Pro-Text-Medium.otf"),
+    'MontserratAlternates-Regular': require('../assets/fonts/MontserratAlternates-Regular.ttf'),
+    'Inter_18pt-Medium': require('../assets/fonts/Inter_18pt-Medium.ttf'),
+    'Inter_28pt-Medium': require('../assets/fonts/Inter_28pt-Medium.ttf'),
+    'SF-Pro-Text-Regular': require('../assets/fonts/SF-Pro-Text-Regular.otf'),
+    'SF-Pro-Text-Medium': require('../assets/fonts/SF-Pro-Text-Medium.otf'),
   });
 
-  // Check for existing session and load user data
-    useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // 1. Initialize the local database once when the app starts.
-        await initializeDatabase();
-        console.log('✅ Local database initialized successfully.');
+  useEffect(() => {
+    const load = async () => {
+      await initializeDatabase();
 
-        // 2. Check for an active user session.
-        const walletAddress = await AsyncStorage.getItem("walletAddress");
-        console.log("🔍 Checking session:", walletAddress ? "Found" : "Not found");
-        
-        if (walletAddress) {
-          setHasSession(true);
-          await handleUserData(); // Load user data if authenticated
-        } else {
-          setHasSession(false);
-        }
-      } catch (error) {
-        console.error("❌ Error during app initialization:", error);
-        setHasSession(false); // Ensure user is logged out on error
-      } finally {
-        // This will run regardless of success or failure.
-        setIsLoading(false);
+      const walletAddress = await AsyncStorage.getItem('walletAddress');
+      if (walletAddress) {
+        setSession(true);
+        await handleUserData();
+      } else {
+        setSession(false);
       }
+
+      setReady(true);
     };
 
-    initializeApp();
-  }, []); // Empty dependency array ensures this runs only once on launch.
+    if (fontsLoaded) {
+      load();
+    }
+  }, [fontsLoaded]);
 
-
-  // Show loading screen while checking session and loading fonts
-  if (isLoading || !fontsLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
+  if (!ready) return null;
 
   return (
     <ThemeProvider>
-       <ChatProvider>
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName={hasSession ? "Main" : "Auth"}
-          screenOptions={{ headerShown: false }}
-        >
-          <Stack.Screen 
-            name="Auth" 
-            component={AuthScreen}
-            options={{ gestureEnabled: !hasSession }}
-          />
-          <Stack.Screen 
-            name="TOS" 
-            component={TermsOfServiceScreen}
-            options={{ gestureEnabled: !hasSession }}
-          />
-          <Stack.Screen 
-            name="PrivacyPolicy" 
-            component={PrivacyPolicyScreen}
-            options={{ gestureEnabled: !hasSession }}
-          />
-          <Stack.Screen 
-            name="Main" 
-            component={BottomTabs}
-            options={{ gestureEnabled: hasSession }}
-          />
-          <Stack.Screen 
-            name="ChatDetail" 
-            component={ChatDetailScreen}
-            options={{ gestureEnabled: hasSession }}
-          />
-          <Stack.Screen 
-            name="UserProfile" 
-            component={UserProfile}
-            options={{ gestureEnabled: hasSession }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <ChatProvider>
+        <NavigationContainer>
+          <Stack.Navigator initialRouteName="LoadingScreen" screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="LoadingScreen" component={LoadingScreen} initialParams={{ hasSession: session }} />
+            <Stack.Screen name="Auth" component={AuthScreen} />
+            <Stack.Screen name="TOS" component={TermsOfServiceScreen} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <Stack.Screen name="Main" component={BottomTabs} />
+            <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+            <Stack.Screen name="UserProfile" component={UserProfile} />
+          </Stack.Navigator>
+        </NavigationContainer>
       </ChatProvider>
     </ThemeProvider>
   );
