@@ -5,7 +5,6 @@ import {
   View,
   Image,
   TouchableOpacity,
-  Linking,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
@@ -14,20 +13,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 import { UserData } from '../../backend/Supabase/RegisterUser';
 import { supabase } from '../../backend/Supabase/Supabase';
 import { format } from 'date-fns';
 import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
 import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
 import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
-import { RootStackParamList } from '../App'; // Adjust path if needed
+import { RootStackParamList } from '../App';
+import { useChat } from '../../utils/ChatUtils/ChatContext';
 
 export default function UserProfile() {
   // Correctly type the navigation prop using your RootStackParamList
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute();
   const { walletAddress } = route.params as { walletAddress: string };
+
+  // Get the function to add chats from the context
+  const { addOrUpdateChat } = useChat();
 
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === 'dark';
@@ -98,19 +100,29 @@ export default function UserProfile() {
     }, 2000);
   };
 
-  // --- THIS IS THE CORRECTED FUNCTION ---
+  // --- THIS IS THE UPDATED FUNCTION ---
   const handleSendMessage = () => {
     // Guard clauses to ensure we can navigate
     if (!isConnected || !userData) {
       console.log("Cannot send message, not connected or user data is missing.");
       return;
     }
-    console.log("Navigating to chat screen and resetting stack...");
+    console.log("Adding chat to list and navigating...");
 
-    // Use CommonActions.reset to replace the navigation state.
-    // This ensures that when the user presses 'back' on the ChatDetail screen,
-    // they are taken to the 'Main' screen (your BottomTabs with the chat list),
-    // not back to the UserProfile.
+    const avatarSource = userData.avatar === "default" || !userData.avatar
+      ? require('../../assets/images/default-user-avatar.jpg')
+      : { uri: userData.avatar };
+
+    // 1. Add the chat to the global chat list via context
+    addOrUpdateChat({
+      id: `convo_${userData.walletAddress}`,
+      name: userData.name || 'NodeLink User',
+      avatar: avatarSource,
+      message: 'Conversation started.', // A placeholder message
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+    });
+
+    // 2. Navigate to the chat detail screen and reset the stack
     navigation.dispatch(
       CommonActions.reset({
         index: 1, // Set the active screen to the second one in the array (ChatDetail)
@@ -121,9 +133,9 @@ export default function UserProfile() {
           {
             name: 'ChatDetail',
             params: {
-              conversationId: `convo_${userData.walletAddress}`, // Create a unique ID
+              conversationId: `convo_${userData.walletAddress}`,
               name: userData.name || 'NodeLink User',
-              avatar: userData.avatar,
+              avatar: avatarSource,
             },
           },
         ],
