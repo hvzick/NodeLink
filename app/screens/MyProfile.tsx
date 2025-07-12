@@ -24,7 +24,6 @@ import { format } from 'date-fns';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../backend/Supabase/Supabase';
 import 'react-native-url-polyfill/auto';
-import { handleAndPublishKeys } from '../../backend/Encryption/HandleKeys';
 
 export default function MyProfile() {
   const navigation = useNavigation();
@@ -49,6 +48,7 @@ export default function MyProfile() {
   const [usernameTaken, setUsernameTaken] = useState(false);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [privateKey, setPrivateKey] = useState<string | null>(null);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
 
   const showNotification = (message: string, type: 'success' | 'error', duration = 3000) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -70,21 +70,15 @@ export default function MyProfile() {
   useEffect(() => {
     if (userData?.walletAddress) {
       (async () => {
-        // Try to load the key pair from local storage
+        // Only load the key pair from local storage, do not generate or upload
         const stored = await AsyncStorage.getItem(`crypto_key_pair_${userData.walletAddress}`);
         if (stored) {
           const parsed = JSON.parse(stored);
           setPublicKey(parsed.publicKey);
           setPrivateKey(parsed.privateKey);
         } else {
-          // If not found, generate and publish, then reload
-          await handleAndPublishKeys(userData.walletAddress);
-          const newStored = await AsyncStorage.getItem(`crypto_key_pair_${userData.walletAddress}`);
-          if (newStored) {
-            const parsed = JSON.parse(newStored);
-            setPublicKey(parsed.publicKey);
-            setPrivateKey(parsed.privateKey);
-          }
+          setPublicKey(null);
+          setPrivateKey(null);
         }
       })();
     }
@@ -357,7 +351,7 @@ export default function MyProfile() {
           {/* Public Key Row */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Public Key</Text>
-            <Text style={styles.infoText} selectable numberOfLines={2} ellipsizeMode="middle">
+            <Text style={styles.infoText} selectable>
               {publicKey || 'Loading...'}
             </Text>
           </View>
@@ -365,9 +359,18 @@ export default function MyProfile() {
           {/* Private Key Row */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Private Key</Text>
-            <Text style={styles.infoText} selectable numberOfLines={2} ellipsizeMode="middle">
-              {privateKey || 'Loading...'}
-            </Text>
+            <TouchableOpacity onPress={() => setShowPrivateKey(v => !v)} activeOpacity={0.7}>
+              <Text style={styles.infoText} selectable={showPrivateKey}>
+                {privateKey
+                  ? showPrivateKey
+                    ? privateKey
+                    : '•'.repeat(privateKey.length)
+                  : 'Loading...'}
+              </Text>
+              <Text style={{ color: '#007AFF', fontSize: 12, marginTop: 2 }}>
+                {showPrivateKey ? 'Hide' : 'Show'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.separator} />

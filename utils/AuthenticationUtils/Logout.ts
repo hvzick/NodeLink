@@ -31,7 +31,21 @@ export const logout = (navigation: NavigationProp<any>) => {
             // Step 1: Delete all messages from the SQLite database.
             await clearAllMessagesFromDB();
 
-            // Step 2: Clear all data from AsyncStorage (session, chat lists, etc.).
+            // Step 1.5: Delete stored key pair from AsyncStorage
+            try {
+              const userDataRaw = await AsyncStorage.getItem('userData');
+              if (userDataRaw) {
+                const userData = JSON.parse(userDataRaw);
+                if (userData.walletAddress) {
+                  await AsyncStorage.removeItem(`crypto_key_pair_${userData.walletAddress}`);
+                  console.log(`🗝️ Deleted key pair for ${userData.walletAddress}`);
+                }
+              }
+            } catch (e) {
+              console.warn('Could not delete key pair from AsyncStorage:', e);
+            }
+
+            // Step 1.5: Delete scStorage (session, chat lists, etc.).
             await AsyncStorage.clear();
             console.log("✅ Storage cleared");
 
