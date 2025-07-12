@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator, // Import ActivityIndicator
+  Modal, Pressable, // Import Modal and Pressable
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -39,6 +40,7 @@ export default function UserProfile() {
   const [isButtonPressed, setIsButtonPressed] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true); // New loading state
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const styles = getStyles(isDarkMode);
 
   useEffect(() => {
@@ -158,13 +160,36 @@ export default function UserProfile() {
         </View>
       </View>
 
-      <Image
-        source={userData?.avatar === "default" || !userData?.avatar
-          ? require('../../assets/images/default-user-avatar.jpg')
-          : { uri: userData?.avatar }
-        }
-        style={styles.avatar}
-      />
+      <TouchableOpacity onPress={() => setShowAvatarModal(true)}>
+        <Image
+          source={userData?.avatar === "default" || !userData?.avatar
+            ? require('../../assets/images/default-user-avatar.jpg')
+            : { uri: userData?.avatar }
+          }
+          style={styles.avatar}
+        />
+      </TouchableOpacity>
+      {/* Avatar Modal */}
+      <Modal
+        visible={showAvatarModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAvatarModal(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}
+          onPress={() => setShowAvatarModal(false)}
+        >
+          <Image
+            source={userData?.avatar === "default" || !userData?.avatar
+              ? require('../../assets/images/default-user-avatar.jpg')
+              : { uri: userData?.avatar }
+            }
+            style={{ width: 320, height: 320, borderRadius: 160, borderWidth: 4, borderColor: '#fff' }}
+            resizeMode="contain"
+          />
+        </Pressable>
+      </Modal>
       <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
 
       <View style={styles.infoBox}>
