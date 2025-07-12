@@ -9,7 +9,6 @@ import {
   TextInput,
   Image,
   TouchableOpacity,
-  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -25,7 +24,7 @@ import { searchUser } from '../../backend/Supabase/SearchUser';
 import RightActions, { SwipeAction } from '../../utils/ChatUtils/RightActions';
 import { useChat } from '../../utils/ChatUtils/ChatContext';
 import { handleDeleteChat } from "../../utils/ChatUtils/DeleteChat";
-import { fetchAndCacheUserProfile, UserProfileCache } from "../../backend/Supabase/FetchAvatarAndName";
+import { UserProfileCache } from "../../backend/Supabase/FetchAvatarAndName";
 import { refreshAllChatProfiles } from '../../utils/ChatUtils/Refresh';
 
 
