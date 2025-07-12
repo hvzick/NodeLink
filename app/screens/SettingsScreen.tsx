@@ -148,7 +148,7 @@ export default function SettingsScreen() {
             <View style={[styles.iconBackground, { backgroundColor: '#4CD964' }]}>
               <Image source={phoneIcon} style={styles.icon} />
             </View>
-            <Text style={styles.itemTitle}>Recent Calls</Text>
+            <Text style={styles.itemTitle}>Security Settings</Text>
           </View>
           <RightArrow />
         </View>

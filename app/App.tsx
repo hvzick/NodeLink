@@ -20,7 +20,7 @@ import UserProfile from './screens/UserProfile';
 import { ChatProvider } from '../utils/ChatUtils/ChatContext';
 import { initializeDatabase } from '../backend/local database/InitialiseDatabase';
 import LoadingScreen from './screens/LoadingScreen';
-import { handleAndPublishKeys } from '../backend/Encryption/HandleKeys'; // 1. Import the key handler
+import { handleAndPublishKeys } from '../backend/Encryption/HandleKeys';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

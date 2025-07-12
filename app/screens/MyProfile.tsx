@@ -4,6 +4,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform, Alert,
   LayoutAnimation,
   UIManager,
+  Modal, Pressable,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -49,6 +50,7 @@ export default function MyProfile() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
 
   const showNotification = (message: string, type: 'success' | 'error', duration = 3000) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -259,7 +261,10 @@ export default function MyProfile() {
         </View>
 
         <View style={styles.avatarContainer}>
-          <TouchableOpacity onPress={handleAvatarPress} disabled={!isEditing}>
+          <TouchableOpacity
+            onPress={isEditing ? handleAvatarPress : () => setShowAvatarModal(true)}
+            disabled={isEditing && !handleAvatarPress}
+          >
             <Image
               source={
                 editedAvatarUri
@@ -276,6 +281,30 @@ export default function MyProfile() {
               </View>
             )}
           </TouchableOpacity>
+          {/* Avatar Modal */}
+          <Modal
+            visible={showAvatarModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowAvatarModal(false)}
+          >
+            <Pressable
+              style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}
+              onPress={() => setShowAvatarModal(false)}
+            >
+              <Image
+                source={
+                  editedAvatarUri
+                    ? { uri: editedAvatarUri }
+                    : (userData?.avatar === 'default' || !userData?.avatar
+                      ? require('../../assets/images/default-user-avatar.jpg')
+                      : { uri: userData.avatar })
+                }
+                style={{ width: 320, height: 320, borderRadius: 160, borderWidth: 4, borderColor: '#fff' }}
+                resizeMode="contain"
+              />
+            </Pressable>
+          </Modal>
         </View>
         
         {isEditing ? (
