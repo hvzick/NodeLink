@@ -33,21 +33,22 @@ export const initializeDatabase = async (): Promise<void> => {
       );
     `);
 
-    // Add the conversationId column if it doesn't exist (for backward compatibility)
-    try {
-      await db.execAsync(`
-        ALTER TABLE messages ADD COLUMN conversationId TEXT;
-      `);
-    } catch (error) {
-      // This will likely fail if the column already exists, which is fine.
-      console.warn("Column 'conversationId' may already exist:", error);
-    }
+    // The conversationId column is already created in the CREATE TABLE statement above.
 
     console.log('Database initialized successfully.');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
   }
+};
+
+let dbInitPromise: Promise<void> | null = null;
+
+export const ensureDatabaseInitialized = async () => {
+  if (!dbInitPromise) {
+    dbInitPromise = initializeDatabase();
+  }
+  return dbInitPromise;
 };
 
 export { openDatabase };
