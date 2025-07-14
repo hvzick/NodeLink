@@ -1,8 +1,8 @@
 // utils/ChatDetailUtils/handleSendMessage.ts
 
 import { Alert } from 'react-native';
-import { Message } from '../../../backend/local database/MessageStructure';
-import { insertMessage } from '../../../backend/local database/MessageIndex';
+import { Message } from '../../../backend/Local database/MessageStructure';
+import { insertMessage } from '../../../backend/Local database/MessageIndex';
 import { triggerTapHapticFeedback } from '../../GlobalUtils/TapHapticFeedback';
 import { ChatItemType } from '../../ChatUtils/ChatItemsTypes';
 import { ChatDetailHandlerDependencies } from './HandleDependencies';

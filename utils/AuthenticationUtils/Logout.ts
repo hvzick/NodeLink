@@ -1,12 +1,12 @@
 // utils/Auth/handleLogout.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationProp } from '@react-navigation/native';
-import { clearAllMessagesFromDB } from '../../backend/local database/ClearAllMessages'; // You need to create this helper function
+import { clearAllMessagesFromDB } from '../../backend/Local database/ClearAllMessages'; // You need to create this helper function
 import { Alert } from 'react-native'; // Import Alert
 
 /**
  * Prompts the user to confirm logout, and if confirmed, clears all app data
- * and resets navigation to the Auth screen.
+ * and resets navigation to the Auth screen
  *
  * @param navigation The navigation object, used to reset the navigation stack.
  */

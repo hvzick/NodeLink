@@ -1,6 +1,6 @@
 // utils/ChatUtils/DeleteChat.ts
 import { Alert } from 'react-native';
-import { deleteMessagesByConversation } from '../../backend/local database/DeleteConversation'; // Import the database function
+import { deleteMessagesByConversation } from '../../backend/Local database/DeleteConversation'; // Import the database function
 
 /**
  * Handles the deletion of a chat item, including its messages from the database.

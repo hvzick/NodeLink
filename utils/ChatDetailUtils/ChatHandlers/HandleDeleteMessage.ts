@@ -1,7 +1,7 @@
 // utils/ChatDetailUtils/handleDeleteMessage.ts
 
 import { Alert } from 'react-native';
-import { deleteMessage } from '../../../backend/local database/MessageIndex';
+import { deleteMessage } from '../../../backend/Local database/MessageIndex';
 import { ChatDetailHandlerDependencies } from './HandleDependencies';
 
 export const handleDeleteMessage = async (
