@@ -46,7 +46,7 @@ export default function SettingsScreen() {
 
   const [userData, setUserData] = useState<UserData | null>(null);
 
-  // Only load user data once when the component mounts
+  // Load user data each time settings is loaded
   useFocusEffect(
     useCallback(() => {
       loadUserData();

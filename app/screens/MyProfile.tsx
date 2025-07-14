@@ -5,6 +5,7 @@ import {
   LayoutAnimation,
   UIManager,
   Modal, Pressable,
+  ScrollView, // 1. Import ScrollView
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -230,67 +231,47 @@ export default function MyProfile() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        style={{ flex: 1, width: '100%', alignItems: 'center' }}
+        style={{ flex: 1, width: '100%' }} // Removed alignItems from here
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         
+        {/* --- HEADER (Fixed at the top) --- */}
         <View style={styles.headerContainer}>
-           {isEditing ? (
-            <TouchableOpacity style={styles.backButton} onPress={handleCancelEdit} disabled={isSaving}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          )}
-          <View style={styles.headerTitleContainer} pointerEvents="none">
-            <Text style={styles.headerTitleText}>My Profile</Text>
-          </View>
-          {isEditing ? (
-            <View style={styles.editButtonsContainer}>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile} disabled={isSaving}>
-                <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save'}</Text>
+            {isEditing ? (
+              <TouchableOpacity style={styles.backButton} onPress={handleCancelEdit} disabled={isSaving}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
+                <Text style={styles.backButtonText}>Back</Text>
+              </TouchableOpacity>
+            )}
+            <View style={styles.headerTitleContainer} pointerEvents="none">
+              <Text style={styles.headerTitleText}>My Profile</Text>
             </View>
-          ) : (
-            <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          )}
+            {isEditing ? (
+              <View style={styles.editButtonsContainer}>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile} disabled={isSaving}>
+                  <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save'}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+            )}
         </View>
 
-        <View style={styles.avatarContainer}>
-          <TouchableOpacity
-            onPress={isEditing ? handleAvatarPress : () => setShowAvatarModal(true)}
-            disabled={isEditing && !handleAvatarPress}
-          >
-            <Image
-              source={
-                editedAvatarUri
-                  ? { uri: editedAvatarUri }
-                  : (userData?.avatar === 'default' || !userData?.avatar
-                    ? require('../../assets/images/default-user-avatar.jpg')
-                    : { uri: userData.avatar })
-              }
-              style={styles.avatar}
-            />
-            {isEditing && (
-              <View style={styles.avatarEditOverlay}>
-                <Ionicons name="camera-outline" size={32} color="#FFF" />
-              </View>
-            )}
-          </TouchableOpacity>
-          {/* Avatar Modal */}
-          <Modal
-            visible={showAvatarModal}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowAvatarModal(false)}
-          >
-            <Pressable
-              style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}
-              onPress={() => setShowAvatarModal(false)}
+        {/* --- 2. WRAP CONTENT IN SCROLLVIEW --- */}
+        <ScrollView
+          style={{ flex: 1, width: '100%' }}
+          contentContainerStyle={styles.scrollContentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.avatarContainer}>
+            <TouchableOpacity
+              onPress={isEditing ? handleAvatarPress : () => setShowAvatarModal(true)}
+              disabled={isEditing && !handleAvatarPress}
             >
               <Image
                 source={
@@ -300,131 +281,154 @@ export default function MyProfile() {
                       ? require('../../assets/images/default-user-avatar.jpg')
                       : { uri: userData.avatar })
                 }
-                style={{ width: 320, height: 320, borderRadius: 160, borderWidth: 4, borderColor: '#fff' }}
-                resizeMode="contain"
+                style={styles.avatar}
               />
-            </Pressable>
-          </Modal>
-        </View>
-        
-        {isEditing ? (
-          <TextInput
-            style={[styles.name, styles.editableText, !isNameValid && styles.invalidText]}
-            value={editedName}
-            onChangeText={handleNameChange}
-            placeholder="Your Name"
-            maxLength={30}
-          />
-        ) : (
-          <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
-        )}
-
-        <View style={styles.infoBox}>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Wallet Address</Text>
-            <TouchableOpacity
-              onPress={() => handleCopyAddress(userData, setCopyWalletText)}
-              onLongPress={() => handleOpenEtherscan(userData)}>
-              <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
+              {isEditing && (
+                <View style={styles.avatarEditOverlay}>
+                  <Ionicons name="camera-outline" size={32} color="#FFF" />
+                </View>
+              )}
             </TouchableOpacity>
-            {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
-          </View>
-
-          <View style={styles.separator} />
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Username</Text>
-            {isEditing ? (
-              <>
-                <TextInput
-                  style={[styles.username, styles.editableText, (!isUsernameValid || usernameTaken) && styles.invalidText]}
-                  value={editedUsername}
-                  onChangeText={handleUsernameChange}
-                  placeholder="Your Username"
-                  maxLength={20}
-                  autoCapitalize="none"
+            {/* Avatar Modal */}
+            <Modal
+              visible={showAvatarModal}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowAvatarModal(false)}
+            >
+              <Pressable
+                style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}
+                onPress={() => setShowAvatarModal(false)}
+              >
+                <Image
+                  source={
+                    editedAvatarUri
+                      ? { uri: editedAvatarUri }
+                      : (userData?.avatar === 'default' || !userData?.avatar
+                        ? require('../../assets/images/default-user-avatar.jpg')
+                        : { uri: userData.avatar })
+                  }
+                  style={{ width: 320, height: 320, borderRadius: 160, borderWidth: 4, borderColor: '#fff' }}
+                  resizeMode="contain"
                 />
-                {usernameTaken && (
-                  <Text style={[styles.uCopyMessage, { color: '#EB5545' }]}>This username is already taken.</Text>
-                )}
-              </>
-            ) : (
-              <TouchableOpacity onPress={() => handleCopyUsername(userData, setCopyUsernameText)}
-                                onLongPress={() => handleOpenEtherscan(userData)}>
-                <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
+              </Pressable>
+            </Modal>
+          </View>
+          
+          {isEditing ? (
+            <TextInput
+              style={[styles.name, styles.editableText, !isNameValid && styles.invalidText]}
+              value={editedName}
+              onChangeText={handleNameChange}
+              placeholder="Your Name"
+              maxLength={30}
+            />
+          ) : (
+            <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
+          )}
+
+          <View style={styles.infoBox}>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Wallet Address</Text>
+              <TouchableOpacity
+                onPress={() => handleCopyAddress(userData, setCopyWalletText)}
+                onLongPress={() => handleOpenEtherscan(userData)}>
+                <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
               </TouchableOpacity>
-            )}
-            {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
-          </View>
-
-          <View style={styles.separator} />
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Bio</Text>
-            {isEditing ? (
-              <TextInput
-                style={[styles.infoText, styles.editableText, styles.bioInput, !isBioValid && styles.invalidText]}
-                value={editedBio}
-                onChangeText={handleBioChange}
-                placeholder="Tell us about yourself"
-                multiline
-                maxLength={150}
-              />
-            ) : (
-              <Text style={styles.infoText}>{userData?.bio || "I'm not being spied on!"}</Text>
-            )}
-          </View>
-
-          <View style={styles.separator} />
-
-          {/* Public Key Row */}
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Public Key</Text>
-            <Text style={styles.infoText} selectable>
-              {publicKey || 'Loading...'}
-            </Text>
-          </View>
-
-          {/* Private Key Row */}
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Private Key</Text>
-            <TouchableOpacity onPress={() => setShowPrivateKey(v => !v)} activeOpacity={0.7}>
-              <Text style={styles.infoText} selectable={showPrivateKey}>
-                {privateKey
-                  ? showPrivateKey
-                    ? privateKey
-                    : '•'.repeat(privateKey.length)
-                  : 'Loading...'}
-              </Text>
-              <Text style={{ color: '#007AFF', fontSize: 12, marginTop: 2 }}>
-                {showPrivateKey ? 'Hide' : 'Show'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.separator} />
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Joined</Text>
-            <Text style={styles.infoText}>
-              {userData?.created_at
-                ? format(new Date(userData.created_at), 'MMMM d, yy')
-                : "N/A"}
-            </Text>
-          </View>
-        </View>
-
-        {/* --- Notification Area --- */}
-        {notification && (
-            <View style={[
-                styles.notificationContainer,
-                // --- THIS LINE IS CHANGED ---
-                { backgroundColor: notification.type === 'success' ? '#007AFF' : '#dc3545' }
-            ]}>
-                <Text style={styles.notificationText}>{notification.message}</Text>
+              {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
             </View>
-        )}
 
+            <View style={styles.separator} />
+
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Username</Text>
+              {isEditing ? (
+                <>
+                  <TextInput
+                    style={[styles.username, styles.editableText, (!isUsernameValid || usernameTaken) && styles.invalidText]}
+                    value={editedUsername}
+                    onChangeText={handleUsernameChange}
+                    placeholder="Your Username"
+                    maxLength={20}
+                    autoCapitalize="none"
+                  />
+                  {usernameTaken && (
+                    <Text style={[styles.uCopyMessage, { color: '#EB5545' }]}>This username is already taken.</Text>
+                  )}
+                </>
+              ) : (
+                <TouchableOpacity onPress={() => handleCopyUsername(userData, setCopyUsernameText)}
+                                  onLongPress={() => handleOpenEtherscan(userData)}>
+                  <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
+                </TouchableOpacity>
+              )}
+              {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
+            </View>
+
+            <View style={styles.separator} />
+
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Bio</Text>
+              {isEditing ? (
+                <TextInput
+                  style={[styles.infoText, styles.editableText, styles.bioInput, !isBioValid && styles.invalidText]}
+                  value={editedBio}
+                  onChangeText={handleBioChange}
+                  placeholder="Tell us about yourself"
+                  multiline
+                  maxLength={150}
+                />
+              ) : (
+                <Text style={styles.infoText}>{userData?.bio || "I'm not being spied on!"}</Text>
+              )}
+            </View>
+
+            <View style={styles.separator} />
+
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Public Key</Text>
+              <Text style={styles.infoText} selectable>
+                {publicKey || 'Loading...'}
+              </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Private Key</Text>
+              <TouchableOpacity onPress={() => setShowPrivateKey(v => !v)} activeOpacity={0.7}>
+                <Text style={styles.infoText} selectable={showPrivateKey}>
+                  {privateKey
+                    ? showPrivateKey
+                      ? privateKey
+                      : '•'.repeat(privateKey.length)
+                    : 'Loading...'}
+                </Text>
+                <Text style={{ color: '#007AFF', fontSize: 12, marginTop: 2 }}>
+                  {showPrivateKey ? 'Hide' : 'Show'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.separator} />
+
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Joined</Text>
+              <Text style={styles.infoText}>
+                {userData?.created_at
+                  ? format(new Date(userData.created_at), 'MMMM d, yy')
+                  : "N/A"}
+              </Text>
+            </View>
+          </View>
+
+          {notification && (
+              <View style={[
+                  styles.notificationContainer,
+                  { backgroundColor: notification.type === 'success' ? '#007AFF' : '#dc3545' }
+              ]}>
+                  <Text style={styles.notificationText}>{notification.message}</Text>
+              </View>
+          )}
+        </ScrollView>
         <StatusBar style="auto" />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -435,13 +439,18 @@ const getStyles = (isDarkMode: boolean) => StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: isDarkMode ? '#1C1C1D' : '#F2F2F2',
+    },
+    // --- 3. Add styles for the ScrollView content ---
+    scrollContentContainer: {
       alignItems: 'center',
+      paddingBottom: 50, // Add padding to the bottom
     },
     headerContainer: {
       height: 40,
       justifyContent: 'center',
       backgroundColor: isDarkMode ? '#1C1C1D' : '#F2F2F2',
       width: '100%',
+      zIndex: 10, // Ensure header is on top
     },
     backButton: {
       position: 'absolute',
