@@ -1,3 +1,5 @@
+// screens/UserProfile.tsx
+
 import { StatusBar } from 'expo-status-bar';
 import {
   StyleSheet,
@@ -5,8 +7,9 @@ import {
   View,
   Image,
   TouchableOpacity,
-  ActivityIndicator, // Import ActivityIndicator
-  Modal, Pressable, // Import Modal and Pressable
+  ActivityIndicator,
+  Modal, Pressable,
+  Alert, // Import Alert
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -14,15 +17,16 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserData } from '../../backend/Supabase/RegisterUser';
-import { supabase } from '../../backend/Supabase/Supabase';
 import { format } from 'date-fns';
 import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
 import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
 import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
 import { RootStackParamList } from '../App';
 import { useChat } from '../../utils/ChatUtils/ChatContext';
+import { loadUserData } from '../../utils/ProfileUtils/LoadUserData';
+import { handleConnect } from '../../utils/ProfileUtils/HandleConnect'; // This now imports the real logic
+import { handleSendMessage } from '../../utils/ProfileUtils/HandleGoToChat';
 
 export default function UserProfile() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -39,13 +43,13 @@ export default function UserProfile() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isButtonPressed, setIsButtonPressed] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [isProfileLoading, setIsProfileLoading] = useState(true); // New loading state
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const styles = getStyles(isDarkMode);
 
   useEffect(() => {
     if (walletAddress) {
-      loadUserData(walletAddress);
+      loadUserData(walletAddress, setUserData, setIsProfileLoading);
     }
   }, [walletAddress]);
 
@@ -59,85 +63,29 @@ export default function UserProfile() {
     }
   }, [userData, chatList]);
 
-  // --- MODIFIED: This function now fetches and caches data locally ---
-  const loadUserData = async (address: string) => {
-    setIsProfileLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('wallet_address', address)
-        .single();
-
-      if (data && !error) {
-        console.log("✅ Fetched user profile from Supabase");
-        const formattedUser: UserData = {
-          walletAddress: data.wallet_address,
-          username: data.username,
-          name: data.name,
-          avatar: data.avatar,
-          bio: data.bio,
-          created_at: data.created_at,
-          publicKey: data.public_key,
-        };
-        setUserData(formattedUser);
-        // --- Store the fetched data locally ---
-        await AsyncStorage.setItem(`user_profile_${address}`, JSON.stringify(formattedUser));
-        console.log("💾 Cached user profile locally.");
-      } else {
-        // If Supabase fails, try to load from local cache
-        console.warn("Could not fetch from Supabase, attempting to load from cache...");
-        const cachedData = await AsyncStorage.getItem(`user_profile_${address}`);
-        if (cachedData) {
-          setUserData(JSON.parse(cachedData));
-          console.log("📱 Loaded user profile from local cache.");
-        } else {
-          console.error("❌ No cached data found for this user.");
-        }
-        if (error) {
-            console.error("Supabase error:", error.message);
-        }
-      }
-    } catch (err) {
-      console.error("❌ A critical error occurred in loadUserData:", err);
-    } finally {
-      setIsProfileLoading(false);
-    }
-  };
-
-  const handleConnect = async () => {
-    setIsConnecting(true);
-    setTimeout(() => {
-      setIsConnecting(false);
-      setIsConnected(true);
-    }, 2000);
-  };
-
-  const handleSendMessage = () => {
-    if (!isConnected || !userData) {
+  // --- NEW: A self-contained handler function inside the component ---
+  const connectToUser = async () => {
+    // 1. Check if user data (containing the address) is loaded.
+    if (!userData?.walletAddress) {
+      console.error("Cannot connect: User data is not available.");
       return;
     }
-    const conversationId = `convo_${userData.walletAddress}`;
-    const avatarSource = userData.avatar === "default" || !userData.avatar
-      ? require('../../assets/images/default-user-avatar.jpg')
-      : { uri: userData.avatar };
-    const chatExists = chatList.some(chat => chat.id === conversationId);
-    if (!chatExists) {
-      addOrUpdateChat({
-        id: conversationId,
-        name: userData.name || 'NodeLink User',
-        avatar: avatarSource,
-        message: 'Conversation started.',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-      });
+
+    setIsConnecting(true);
+
+    // 2. Call the imported utility, passing the wallet address.
+    const success = await handleConnect(userData.walletAddress);
+
+    setIsConnecting(false);
+
+    // 3. Update the UI state based on the result.
+    if (success) {
+      setIsConnected(true);
     }
-    navigation.navigate('Main');
-    navigation.navigate('ChatDetail', {
-        conversationId: conversationId,
-        name: userData.name || 'NodeLink User',
-        avatar: avatarSource,
-    });
+    // The handleConnect utility now shows its own alert on failure.
   };
+
+  const handleSendMessageWrapper = () => handleSendMessage(isConnected, userData, chatList, addOrUpdateChat, navigation);
 
   // Show a loading indicator while fetching profile data
   if (isProfileLoading) {
@@ -169,7 +117,6 @@ export default function UserProfile() {
           style={styles.avatar}
         />
       </TouchableOpacity>
-      {/* Avatar Modal */}
       <Modal
         visible={showAvatarModal}
         transparent={true}
@@ -217,7 +164,6 @@ export default function UserProfile() {
           <Text style={styles.infoText}>{userData?.bio || "Im not being spied on!"}</Text>
         </View>
         <View style={styles.separator} />
-        {/* Public Key Row */}
         <View style={styles.infoRow}>
           <Text style={styles.label}>Public Key</Text>
           <Text style={styles.infoText} selectable numberOfLines={2} ellipsizeMode="middle">
@@ -243,7 +189,8 @@ export default function UserProfile() {
             isButtonPressed && !isConnected && styles.connectButtonPressed,
             (!userData || isConnecting) && styles.buttonDisabled,
           ]}
-          onPress={handleConnect}
+          // --- Call the new component-level handler ---
+          onPress={connectToUser}
           onPressIn={() => setIsButtonPressed(true)}
           onPressOut={() => setIsButtonPressed(false)}
           activeOpacity={0.8}
@@ -264,7 +211,7 @@ export default function UserProfile() {
             isConnected && styles.sendMessageButtonEnabled,
             !isConnected && styles.buttonDisabled,
           ]}
-          onPress={handleSendMessage}
+          onPress={handleSendMessageWrapper}
           disabled={!isConnected}
         >
           <Text style={[

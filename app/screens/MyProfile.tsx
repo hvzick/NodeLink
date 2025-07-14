@@ -221,6 +221,7 @@ export default function MyProfile() {
       setEditedAvatarUri(null);
       setUsernameTaken(false);
       showNotification("Profile updated successfully!", 'success');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       showNotification("Failed to save profile locally.", 'error');
     } finally {

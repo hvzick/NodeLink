@@ -28,6 +28,7 @@
     "@react-navigation/native": "^7.1.9",
     "@react-navigation/stack": "^7.3.2",
     "@supabase/supabase-js": "^2.50.0",
+    "@types/lodash": "^4.17.20",
     "@walletconnect/client": "^1.8.0",
     "@walletconnect/core": "^2.20.2",
     "@walletconnect/qrcode-modal": "^1.8.0",
@@ -63,6 +64,7 @@
     "expo-system-ui": "~5.0.7",
     "expo-web-browser": "~14.1.6",
     "gun": "^0.2020.1240",
+    "lodash": "^4.17.21",
     "metro": "^0.82.3",
     "metro-resolver": "^0.82.3",
     "qrcode": "^1.5.4",
@@ -89,6 +91,7 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
+    "react-native-webview-crypto": "^0.0.27",
     "web-streams-polyfill": "^4.0.0"
   },
   "devDependencies": {

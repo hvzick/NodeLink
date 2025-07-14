@@ -28,7 +28,7 @@ export const searchUser = async (input: string) => {
     const { data, error } = await query;
 
     if (error || !data) {
-      console.error('❌ User not found or error:', error?.message);
+      console.log('❌ User not found or error:', error?.message);
       return null;
     }
 

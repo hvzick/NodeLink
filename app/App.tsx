@@ -1,4 +1,5 @@
-// App.tsx
+// App.
+import 'react-native-webview-crypto';
 import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
@@ -8,7 +9,7 @@ import { useFonts } from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthScreen from './screens/Authentication';
 import TermsOfServiceScreen from './screens/TermsOfService';
-import PrivacyPolicyScreen from './screens/PrivacyPolicy';
+import PrivacyPolicyScreen from './screens/Privacypolicy';
 import ChatDetailScreen from './screens/ChatDetailScreen';
 import BottomTabs from './screens/BottomTabs';
 import '@ethersproject/shims';

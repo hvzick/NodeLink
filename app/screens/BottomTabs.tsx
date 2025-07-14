@@ -6,7 +6,6 @@ import ChatScreen from "./ChatScreen";
 import SettingsStackScreen from "./SettingStackScreen";
 import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { triggerHoldHapticFeedback } from "../../utils/GlobalUtils/HoldHapticFeedback";
-// IMPORTANT: Import from ThemeProvider instead of CheckSystemTheme
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { handleUserData } from "../../backend/Supabase/HandleUserData";
 

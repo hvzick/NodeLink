@@ -1,9 +1,11 @@
-// utils/Auth/handleKeys.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { base64 } from '@scure/base';
 import { p256 } from '@noble/curves/p256';
 import { supabase } from '../../backend/Supabase/Supabase';
 import { generateAndStoreKeys } from './KeyGen';
+
+const toHex = (bytes: Uint8Array) =>
+  Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
 /**
  * Load key pair from AsyncStorage.
@@ -22,7 +24,7 @@ const loadKeyPairFromStorage = async (
 
 /**
  * Validate that the public key matches the private key.
- * Works in React Native (no Buffer usage).
+ * Compares uncompressed derived public key to stored key.
  */
 const isValidECDHKeyPair = (
   publicKeyB64: string,
@@ -31,7 +33,11 @@ const isValidECDHKeyPair = (
   try {
     const privateKeyBytes = base64.decode(privateKeyB64);
     const publicKeyBytes = base64.decode(publicKeyB64);
-    const derivedPublicKey = p256.getPublicKey(privateKeyBytes);
+
+    const derivedPublicKey = p256.getPublicKey(privateKeyBytes, false); // 🔓 Uncompressed
+
+    console.log("🔍 Stored public key (hex):", toHex(publicKeyBytes));
+    console.log("🔍 Derived public key (hex):", toHex(derivedPublicKey));
 
     if (publicKeyBytes.length !== derivedPublicKey.length) return false;
 
@@ -60,6 +66,8 @@ export const handleAndPublishKeys = async (
     if (!keyPair) {
       console.log("🔐 No local keys found. Generating new key pair...");
       keyPair = await generateAndStoreKeys(walletAddress);
+      if (keyPair) console.log("🆕 New key pair generated.");
+      else console.log("❌ Key generation failed.");
     }
 
     if (!keyPair) throw new Error("Failed to generate or retrieve key pair.");
@@ -86,5 +94,43 @@ export const handleAndPublishKeys = async (
   } catch (error) {
     console.error("❌ handleAndPublishKeys error:", error);
     return false;
+  }
+};
+
+/**
+ * One-time repair: re-derive and re-upload uncompressed public key.
+ */
+export const fixKeyPair = async (walletAddress: string) => {
+  try {
+    const raw = await AsyncStorage.getItem(`crypto_key_pair_${walletAddress}`);
+    if (!raw) throw new Error("Key pair not found in storage.");
+
+    const keyPair = JSON.parse(raw);
+    const privateKeyBytes = base64.decode(keyPair.privateKey);
+    const publicKeyBytes = p256.getPublicKey(privateKeyBytes, false); // ensure uncompressed
+    const publicKey = base64.encode(publicKeyBytes);
+
+    keyPair.publicKey = publicKey;
+
+    await AsyncStorage.setItem(
+      `crypto_key_pair_${walletAddress}`,
+      JSON.stringify(keyPair)
+    );
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert(
+        {
+          wallet_address: walletAddress,
+          public_key: publicKey,
+        },
+        { onConflict: 'wallet_address' }
+      );
+
+    if (error) throw error;
+
+    console.log("✅ Fixed and re-uploaded public key for:", walletAddress);
+  } catch (e) {
+    console.error("❌ Failed to fix key pair:", e);
   }
 };
