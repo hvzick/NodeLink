@@ -5,7 +5,6 @@ import {
   Modal,
   NativeModules,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Switch,
   Text,
@@ -13,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { triggerTapHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
 import {
   initConversationTones,

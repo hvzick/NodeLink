@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   ScrollView,
   Image,
   Switch,
@@ -19,6 +18,7 @@ import ArrowSVG from '../../assets/images/arrow-icon.svg';
 import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
 import { logout } from '../../utils/AuthenticationUtils/Logout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export type SettingsStackParamList = {
   Settings: undefined;
@@ -110,7 +110,7 @@ export default function SettingsScreen() {
       : require('../../assets/images/default-avatar.jpg');
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
         <TouchableOpacity onPress={handleCopyAddress}>

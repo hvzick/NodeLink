@@ -2,9 +2,10 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   FlatList, Image, ImageBackground, KeyboardAvoidingView, Keyboard, Modal, PanResponder,
-  Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity,
+  Platform, StyleSheet, Text, TextInput, TouchableOpacity,
   View, ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,8 @@ import { handleQuotedPress } from '../../utils/ChatDetailUtils/ChatHandlers/Hand
 import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/ChatHandlers/HandleMessageLongPressMenu';
 import { formatDateHeader } from '../../utils/ChatDetailUtils/FormatDate';
 import { RootStackParamList } from '../App';
+
+import { ensureDatabaseInitialized, openDatabase } from '../../backend/Local database/InitialiseDatabase';
 
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, 'ChatDetail'>;
@@ -116,6 +119,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   useEffect(() => {
     const loadMessages = async () => {
       setIsLoading(true);
+      await ensureDatabaseInitialized(); // <-- always await this first!
       const fetched = await fetchMessagesByConversation(conversationId);
       setMessages(fetched.sort((a, b) => (a.createdAt || parseInt(a.id, 10)) - (b.createdAt || parseInt(b.id, 10))));
       setTimeout(() => {
