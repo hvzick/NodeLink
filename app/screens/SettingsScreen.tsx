@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
@@ -47,9 +47,11 @@ export default function SettingsScreen() {
   const [userData, setUserData] = useState<UserData | null>(null);
 
   // Only load user data once when the component mounts
-  React.useEffect(() => {
-    loadUserData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadUserData();
+    }, [])
+  );
 
   const loadUserData = async () => {
     try {
