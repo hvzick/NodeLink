@@ -18,9 +18,13 @@ import * as Notifications from 'expo-notifications';
 import { handleUserData } from '../backend/Supabase/HandleUserData';
 import UserProfile from './screens/UserProfile';
 import { ChatProvider } from '../utils/ChatUtils/ChatContext';
-import { initializeDatabase } from '../backend/local database/InitialiseDatabase';
+import { initializeDatabase } from '../backend/Local database/InitialiseDatabase';
 import LoadingScreen from './screens/LoadingScreen';
 import { handleAndPublishKeys } from '../backend/Encryption/HandleKeys';
+
+// --- 1. Import GunService functions ---
+// Using aliases like 'initializeGun' avoids potential naming conflicts.
+import { initialize as initializeGun, destroy as destroyGun, onStatusChange } from '../backend/Gun Service/GunIndex';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -59,14 +63,24 @@ export default function App() {
   });
 
   useEffect(() => {
+    // --- 3. Set up a listener for Gun.js connection status ---
+    // This helps in debugging and can be used to update global state.
+    const unsubscribeFromGunStatus = onStatusChange(isConnected => {
+      console.log(`P2P Network Status: ${isConnected ? 'Connected' : 'Connecting...'}`);
+    });
+
     const load = async () => {
       await initializeDatabase();
 
       const walletAddress = await AsyncStorage.getItem('walletAddress');
       if (walletAddress) {
         setSession(true);
+        
+        // --- 2. Initialize Gun.js in the background after session is confirmed ---
+        initializeGun();
+
         await handleUserData();
-        await handleAndPublishKeys(walletAddress); // 2. Call the key handler
+        await handleAndPublishKeys(walletAddress);
 
       } else {
         setSession(false);
@@ -78,6 +92,14 @@ export default function App() {
     if (fontsLoaded) {
       load();
     }
+
+    // --- 4. Return a cleanup function ---
+    // This will be called when the App component unmounts.
+    return () => {
+      console.log("Cleaning up app-level resources...");
+      destroyGun(); // Disconnect from the Gun.js network
+      unsubscribeFromGunStatus(); // Remove the status listener
+    };
   }, [fontsLoaded]);
 
   if (!ready) return null;
