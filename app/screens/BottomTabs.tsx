@@ -1,6 +1,14 @@
 import React, { useEffect, useRef } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Image, View, Animated, ImageSourcePropType, StyleSheet, Pressable } from "react-native";
+import {
+  Image,
+  View,
+  Animated,
+  ImageSourcePropType,
+  StyleSheet,
+  Pressable,
+  Platform,
+} from "react-native";
 import WalletScreen from "./WalletScreen";
 import ChatScreen from "./ChatScreen";
 import SettingsStackScreen from "./SettingStackScreen";
@@ -18,34 +26,22 @@ interface AnimatedTabIconProps {
   tintColor: string;
 }
 
-const AnimatedTabIcon: React.FC<AnimatedTabIconProps> = ({ source, focused, size, tintColor }) => {
-  return (
-    <View style={styles.iconContainer}>
-      <Image
-        source={source}
-        style={[
-          styles.icon,
-          { width: size, height: size, tintColor }
-        ]}
-        resizeMode="contain"
-      />
-    </View>
-  );
-};
+const AnimatedTabIcon: React.FC<AnimatedTabIconProps> = ({
+  source,
+  focused,
+  size,
+  tintColor,
+}) => (
+  <View style={styles.iconContainer}>
+    <Image
+      source={source}
+      style={[styles.icon, { width: size, height: size, tintColor }]}
+      resizeMode="contain"
+    />
+  </View>
+);
 
-const styles = StyleSheet.create({
-  iconContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 5,
-    borderRadius: 10,
-  },
-  icon: {
-    marginTop: 10,
-  },
-});
-
-// Custom TabBarButton that wraps the default button and applies a scale animation
+// Custom tab button with animation
 const AnimatedTabBarButton = (props: any) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const { onPress, children, style } = props;
@@ -87,9 +83,29 @@ const AnimatedTabBarButton = (props: any) => {
   );
 };
 
+// Style generators for iOS and Android
+const getIOSBarStyle = (isDarkMode: boolean) => ({
+  height: 85,
+  backgroundColor: isDarkMode ? "#1C1C1D" : "#EAEAEA",
+  borderTopWidth: 1,
+  borderTopColor: isDarkMode ? "#333" : "#ccc",
+  elevation: 0,
+  shadowOpacity: 0,
+});
+
+const getAndroidBarStyle = (isDarkMode: boolean) => ({
+  height: 85,
+  backgroundColor: isDarkMode ? "#1C1C1D" : "#EAEAEA",
+  borderTopWidth: 1,
+  borderTopColor: isDarkMode ? "#333" : "#ccc",
+  elevation: 0,
+  shadowOpacity: 0,
+  marginBottom: 20,
+  paddingBottom: 30,
+});
+
 export default function BottomTabs() {
   const { currentTheme } = useThemeToggle();
-  // console.log("BottomTabs currentTheme:", currentTheme);
   const isDarkMode = currentTheme === "dark";
 
   useEffect(() => {
@@ -101,16 +117,10 @@ export default function BottomTabs() {
       initialRouteName="Chats"
       screenOptions={({ route }) => ({
         headerShown: false,
-        // Use the custom AnimatedTabBarButton for a scale animation on press.
         tabBarButton: (props) => <AnimatedTabBarButton {...props} />,
-        tabBarStyle: {
-          height: 85,
-          backgroundColor: isDarkMode ? "#1C1C1D" : "#EAEAEA",
-          borderTopWidth: 1,
-          borderTopColor: isDarkMode ? "#333" : "#ccc",
-          elevation: 0,
-          shadowOpacity: 0,
-        },
+        tabBarStyle: Platform.OS === "ios"
+          ? getIOSBarStyle(isDarkMode)
+          : getAndroidBarStyle(isDarkMode),
         tabBarActiveTintColor: isDarkMode ? "white" : "black",
         tabBarInactiveTintColor: "gray",
         tabBarIcon: ({ focused, size }) => {
@@ -184,3 +194,15 @@ export default function BottomTabs() {
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 5,
+    borderRadius: 10,
+  },
+  icon: {
+    marginTop: 10,
+  },
+});
