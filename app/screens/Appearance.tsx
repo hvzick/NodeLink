@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { triggerTapHapticFeedback } from '../../utils/GlobalUtils/TapHapticFeedback';
 import { useThemeToggle, ThemeOption as GlobalThemeOption } from '../../utils/GlobalUtils/ThemeProvider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type LocalThemeOption = 'automatic' | 'dark' | 'light';
 
@@ -14,11 +15,19 @@ export default function AppearanceScreen() {
   const { currentTheme, userTheme, setTheme } = useThemeToggle();
   const isDarkMode = currentTheme === 'dark';
   const [selectedTheme, setSelectedTheme] = useState<LocalThemeOption>('automatic');
+  const [timeFormat, setTimeFormat] = useState<'12' | '24'>('24');
 
   // Sync local state with userTheme (mapping 'system' to 'automatic')
   useEffect(() => {
     setSelectedTheme(userTheme === 'system' ? 'automatic' : userTheme);
   }, [userTheme]);
+
+  useEffect(() => {
+    // Load time format from storage
+    AsyncStorage.getItem('timeFormat').then((val) => {
+      if (val === '12' || val === '24') setTimeFormat(val);
+    });
+  }, []);
 
   const handleSelect = (option: LocalThemeOption) => {
     setSelectedTheme(option);
@@ -26,6 +35,12 @@ export default function AppearanceScreen() {
     setTheme(themeToSet);
     triggerTapHapticFeedback();
     console.log(`Theme selected: ${option}`, userTheme);
+  };
+
+  const handleTimeFormatChange = async (format: '12' | '24') => {
+    setTimeFormat(format);
+    await AsyncStorage.setItem('timeFormat', format);
+    triggerTapHapticFeedback();
   };
 
   const styles = getStyles(isDarkMode);
@@ -69,6 +84,29 @@ export default function AppearanceScreen() {
         >
           <Text style={styles.optionText}>Light</Text>
           {selectedTheme === 'light' && (
+            <Ionicons name="checkmark" size={22} color="#007AFF" />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Time Format Option */}
+      <View style={[styles.listContainer, { marginTop: 20 }]}>
+        <Text style={[styles.optionText, { marginLeft: 16, marginTop: 10, marginBottom: 5 }]}>Time Format</Text>
+        <TouchableOpacity
+          style={styles.listItem}
+          onPress={() => handleTimeFormatChange('24')}
+        >
+          <Text style={styles.optionText}>24-hour</Text>
+          {timeFormat === '24' && (
+            <Ionicons name="checkmark" size={22} color="#007AFF" />
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.listItem, { borderBottomWidth: 0 }]}
+          onPress={() => handleTimeFormatChange('12')}
+        >
+          <Text style={styles.optionText}>12-hour</Text>
+          {timeFormat === '12' && (
             <Ionicons name="checkmark" size={22} color="#007AFF" />
           )}
         </TouchableOpacity>

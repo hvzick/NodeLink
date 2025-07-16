@@ -11,6 +11,7 @@ import { sendMessage } from '../../../backend/Gun Service/Messaging/SendMessage'
 import { encryptMessage } from '../../../backend/Encryption/Encrypt';
 import { randomBytes } from '@noble/hashes/utils';
 import { bytesToHex } from '@noble/ciphers/utils';
+import { formatTimeForUser } from '../../GlobalUtils/FormatDate';
 
 export const handleSendMessage = async (
   dependencies: ChatDetailHandlerDependencies,
@@ -130,15 +131,16 @@ export const handleSendMessage = async (
 
   // Chat preview
   const previewText = plainText || (tempMsg.imageUrl ? 'Image' : tempMsg.videoUrl ? 'Video' : 'Attachment');
-  const chatPreview: ChatItemType = {
-    id: conversationId,
-    name,
-    message: previewText,
-    time: new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    avatar,
-  };
-
-  addOrUpdateChat(chatPreview);
+  formatTimeForUser(createdAt).then((formattedTime) => {
+    const chatPreview: ChatItemType = {
+      id: conversationId,
+      name,
+      message: previewText,
+      time: formattedTime,
+      avatar,
+    };
+    addOrUpdateChat(chatPreview);
+  });
   flatListRef.current?.scrollToEnd({ animated: true });
   console.log('🔽 Chat scrolled to bottom');
 };

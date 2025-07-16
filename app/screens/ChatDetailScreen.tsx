@@ -24,13 +24,14 @@ import { handleOptionSelect } from '../../utils/ChatDetailUtils/ChatHandlers/Han
 import { closeLongPressMenu } from '../../utils/ChatDetailUtils/ChatHandlers/CloseLongPressMenu';
 import { handleQuotedPress } from '../../utils/ChatDetailUtils/ChatHandlers/HandleQuotedPress';
 import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/ChatHandlers/HandleMessageLongPressMenu';
-import { formatDateHeader } from '../../utils/ChatDetailUtils/FormatDate';
+import { formatDateHeader } from '../../utils/GlobalUtils/FormatDate';
 import { RootStackParamList } from '../App';
 
 import { ensureDatabaseInitialized } from '../../backend/Local database/InitialiseDatabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../backend/Supabase/Supabase';
 import { deriveSharedKeyWithUser } from '../../backend/Encryption/SharedKey';
+import { playSendTone, playReceiveTone, initConversationTones } from '../../utils/NotificationsSettings/ConversationTones';
 
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, 'ChatDetail'>;
@@ -214,7 +215,10 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     return list;
   }, [messages]);
 
-  const handleSendMessageWrapper = () => handleSendMessage(handlerDependencies);
+  const handleSendMessageWrapper = async () => {
+    await playSendTone();
+    handleSendMessage(handlerDependencies);
+  };
   const handleQuotedPressWrapper = (quoted: Message) => handleQuotedPress(handlerDependencies, quoted, dataWithSeparators, isMessage);
   const handleLongPressWrapper = (msg: Message, layout: { x: number; y: number; width: number; height: number }) => handleLongPress(handlerDependencies, msg, layout);
   const closeLongPressMenuWrapper = () => closeLongPressMenu(handlerDependencies);
@@ -261,6 +265,11 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     EventBus.off('new-message', handleNewMessage);
   };
 }, [receiverAddress]);
+
+  useEffect(() => {
+    // Initialize conversation tones on mount
+    initConversationTones();
+  }, []);
 
 
   const renderItem = ({ item }: { item: any }) => {

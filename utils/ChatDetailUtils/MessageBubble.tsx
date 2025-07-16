@@ -12,6 +12,7 @@ import { triggerTapHapticFeedback } from '../GlobalUtils/TapHapticFeedback';
 import { Message } from '../../backend/Local database/MessageStructure';
 import { useThemeToggle } from '../GlobalUtils/ThemeProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { formatTimeForUser } from '../GlobalUtils/FormatDate';
 
 export type MessageBubbleProps = {
   message: Message;
@@ -39,6 +40,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [formattedTime, setFormattedTime] = useState('');
+
+  useEffect(() => {
+    let timeValue = message.createdAt || (message.timestamp ? parseInt(message.timestamp, 10) : Date.now());
+    formatTimeForUser(timeValue).then(setFormattedTime);
+  }, [message.createdAt, message.timestamp]);
 
   const bubbleRef = useRef<View>(null);
   useEffect(() => {
@@ -156,7 +163,7 @@ useEffect(() => {
         </View>
       </Animated.View>
       <Text style={[styles.timeTextOutside, isMe ? styles.timeTextRight : styles.timeTextLeft]}>
-        {message.timestamp}
+        {formattedTime}
       </Text>
     </View>
   );

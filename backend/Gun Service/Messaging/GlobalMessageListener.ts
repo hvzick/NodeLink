@@ -8,6 +8,7 @@ import { listenForMessages } from './RecieveMessages';
 import { gun } from '../GunState';
 import { decryptMessage } from '../../../backend/Encryption/Decrypt';
 import { deriveSharedKeyWithUser } from '../../../backend/Encryption/SharedKey';
+import { formatTimeForUser } from '../../../utils/GlobalUtils/FormatDate';
 
 const GlobalMessageListener = () => {
   const { addOrUpdateChat } = useChat();
@@ -94,17 +95,16 @@ const GlobalMessageListener = () => {
         const preview =
           msg.text || (msg.imageUrl ? 'Image' : msg.videoUrl ? 'Video' : 'Attachment');
 
-        addOrUpdateChat({
-          id: msg.conversationId,
-          name: profile.name,
-          avatar: profile.avatar
-            ? { uri: profile.avatar }
-            : require('../../../assets/images/default-user-avatar.jpg'),
-          message: preview,
-          time: new Date(msg.createdAt).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
+        formatTimeForUser(msg.createdAt).then((formattedTime) => {
+          addOrUpdateChat({
+            id: msg.conversationId,
+            name: profile.name,
+            avatar: profile.avatar
+              ? { uri: profile.avatar }
+              : require('../../../assets/images/default-user-avatar.jpg'),
+            message: preview,
+            time: formattedTime,
+          });
         });
       });
     };
