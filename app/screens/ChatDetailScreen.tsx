@@ -29,6 +29,8 @@ import { RootStackParamList } from '../App';
 
 import { ensureDatabaseInitialized } from '../../backend/Local database/InitialiseDatabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../../backend/Supabase/Supabase';
+import { deriveSharedKeyWithUser } from '../../backend/Encryption/SharedKey';
 
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, 'ChatDetail'>;
@@ -133,6 +135,56 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     };
     fetchUserAddress();
   }, []);
+
+  useEffect(() => {
+    // Compare local and Supabase public keys for the receiver
+    const checkAndSyncPublicKey = async () => {
+      try {
+        // 1. Load local user profile for receiver
+        const localProfileRaw = await AsyncStorage.getItem(`user_profile_${receiverAddress}`);
+        let localPublicKey = null;
+        if (localProfileRaw) {
+          const localProfile = JSON.parse(localProfileRaw);
+          localPublicKey = localProfile.publicKey;
+        }
+
+        // 2. Fetch current public key from Supabase
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('public_key')
+          .eq('wallet_address', receiverAddress)
+          .single();
+        if (error || !data?.public_key) {
+          console.warn('Could not fetch public key from Supabase:', error);
+          return;
+        }
+        const supabasePublicKey = data.public_key;
+
+        // 3. Compare
+        if (localPublicKey !== supabasePublicKey) {
+          console.warn('Public key mismatch detected. Reloading user data and re-deriving shared key.');
+          // Reload user data and update local cache
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('wallet_address', receiverAddress)
+            .single();
+          if (!userError && userData) {
+            await AsyncStorage.setItem(`user_profile_${receiverAddress}`, JSON.stringify(userData));
+          }
+          // Re-derive and store the shared key
+          const newSharedKey = await deriveSharedKeyWithUser(receiverAddress);
+          if (newSharedKey) {
+            await AsyncStorage.setItem(`shared_key_${receiverAddress}`, newSharedKey);
+            console.log('🔑 Re-derived and stored new shared key for', receiverAddress);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking/syncing public key:', err);
+      }
+    };
+    checkAndSyncPublicKey();
+  }, [receiverAddress]);
 
   // --- NEW: Function to handle tapping on the user's profile in the header ---
   const handleProfilePress = () => {

@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { clearAllMessagesFromDB } from '../../backend/Local database/ClearAllMessages';
 import { useAuth } from './AuthContext';
+const CHAT_LIST_STORAGE_KEY = 'chats'; // Update if your chat list uses a different key
 
 export function useLogout() {
   const navigation = useNavigation();  // we won’t reset it anymore
@@ -33,6 +34,10 @@ export function useLogout() {
                   console.log(`🗝️ Deleted key pair for ${walletAddress}`);
                 }
               }
+
+              // Remove chat list/items from AsyncStorage
+              await AsyncStorage.removeItem(CHAT_LIST_STORAGE_KEY);
+              console.log('🗑️ Chat list/items removed from AsyncStorage');
 
               // Clear AsyncStorage
               await AsyncStorage.clear();

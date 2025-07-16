@@ -7,6 +7,7 @@ import { fetchAndCacheUserProfile } from '../../../backend/Supabase/FetchAvatarA
 import { listenForMessages } from './RecieveMessages';
 import { gun } from '../GunState';
 import { decryptMessage } from '../../../backend/Encryption/Decrypt';
+import { deriveSharedKeyWithUser } from '../../../backend/Encryption/SharedKey';
 
 const GlobalMessageListener = () => {
   const { addOrUpdateChat } = useChat();
@@ -34,7 +35,17 @@ const GlobalMessageListener = () => {
         msg.createdAt = msg.createdAt || (msg.timestamp ? parseInt(msg.timestamp, 10) : Date.now());
 
         // 🧩 Attempt to decrypt message
-        const sharedKey = await AsyncStorage.getItem(`shared_key_${msg.sender}`);
+        let sharedKey = await AsyncStorage.getItem(`shared_key_${msg.sender}`);
+        if (!sharedKey) {
+          // Try to derive the shared key if not present
+          sharedKey = await deriveSharedKeyWithUser(msg.sender);
+          if (sharedKey) {
+            await AsyncStorage.setItem(`shared_key_${msg.sender}`, sharedKey);
+            console.log('🔑 Derived and stored new shared key:', sharedKey);
+          } else {
+            console.warn('❌ Could not derive shared key for', msg.sender);
+          }
+        }
         console.log('🔑 Shared key:', sharedKey);
         console.log('🔐 IV:', msg.iv);
         console.log('🔐 Encrypted Content:', msg.encryptedContent);

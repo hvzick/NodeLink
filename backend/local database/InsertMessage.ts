@@ -24,12 +24,12 @@ export const insertMessage = async (message: Message): Promise<any> => {
         status, encrypted, decrypted, encryptedContent, iv, createdAt
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       [
-        message.id,
-        message.conversationId,
-        message.sender,
-        message.receiver,
+        message.id || null,
+        message.conversationId || null,
+        message.sender || null,
+        message.receiver || null,
         message.text || null,
-        message.timestamp,
+        message.timestamp || null,
         message.imageUrl || null,
         message.fileName || null,
         message.fileSize || null,
