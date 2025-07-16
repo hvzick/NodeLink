@@ -1,19 +1,10 @@
 // screens/LoadingScreen.tsx
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, useColorScheme } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../App';
 import SvgLogoDark from '../../assets/images/logo-white.svg';
 import SvgLogoLight from '../../assets/images/logo-black.svg';
 
-type NavigationProp = StackNavigationProp<RootStackParamList, 'LoadingScreen'>;
-
 export default function LoadingScreen() {
-  const navigation = useNavigation<NavigationProp>();
-  const route = useRoute();
-  const { hasSession } = route.params as { hasSession: boolean };
-
   const logoScaleAnim = useRef(new Animated.Value(1)).current;
   const colorScheme = useColorScheme();
   const LogoComponent = colorScheme === 'dark' ? SvgLogoDark : SvgLogoLight;
@@ -23,9 +14,7 @@ export default function LoadingScreen() {
       toValue: 1.3,
       duration: 1500,
       useNativeDriver: true,
-    }).start(() => {
-      navigation.replace(hasSession ? 'Main' : 'Auth');
-    });
+    }).start();
   }, []);
 
   return (

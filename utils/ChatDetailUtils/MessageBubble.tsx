@@ -73,7 +73,7 @@ const isMe =
         useNativeDriver: true,
       }).start();
     }
-  }, [isMenuVisibleForThisMessage]);
+  }, [isMenuVisibleForThisMessage, scale]);
 
   if (isHidden) {
     return <View style={{ height: measuredHeight || 50 }} />;

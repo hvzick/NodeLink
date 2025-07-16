@@ -1,69 +1,58 @@
-// utils/Auth/handleLogout.ts
+// utils/AuthenticationUtils/Logout.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationProp } from '@react-navigation/native';
-import { clearAllMessagesFromDB } from '../../backend/Local database/ClearAllMessages'; // You need to create this helper function
-import { Alert } from 'react-native'; // Import Alert
+import { Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { clearAllMessagesFromDB } from '../../backend/Local database/ClearAllMessages';
+import { useAuth } from './AuthContext';
 
-/**
- * Prompts the user to confirm logout, and if confirmed, clears all app data
- * and resets navigation to the Auth screen
- *
- * @param navigation The navigation object, used to reset the navigation stack.
- */
-export const logout = (navigation: NavigationProp<any>) => {
-  // Show a confirmation dialog before proceeding.
-  Alert.alert(
-    "Confirm Logout",
-    "Are you sure you want to log out? All your local data will be cleared.",
-    [
-      {
-        text: "Cancel",
-        onPress: () => console.log("Logout cancelled"),
-        style: "cancel"
-      },
-      {
-        text: "Logout",
-        style: "destructive",
-        // The actual logout logic is now inside the onPress handler for the "Logout" button.
-        onPress: async () => {
-          console.log("Logging out and clearing all app data...");
-          try {
-            // Step 1: Delete all messages from the SQLite database.
-            await clearAllMessagesFromDB();
+export function useLogout() {
+  const navigation = useNavigation();  // we won’t reset it anymore
+  const { setIsLoggedIn } = useAuth();
 
-            // Step 1.5: Delete stored key pair from AsyncStorage
+  return () => {
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out? All your local data will be cleared.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
             try {
-              const userDataRaw = await AsyncStorage.getItem('userData');
-              if (userDataRaw) {
-                const userData = JSON.parse(userDataRaw);
-                if (userData.walletAddress) {
-                  await AsyncStorage.removeItem(`crypto_key_pair_${userData.walletAddress}`);
-                  console.log(`🗝️ Deleted key pair for ${userData.walletAddress}`);
+              console.log('Logging out and clearing all app data...');
+              await clearAllMessagesFromDB();
+              console.log('✅ Local messages cleared');
+
+              // If you store a key‐pair by walletAddress, delete it:
+              const raw = await AsyncStorage.getItem('userData');
+              if (raw) {
+                const { walletAddress } = JSON.parse(raw);
+                if (walletAddress) {
+                  await AsyncStorage.removeItem(`crypto_key_pair_${walletAddress}`);
+                  console.log(`🗝️ Deleted key pair for ${walletAddress}`);
                 }
               }
-            } catch (e) {
-              console.warn('Could not delete key pair from AsyncStorage:', e);
+
+              // Clear AsyncStorage
+              await AsyncStorage.clear();
+              console.log('✅ AsyncStorage cleared');
+
+              // Flip your auth flag
+              setIsLoggedIn(false);
+              console.log('🔓 Auth context updated, user logged out');
+
+              // **NO navigation.reset() here!**
+              // Your root <App> will now automatically
+              // render the Auth stack instead of Main.
+            } catch (error) {
+              console.error('❌ Error during logout:', error);
+              Alert.alert('Logout Failed', 'An error occurred while trying to log out.');
             }
-
-            // Step 1.5: Delete scStorage (session, chat lists, etc.).
-            await AsyncStorage.clear();
-            console.log("✅ Storage cleared");
-
-            // Step 3: Reset the navigation stack to the Auth screen.
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Auth' }],
-            });
-            console.log("✅ Navigation reset to Auth screen");
-
-          } catch (error) {
-            console.error("❌ A critical error occurred during the logout process:", error);
-            // Optionally, show another alert if the logout fails.
-            Alert.alert("Logout Failed", "An error occurred while trying to log out.");
-          }
-        }
-      }
-    ],
-    { cancelable: true } // Allows user to dismiss the alert by tapping outside of it on Android
-  );
-};
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+}

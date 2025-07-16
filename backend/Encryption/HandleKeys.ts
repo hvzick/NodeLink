@@ -63,7 +63,9 @@ export const handleAndPublishKeys = async (
 
     let keyPair = await loadKeyPairFromStorage(walletAddress);
 
-    if (!keyPair) {
+    if (keyPair) {
+      console.log("🔑 Key pair found in local storage for:", walletAddress);
+    } else {
       console.log("🔐 No local keys found. Generating new key pair...");
       keyPair = await generateAndStoreKeys(walletAddress);
       if (keyPair) console.log("🆕 New key pair generated.");

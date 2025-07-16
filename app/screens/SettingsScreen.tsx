@@ -16,7 +16,7 @@ import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
 import { UserData, DEFAULT_USER_DATA } from '../../backend/Supabase/RegisterUser';
 import ArrowSVG from '../../assets/images/arrow-icon.svg';
 import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
-import { logout } from '../../utils/AuthenticationUtils/Logout';
+import { useLogout } from '../../utils/AuthenticationUtils/Logout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -43,6 +43,7 @@ export default function SettingsScreen() {
   const isDarkMode = currentTheme === 'dark';
   const [copied, setCopied] = useState(false);
   const navigation = useNavigation<SettingsNavigationProp>();
+  const logout = useLogout();
 
   const [userData, setUserData] = useState<UserData | null>(null);
 
@@ -108,6 +109,10 @@ export default function SettingsScreen() {
     userData && userData.avatar !== 'default'
       ? { uri: userData.avatar }
       : require('../../assets/images/default-avatar.jpg');
+
+  function handleLogout(arg0: any, setIsLoggedIn: any): void {
+    throw new Error('Function not implemented.');
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -218,7 +223,7 @@ export default function SettingsScreen() {
         </TouchableOpacity>
 
         <View style={styles.accountActionsContainer}>
-          <TouchableOpacity onPress={() => logout(navigation)}>
+          <TouchableOpacity onPress={() => logout()}>
             <View style={styles.accountActionItem}>
               <Text style={styles.deleteTitle}>Logout</Text>
             </View>

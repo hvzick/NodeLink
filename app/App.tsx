@@ -1,4 +1,5 @@
 // App.tsx
+
 import 'react-native-webview-crypto';
 import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
@@ -21,17 +22,8 @@ import UserProfile from './screens/UserProfile';
 import { ChatProvider } from '../utils/ChatUtils/ChatContext';
 import { initializeDatabase } from '../backend/Local database/InitialiseDatabase';
 import LoadingScreen from './screens/LoadingScreen';
-import { handleAndPublishKeys } from '../backend/Encryption/HandleKeys';
-
-// --- 🧠 NEW: Import GlobalMessageListener ---
-import GlobalMessageListener from '../backend/Gun Service/Messaging/GlobalMessageListener';
-
-// --- Gun.js setup ---
-import {
-  initialize as initializeGun,
-  destroy as destroyGun,
-  onStatusChange,
-} from '../backend/Gun Service/GunIndex';
+import { initialize as initializeGun, destroy as destroyGun, onStatusChange } from '../backend/Gun Service/GunIndex';
+import { AuthProvider, useAuth } from '../utils/AuthenticationUtils/AuthContext';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -42,25 +34,20 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
-
 export type RootStackParamList = {
-  LoadingScreen: { hasSession: boolean };
+  LoadingScreen: undefined;
   Auth: undefined;
   TOS: undefined;
   PrivacyPolicy: undefined;
-  Chats: undefined;
-  ChatDetail: { conversationId: string; name: string; avatar: any };
   Main: undefined;
+  ChatDetail: { conversationId: string; name: string; avatar: any };
   MyProfile: { walletAddress?: string };
   UserProfile: { walletAddress?: string };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
 
-export default function App() {
-  const [ready, setReady] = useState(false);
-  const [session, setSession] = useState(false);
-
+function AppContent() {
   const [fontsLoaded] = useFonts({
     'MontserratAlternates-Regular': require('../assets/fonts/MontserratAlternates-Regular.ttf'),
     'Inter_18pt-Medium': require('../assets/fonts/Inter_18pt-Medium.ttf'),
@@ -69,58 +56,80 @@ export default function App() {
     'SF-Pro-Text-Medium': require('../assets/fonts/SF-Pro-Text-Medium.otf'),
   });
 
+  const [ready, setReady] = useState(false);
+  
+  // 🚩 Replace local session with context's isLoggedIn
+  const { isLoggedIn, setIsLoggedIn } = useAuth();
+
   useEffect(() => {
-    const unsubscribeFromGunStatus = onStatusChange(isConnected => {
-      console.log(`P2P Network Status: ${isConnected ? 'Connected' : 'Connecting...'}`);
+    const unsubscribe = onStatusChange(isConnected => {
+      console.log(
+        `P2P Network Status: ${isConnected ? 'Connected' : 'Connecting...'}`
+      );
     });
 
-    const load = async () => {
+    const init = async () => {
       await initializeDatabase();
-
       const walletAddress = await AsyncStorage.getItem('walletAddress');
       if (walletAddress) {
-        setSession(true);
-        initializeGun(); // 🟢 Start Gun.js
-        await handleUserData();
-        await handleAndPublishKeys(walletAddress);
-      } else {
-        setSession(false);
-      }
+        // Sync context
+        setIsLoggedIn(true);
 
+        initializeGun();
+        await handleUserData();
+      } else {
+        setIsLoggedIn(false);
+      }
       setReady(true);
     };
 
-    if (fontsLoaded) {
-      load();
-    }
+    if (fontsLoaded) init();
 
     return () => {
-      console.log('Cleaning up app-level resources...');
       destroyGun();
-      unsubscribeFromGunStatus();
+      unsubscribe();
     };
-  }, [fontsLoaded]);
+  }, [fontsLoaded, setIsLoggedIn]);
 
-  if (!ready) return null;
+  if (!ready) {
+    return <LoadingScreen />;
+  }
 
   return (
-    <ThemeProvider>
-      <ChatProvider>
-        {/* 🧠 Always listen for Gun messages */}
-        <GlobalMessageListener />
-
-        <NavigationContainer>
-          <Stack.Navigator initialRouteName="LoadingScreen" screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="LoadingScreen" component={LoadingScreen} initialParams={{ hasSession: session }} />
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!isLoggedIn ? (
+          // Auth flow
+          <>
             <Stack.Screen name="Auth" component={AuthScreen} />
             <Stack.Screen name="TOS" component={TermsOfServiceScreen} />
-            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <Stack.Screen
+              name="PrivacyPolicy"
+              component={PrivacyPolicyScreen}
+            />
+          </>
+        ) : (
+          // Main flow
+          <>
             <Stack.Screen name="Main" component={BottomTabs} />
             <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
             <Stack.Screen name="UserProfile" component={UserProfile} />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </ChatProvider>
-    </ThemeProvider>
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    // 🎯 Wrap with AuthProvider
+    <AuthProvider>
+      <ThemeProvider>
+        <ChatProvider>
+          <AppContent />
+        </ChatProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

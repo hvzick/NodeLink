@@ -9,6 +9,7 @@ import {
   Pressable,
   Platform,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import WalletScreen from "./WalletScreen";
 import ChatScreen from "./ChatScreen";
 import SettingsStackScreen from "./SettingStackScreen";
@@ -16,6 +17,7 @@ import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedb
 import { triggerHoldHapticFeedback } from "../../utils/GlobalUtils/HoldHapticFeedback";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { handleUserData } from "../../backend/Supabase/HandleUserData";
+import { handleAndPublishKeys } from "../../backend/Encryption/HandleKeys";
 
 const Tab = createBottomTabNavigator();
 
@@ -41,7 +43,6 @@ const AnimatedTabIcon: React.FC<AnimatedTabIconProps> = ({
   </View>
 );
 
-// Custom tab button with animation
 const AnimatedTabBarButton = (props: any) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const { onPress, children, style } = props;
@@ -83,7 +84,6 @@ const AnimatedTabBarButton = (props: any) => {
   );
 };
 
-// Style generators for iOS and Android
 const getIOSBarStyle = (isDarkMode: boolean) => ({
   height: 85,
   backgroundColor: isDarkMode ? "#1C1C1D" : "#EAEAEA",
@@ -108,8 +108,24 @@ export default function BottomTabs() {
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
 
+  // 1️⃣ Fetch & sync user data from Supabase
   useEffect(() => {
-    handleUserData();
+    handleUserData().catch(console.error);
+  }, []);
+
+  // 2️⃣ Generate & publish keys as soon as we know the walletAddress
+  useEffect(() => {
+    (async () => {
+      try {
+        const walletAddress = await AsyncStorage.getItem("walletAddress");
+        if (walletAddress) {
+          console.log("Handling Keys");
+          await handleAndPublishKeys(walletAddress);
+        }
+      } catch (err) {
+        console.error("❌ Key generation error:", err);
+      }
+    })();
   }, []);
 
   return (
@@ -118,18 +134,19 @@ export default function BottomTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarButton: (props) => <AnimatedTabBarButton {...props} />,
-        tabBarStyle: Platform.OS === "ios"
-          ? getIOSBarStyle(isDarkMode)
-          : getAndroidBarStyle(isDarkMode),
+        tabBarStyle:
+          Platform.OS === "ios"
+            ? getIOSBarStyle(isDarkMode)
+            : getAndroidBarStyle(isDarkMode),
         tabBarActiveTintColor: isDarkMode ? "white" : "black",
         tabBarInactiveTintColor: "gray",
         tabBarIcon: ({ focused, size }) => {
-          let iconSource;
+          let iconSource: ImageSourcePropType;
           if (route.name === "Wallet") {
             iconSource = require("../../assets/images/wallet-icon-black-active.png");
           } else if (route.name === "Chats") {
             iconSource = require("../../assets/images/chat-icon-black-active.png");
-          } else if (route.name === "Settings") {
+          } else {
             iconSource = require("../../assets/images/settings-icon-black-active.png");
           }
           return (
