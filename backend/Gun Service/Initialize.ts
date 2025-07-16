@@ -1,6 +1,6 @@
 import Gun from 'gun';
 import 'react-native-get-random-values';
-import { peers } from './Peers';
+import { peers } from './GunPeers';
 // The state import is correct, no changes needed there
 import { gun, setGunInstance, setConnectedStatus, isConnected, statusListeners } from './GunState';
 
