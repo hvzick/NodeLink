@@ -18,7 +18,7 @@ export const insertMessage = async (message: Message): Promise<any> => {
 
     // 💾 Insert the new message
     const result = await db.runAsync(
-      `INSERT INTO messages (
+      `INSERT OR IGNORE INTO messages (
         id, conversationId, sender, receiver, text, timestamp, imageUrl,
         fileName, fileSize, videoUrl, audioUrl, replyTo,
         status, encrypted, decrypted, encryptedContent, iv, createdAt
@@ -45,7 +45,7 @@ export const insertMessage = async (message: Message): Promise<any> => {
       ]
     );
 
-    console.log(`✅ Message ${message.id} inserted successfully.`);
+    // console.log(`✅ Message ${message.id} inserted successfully.`);
     return result;
   } catch (error) {
     console.error('❌ Error inserting message:', error);
