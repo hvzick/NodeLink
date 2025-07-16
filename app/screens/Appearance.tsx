@@ -59,6 +59,8 @@ export default function AppearanceScreen() {
         </View>
       </View>
 
+      {/* Theme Label */}
+      <Text style={[styles.optionText, { marginLeft: 32, marginTop: 20, marginBottom: 5, fontWeight: 'bold', fontSize: 16 }]}>Theme</Text>
       <View style={styles.listContainer}>
         <TouchableOpacity
           style={styles.listItem}
@@ -89,9 +91,9 @@ export default function AppearanceScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Time Format Option */}
-      <View style={[styles.listContainer, { marginTop: 20 }]}>
-        <Text style={[styles.optionText, { marginLeft: 16, marginTop: 10, marginBottom: 5 }]}>Time Format</Text>
+      {/* Time Format Label */}
+      <Text style={[styles.optionText, { marginLeft: 30, marginTop: 24, marginBottom: 3, fontWeight: 'bold', fontSize: 16 }]}>Time Format</Text>
+      <View style={[styles.listContainer]}>
         <TouchableOpacity
           style={styles.listItem}
           onPress={() => handleTimeFormatChange('24')}

@@ -20,7 +20,6 @@ export type MessageBubbleProps = {
   onVideoPress: (uri: string) => void;
   onQuotedPress: (quoted: Message) => void;
   onLongPress: (message: Message, layout: { x: number; y: number; width: number; height: number }) => void;
-  // onReply prop is removed
   isHidden?: boolean;
   highlighted?: boolean;
   isMenuVisibleForThisMessage?: boolean;
@@ -32,7 +31,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   onVideoPress,
   onQuotedPress,
   onLongPress,
-  // onReply is removed
   isHidden = false,
   highlighted = false,
   isMenuVisibleForThisMessage = false,
@@ -42,29 +40,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [formattedTime, setFormattedTime] = useState('');
 
+  const bubbleRef = useRef<View>(null);
+  useEffect(() => {
+    AsyncStorage.getItem('walletAddress').then(setWalletAddress);
+  }, []);
+
   useEffect(() => {
     let timeValue = message.createdAt || (message.timestamp ? parseInt(message.timestamp, 10) : Date.now());
     formatTimeForUser(timeValue).then(setFormattedTime);
   }, [message.createdAt, message.timestamp]);
 
-  const bubbleRef = useRef<View>(null);
+  const isMe = walletAddress && message.sender?.toLowerCase() === walletAddress.toLowerCase();
+
   useEffect(() => {
-    AsyncStorage.getItem('walletAddress').then(setWalletAddress);
+    AsyncStorage.getItem('walletAddress').then(value => {
+      setWalletAddress(value);
+    });
   }, []);
-  // ✅ Move isMe inside the component body and after walletAddress is loaded
-const isMe = walletAddress && message.sender?.toLowerCase() === walletAddress.toLowerCase();
-
-
-useEffect(() => {
-  AsyncStorage.getItem('walletAddress').then(value => {
-    // console.log("💬 Wallet address from storage:", value);
-    // console.log("💬 Message sender:", message.sender);
-    setWalletAddress(value);
-  });
-}, []);
-
-
-
 
   const scale = useRef(new Animated.Value(1)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
@@ -98,7 +90,6 @@ useEffect(() => {
 
   return (
     <View onLayout={(event) => setMeasuredHeight(event.nativeEvent.layout.height)}>
-      {/* The transform no longer includes translateX and panHandlers are removed */}
       <Animated.View
         style={{ transform: [{ scale }] }}
       >
@@ -131,7 +122,12 @@ useEffect(() => {
               delayLongPress={300}
               style={styles.contentWrapper}
             >
-              <Image source={{ uri: message.imageUrl }} style={styles.chatImage} />
+              <View style={styles.mediaContainer}>
+                <Image source={{ uri: message.imageUrl }} style={styles.chatImage} />
+                <View style={styles.timeOverlay}>
+                  <Text style={styles.timeTextOverlay}>{formattedTime}</Text>
+                </View>
+              </View>
             </Pressable>
           )}
 
@@ -142,12 +138,17 @@ useEffect(() => {
               delayLongPress={300}
               style={styles.contentWrapper}
             >
-              <Video
-                source={{ uri: message.videoUrl }}
-                style={styles.chatVideo}
-                useNativeControls={false}
-                resizeMode={ResizeMode.COVER}
-              />
+              <View style={styles.mediaContainer}>
+                <Video
+                  source={{ uri: message.videoUrl }}
+                  style={styles.chatVideo}
+                  useNativeControls={false}
+                  resizeMode={ResizeMode.COVER}
+                />
+                <View style={styles.timeOverlay}>
+                  <Text style={styles.timeTextOverlay}>{formattedTime}</Text>
+                </View>
+              </View>
             </Pressable>
           )}
 
@@ -157,14 +158,16 @@ useEffect(() => {
               delayLongPress={300}
               style={styles.contentWrapper}
             >
-              <Text style={styles.messageText}>{message.text}</Text>
+              <View style={styles.textContainer}>
+                <Text style={styles.messageText}>{message.text}</Text>
+                <View style={styles.timeContainer}>
+                  <Text style={styles.timeTextInside}>{formattedTime}</Text>
+                </View>
+              </View>
             </Pressable>
           )}
         </View>
       </Animated.View>
-      <Text style={[styles.timeTextOutside, isMe ? styles.timeTextRight : styles.timeTextLeft]}>
-        {formattedTime}
-      </Text>
     </View>
   );
 });
@@ -201,32 +204,64 @@ const getStyles = (theme: 'light' | 'dark') =>
     },
     replyLabel: { fontSize: 13, fontWeight: '600', color: '#007AFF', marginBottom: 2 },
     replyText: { fontSize: 14, color: theme === 'dark' ? '#B0B0B0' : '#555' },
+    
+    // New styles for media containers
+    mediaContainer: {
+      position: 'relative',
+    },
     chatImage: {
       width: 220,
       height: 180,
       resizeMode: 'cover',
       borderRadius: 12,
-      marginBottom: 5,
     },
     chatVideo: {
       width: 220,
       height: 150,
       borderRadius: 12,
       backgroundColor: theme === 'dark' ? '#000' : '#F0F0F0',
-      marginBottom: 5,
+    },
+    
+    // New styles for text with time
+    textContainer: {
+      position: 'relative',
+      paddingBottom: 15, // Make space for time
     },
     messageText: {
       fontSize: 16,
       lineHeight: 22,
       color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      paddingRight: 60, // Make space for time on the right
     },
-    timeTextOutside: {
+    
+    // Time overlay for media (images/videos)
+    timeOverlay: {
+      position: 'absolute',
+      bottom: 8,
+      right: 8,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    timeTextOverlay: {
+      fontSize: 11,
+      color: '#FFFFFF',
+      fontWeight: '500',
+    },
+    
+    // Time container for text messages
+    timeContainer: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+    },
+    timeTextInside: {
       fontSize: 11,
       color: theme === 'dark' ? '#8E8E93' : '#6D6D72',
-      marginTop: 2,
+      opacity: 0.7,
     },
-    timeTextRight: { alignSelf: 'flex-end', marginRight: 5 },
-    timeTextLeft: { alignSelf: 'flex-start', marginLeft: 5 },
+    
     contentWrapper: {},
   });
 

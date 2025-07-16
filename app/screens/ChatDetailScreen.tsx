@@ -31,7 +31,7 @@ import { ensureDatabaseInitialized } from '../../backend/Local database/Initiali
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../backend/Supabase/Supabase';
 import { deriveSharedKeyWithUser } from '../../backend/Encryption/SharedKey';
-import { playSendTone, playReceiveTone, initConversationTones } from '../../utils/NotificationsSettings/ConversationTones';
+import { playSendTone, initConversationTones } from '../../utils/NotificationsSettings/ConversationTones';
 
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, 'ChatDetail'>;
