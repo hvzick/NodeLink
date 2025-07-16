@@ -13,6 +13,7 @@ import { Message } from '../../backend/Local database/MessageStructure';
 import { useThemeToggle } from '../GlobalUtils/ThemeProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { formatTimeForUser } from '../GlobalUtils/FormatDate';
+import { addListener } from 'process';
 
 export type MessageBubbleProps = {
   message: Message;
@@ -184,12 +185,12 @@ const getStyles = (theme: 'light' | 'dark') =>
     bubbleLeft: {
       alignSelf: 'flex-start',
       backgroundColor: theme === 'dark' ? '#262626' : '#E5E5EA',
-      borderTopLeftRadius: 5,
+      borderTopLeftRadius: 10,
     },
     bubbleRight: {
       alignSelf: 'flex-end',
       backgroundColor: theme === 'dark' ? '#005C4B' : '#DCF8C6',
-      borderTopRightRadius: 5,
+      borderTopRightRadius: 10,
     },
     highlighted: {
       backgroundColor: theme === 'dark' ? '#5A4A02' : '#FFF3B2',
@@ -225,23 +226,22 @@ const getStyles = (theme: 'light' | 'dark') =>
     // New styles for text with time
     textContainer: {
       position: 'relative',
-      paddingBottom: 15, // Make space for time
+      paddingBottom: 8, // Make space for time
     },
     messageText: {
-      fontSize: 16,
+      fontSize: 17,
       lineHeight: 22,
       color: theme === 'dark' ? '#FFFFFF' : '#000000',
-      paddingRight: 60, // Make space for time on the right
+      paddingRight: 40, // Make space for time on the right
+      paddingLeft: 5,
     },
     
     // Time overlay for media (images/videos)
     timeOverlay: {
       position: 'absolute',
-      bottom: 8,
       right: 8,
       backgroundColor: 'rgba(0, 0, 0, 0.6)',
       paddingHorizontal: 6,
-      paddingVertical: 2,
       borderRadius: 10,
     },
     timeTextOverlay: {

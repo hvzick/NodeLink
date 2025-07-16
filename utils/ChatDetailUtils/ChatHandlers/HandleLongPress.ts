@@ -1,7 +1,7 @@
 // utils/ChatDetailUtils/handleLongPress.ts
 
 import { Dimensions } from 'react-native';
-import { Message } from '../../../backend/local database/MessageStructure';
+import { Message } from '../../../backend/Local database/MessageStructure';
 import { ChatDetailHandlerDependencies } from './HandleDependencies';
 
 export const handleLongPress = (

@@ -3,10 +3,10 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Clipboard } from 'react-native'; // Import Alert and Clipboard
 import { Ionicons } from '@expo/vector-icons';
-import { Message } from '../../../backend/local database/MessageStructure'; // Ensure this path is correct and Message has imageUrl/videoUrl
+import { Message } from '../../../backend/Local database/MessageStructure'; // Ensure this path is correct and Message has imageUrl/videoUrl
 
 // Defines the options that can be selected from the menu
-export type MenuOption = 'Reply' | 'Copy' | 'Delete' | 'Forward';
+export type MenuOption = 'Info' | 'Reply' | 'Copy' | 'Delete' | 'Forward' | 'Delete Chat';
 
 interface MessageLongPressMenuProps {
   isVisible: boolean;
@@ -15,6 +15,7 @@ interface MessageLongPressMenuProps {
   menuPosition: { top: number; left: number; right?: number };
   isSender: boolean;
   message: Message;
+  onDeleteChat: () => void; // New prop
 }
 
 const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
@@ -24,9 +25,11 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   menuPosition,
   isSender,
   message,
+  onDeleteChat,
 }) => {
   // Dynamically build the list of options based on message content and sender
   const menuOptions: { name: MenuOption; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { name: 'Info', icon: 'information-circle-outline' },
     { name: 'Reply', icon: 'arrow-undo' },
   ];
 
@@ -49,10 +52,9 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   // 'Forward' is always an option
   menuOptions.push({ name: 'Forward', icon: 'arrow-redo' });
 
-  // Only the sender can delete their own message
-  if (isSender) {
-    menuOptions.push({ name: 'Delete', icon: 'trash-outline' });
-  }
+
+  // Always show 'Delete Chat' at the bottom
+  menuOptions.push({ name: 'Delete Chat', icon: 'trash-bin-outline' });
 
   // Handle the 'Copy' action directly within this component
   const handleCopy = () => {
@@ -84,6 +86,9 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
               onPress={() => {
                 if (option.name === 'Copy') {
                   handleCopy(); // Handle copy action internally
+                } else if (option.name === 'Delete Chat') {
+                  onDeleteChat();
+                  onClose();
                 } else {
                   onOptionSelect(option.name); // Delegate other actions to parent (ChatDetailScreen)
                 }

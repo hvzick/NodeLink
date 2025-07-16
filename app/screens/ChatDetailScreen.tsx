@@ -1,7 +1,7 @@
 // screens/ChatDetailScreen.tsx
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import {
-  FlatList, Image, ImageBackground, KeyboardAvoidingView, Keyboard, Modal, PanResponder,
+  FlatList, Image, ImageBackground, KeyboardAvoidingView, Keyboard, Modal, PanResponder, Animated,
   Platform, StyleSheet, Text, TextInput, TouchableOpacity,
   View, ActivityIndicator
 } from 'react-native';
@@ -24,7 +24,7 @@ import { handleOptionSelect } from '../../utils/ChatDetailUtils/ChatHandlers/Han
 import { closeLongPressMenu } from '../../utils/ChatDetailUtils/ChatHandlers/CloseLongPressMenu';
 import { handleQuotedPress } from '../../utils/ChatDetailUtils/ChatHandlers/HandleQuotedPress';
 import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/ChatHandlers/HandleMessageLongPressMenu';
-import { formatDateHeader } from '../../utils/GlobalUtils/FormatDate';
+import { formatDateHeader, formatTimeForUser } from '../../utils/GlobalUtils/FormatDate';
 import { RootStackParamList } from '../App';
 
 import { ensureDatabaseInitialized } from '../../backend/Local database/InitialiseDatabase';
@@ -32,6 +32,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../backend/Supabase/Supabase';
 import { deriveSharedKeyWithUser } from '../../backend/Encryption/SharedKey';
 import { playSendTone, initConversationTones } from '../../utils/NotificationsSettings/ConversationTones';
+import { deleteMessage } from '../../backend/Local database/DeleteMessage';
+import MessageInfoWindow from '../../utils/ChatDetailUtils/MessageInfoWindow';
 
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, 'ChatDetail'>;
@@ -58,6 +60,18 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const receiverAddress = conversationId.replace('convo_', '');
   const [userAddress, setUserAddress] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<Message | null>(null);
+  const infoWindowPosition = useRef(new Animated.ValueXY({ x: 20, y: 80 })).current;
+  const infoWindowPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: Animated.event([
+        null,
+        { dx: infoWindowPosition.x, dy: infoWindowPosition.y },
+      ], { useNativeDriver: false }),
+      onPanResponderRelease: () => {},
+    })
+  ).current;
 
   const flatListRef = useRef<FlatList>(null);
   const { currentTheme } = useThemeToggle();
@@ -187,6 +201,12 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     checkAndSyncPublicKey();
   }, [receiverAddress]);
 
+  useEffect(() => {
+    if (infoMessage) {
+      infoWindowPosition.setValue({ x: 20, y: 80 });
+    }
+  }, [infoMessage]);
+
   // --- NEW: Function to handle tapping on the user's profile in the header ---
   const handleProfilePress = () => {
     // The conversationId is expected to be in the format "convo_WALLET_ADDRESS"
@@ -228,6 +248,12 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
     if (option === 'Reply') {
       handleReply(selectedMessageForMenu);
+      closeLongPressMenuWrapper();
+      return;
+    }
+
+    if (option === 'Info') {
+      setInfoMessage(selectedMessageForMenu);
       closeLongPressMenuWrapper();
       return;
     }
@@ -322,8 +348,17 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           menuPosition={menuPosition}
           message={selectedMessageForMenu}
           isSender={selectedMessageForMenu.sender === 'Me'}
+          onDeleteChat={async () => {
+            if (!selectedMessageForMenu) return;
+            await deleteMessage(selectedMessageForMenu.id);
+            setMessages((prev) => prev.filter((msg) => msg.id !== selectedMessageForMenu.id));
+            closeLongPressMenuWrapper();
+          }}
         />
       )}
+
+      {/* Info Window */}
+      <MessageInfoWindow message={infoMessage} onClose={() => setInfoMessage(null)} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -574,6 +609,44 @@ const getStyles = (theme: 'light' | 'dark') =>
       fontSize: 12,
       fontWeight: 'bold',
       color: theme === 'dark' ? '#fff' : '#000',
+    },
+    infoWindow: {
+      position: 'absolute',
+      left: 20,
+      right: 20,
+      top: 80,
+      zIndex: 10,
+      backgroundColor: theme === 'dark' ? '#222' : '#fff',
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 8,
+    },
+    infoHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    infoTitle: {
+      fontWeight: 'bold',
+      fontSize: 16,
+      color: theme === 'dark' ? '#fff' : '#222',
+    },
+    infoContent: {
+      marginTop: 4,
+    },
+    infoLabel: {
+      fontSize: 13,
+      color: theme === 'dark' ? '#aaa' : '#444',
+      marginBottom: 2,
+    },
+    infoValue: {
+      color: theme === 'dark' ? '#fff' : '#000',
+      fontWeight: '500',
     },
   });
 
