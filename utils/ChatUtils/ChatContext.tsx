@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatItemType } from './ChatItemsTypes';
 import { EventBus } from './EventBus'; // Make sure you are using named import
+import { fetchMessagesByConversation } from '../../backend/Local database/MessageIndex';
 
 const ASYNC_STORAGE_KEY = 'chat_list_storage';
 
@@ -36,11 +37,26 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     const loadData = async () => {
       try {
         const storedChats = await AsyncStorage.getItem(ASYNC_STORAGE_KEY);
+        let chatListToLoad = [];
         if (storedChats) {
-          setChatList(JSON.parse(storedChats));
-        } else {
-          setChatList([]); // Start with an empty list
+          chatListToLoad = JSON.parse(storedChats);
         }
+        // For each chat, fetch the latest message from the database
+        const updatedChatList = await Promise.all(
+          chatListToLoad.map(async (chat: ChatItemType) => {
+            const messages = await fetchMessagesByConversation(chat.id);
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg) {
+              return {
+                ...chat,
+                message: lastMsg.text || lastMsg.imageUrl || lastMsg.videoUrl || 'Attachment',
+                time: lastMsg.createdAt ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : chat.time,
+              };
+            }
+            return chat;
+          })
+        );
+        setChatList(updatedChatList);
       } catch (error) {
         console.error("Failed to load chats from storage", error);
         setChatList([]);

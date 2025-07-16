@@ -1,7 +1,7 @@
 // utils/ChatDetailUtils/MessageLongPressMenu.tsx
 
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Clipboard } from 'react-native'; // Import Alert and Clipboard
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Alert, Clipboard } from 'react-native'; // Import Alert and Clipboard
 import { Ionicons } from '@expo/vector-icons';
 import { Message } from '../../../backend/Local database/MessageStructure'; // Ensure this path is correct and Message has imageUrl/videoUrl
 

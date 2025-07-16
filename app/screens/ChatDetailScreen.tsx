@@ -1,5 +1,5 @@
 // screens/ChatDetailScreen.tsx
-import React, { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   FlatList, Image, ImageBackground, KeyboardAvoidingView, Keyboard, Modal, PanResponder, Animated,
   Platform, StyleSheet, Text, TextInput, TouchableOpacity,
@@ -24,7 +24,7 @@ import { handleOptionSelect } from '../../utils/ChatDetailUtils/ChatHandlers/Han
 import { closeLongPressMenu } from '../../utils/ChatDetailUtils/ChatHandlers/CloseLongPressMenu';
 import { handleQuotedPress } from '../../utils/ChatDetailUtils/ChatHandlers/HandleQuotedPress';
 import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/ChatHandlers/HandleMessageLongPressMenu';
-import { formatDateHeader, formatTimeForUser } from '../../utils/GlobalUtils/FormatDate';
+import { formatDateHeader } from '../../utils/GlobalUtils/FormatDate';
 import { RootStackParamList } from '../App';
 
 import { ensureDatabaseInitialized } from '../../backend/Local database/InitialiseDatabase';
@@ -62,16 +62,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [userAddress, setUserAddress] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<Message | null>(null);
   const infoWindowPosition = useRef(new Animated.ValueXY({ x: 20, y: 80 })).current;
-  const infoWindowPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: Animated.event([
-        null,
-        { dx: infoWindowPosition.x, dy: infoWindowPosition.y },
-      ], { useNativeDriver: false }),
-      onPanResponderRelease: () => {},
-    })
-  ).current;
 
   const flatListRef = useRef<FlatList>(null);
   const { currentTheme } = useThemeToggle();
@@ -353,6 +343,21 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             await deleteMessage(selectedMessageForMenu.id);
             setMessages((prev) => prev.filter((msg) => msg.id !== selectedMessageForMenu.id));
             closeLongPressMenuWrapper();
+
+            // Fetch latest message and update chat preview
+            const updatedMessages = await fetchMessagesByConversation(conversationId);
+            const lastMsg = updatedMessages[updatedMessages.length - 1];
+            if (lastMsg) {
+              addOrUpdateChat({
+                id: conversationId,
+                name,
+                message: lastMsg.text || lastMsg.imageUrl || lastMsg.videoUrl || 'Attachment',
+                time: lastMsg.createdAt
+                  ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  : '',
+                avatar,
+              });
+            }
           }}
         />
       )}
