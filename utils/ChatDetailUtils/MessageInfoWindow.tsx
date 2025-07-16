@@ -12,6 +12,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Message } from "../../backend/Local database/MessageStructure";
 import { formatTimeForUser } from "../GlobalUtils/FormatDate";
+// Try to use expo-blur for a blurred background
+let BlurView: any = null;
+try {
+  BlurView = require("expo-blur").BlurView;
+} catch {}
 
 interface MessageInfoWindowProps {
   message: Message | null;
@@ -27,43 +32,63 @@ const MessageInfoWindow: React.FC<MessageInfoWindowProps> = ({
   const { width, height } = Dimensions.get("window");
   // Center the window by default
   const defaultPosition = React.useMemo(
-    () => initialPosition || { x: width / 2 - 160, y: height / 2 - 120 },
+    () =>
+      initialPosition || {
+        x: Math.round(width / 2 - 160),
+        y: Math.round(height / 2 - 120),
+      },
     [initialPosition, width, height]
   );
 
-  const infoWindowPosition = useRef(
-    new Animated.ValueXY(defaultPosition)
-  ).current;
+  // Only set the position on mount or when message changes
+  const infoWindowPosition = useRef<Animated.ValueXY | null>(null);
+  if (!infoWindowPosition.current) {
+    infoWindowPosition.current = new Animated.ValueXY(defaultPosition);
+  }
+  useEffect(() => {
+    if (message) {
+      infoWindowPosition.current?.setValue(defaultPosition);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message, defaultPosition]);
 
   const infoWindowPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderMove: Animated.event(
-        [null, { dx: infoWindowPosition.x, dy: infoWindowPosition.y }],
+        [
+          null,
+          {
+            dx: infoWindowPosition.current!.x,
+            dy: infoWindowPosition.current!.y,
+          },
+        ],
         { useNativeDriver: false }
       ),
       onPanResponderRelease: () => {},
     })
   ).current;
 
-  useEffect(() => {
-    if (message) {
-      infoWindowPosition.setValue(defaultPosition);
-    }
-  }, [message, defaultPosition, infoWindowPosition]);
-
   if (!message) return null;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* Overlay to close on outside press */}
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay} />
-      </TouchableWithoutFeedback>
+      {/* Blurred or dark overlay to close on outside press */}
+      {BlurView ? (
+        <BlurView intensity={40} style={styles.overlay} tint="light">
+          <TouchableWithoutFeedback onPress={onClose}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+        </BlurView>
+      ) : (
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.overlay} />
+        </TouchableWithoutFeedback>
+      )}
       <Animated.View
         style={[
           styles.infoWindow,
-          { transform: infoWindowPosition.getTranslateTransform() },
+          { transform: infoWindowPosition.current!.getTranslateTransform() },
         ]}
         {...infoWindowPanResponder.panHandlers}
       >
@@ -119,7 +144,7 @@ const MessageInfoWindow: React.FC<MessageInfoWindowProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.1)",
+    backgroundColor: "rgba(0,0,0,0.25)",
     zIndex: 9,
   },
   infoWindow: {
