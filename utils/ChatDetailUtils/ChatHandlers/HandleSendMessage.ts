@@ -1,6 +1,5 @@
-// utils/ChatDetailUtils/handleSendMessage.ts
-
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Message } from '../../../backend/Local database/MessageStructure';
 import { insertMessage } from '../../../backend/Local database/MessageIndex'; // 💾 For local DB
 import { triggerTapHapticFeedback } from '../../GlobalUtils/TapHapticFeedback';
@@ -16,11 +15,17 @@ export const handleSendMessage = async (
     setMessages, setNewMessage, setAttachment, setReplyMessage,
     replyMessage, newMessage, attachment,
     flatListRef,
-    userAddress,
     receiverAddress,
   } = dependencies;
 
   if (!newMessage.trim() && !attachment) return;
+
+  // ✅ Fetch the real sender address from AsyncStorage
+  const userAddress = await AsyncStorage.getItem('walletAddress');
+  if (!userAddress) {
+    Alert.alert("Error", "Wallet address not found");
+    return;
+  }
 
   const now = Date.now();
   const timestamp = new Date(now).toISOString();
@@ -29,7 +34,6 @@ export const handleSendMessage = async (
     id: now.toString(),
     conversationId,
     sender: userAddress,
-    localSender: 'Me',
     receiver: receiverAddress,
     timestamp,
     createdAt: now,
@@ -63,8 +67,10 @@ export const handleSendMessage = async (
       text: newMessage.trim(),
       receiver: receiverAddress,
       conversationId,
-      sender: 'Me',
+      sender: userAddress,
     });
+
+    console.log("📤 Temp message sender:", tempMsg.sender);
 
     // 4️⃣ Save to Local DB (SQLite, MMKV, etc.)
     await insertMessage(tempMsg); // 💾 Store locally

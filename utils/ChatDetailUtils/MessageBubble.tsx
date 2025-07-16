@@ -45,9 +45,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
     AsyncStorage.getItem('walletAddress').then(setWalletAddress);
   }, []);
   // ✅ Move isMe inside the component body and after walletAddress is loaded
-const isMe =
-  message.localSender === 'Me' ||
-  (walletAddress && message.sender?.toLowerCase() === walletAddress.toLowerCase());
+const isMe = walletAddress && message.sender?.toLowerCase() === walletAddress.toLowerCase();
+
+
+useEffect(() => {
+  AsyncStorage.getItem('walletAddress').then(value => {
+    console.log("💬 Wallet address from storage:", value);
+    console.log("💬 Message sender:", message.sender);
+    setWalletAddress(value);
+  });
+}, []);
+
+
+
 
   const scale = useRef(new Animated.Value(1)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);

@@ -2,7 +2,6 @@ export interface Message {
   id: string;
   conversationId: string;
   sender: string;
-  localSender: string,
   receiver: string;
   text?: string;
   timestamp: string;

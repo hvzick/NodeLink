@@ -128,7 +128,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useEffect(() => {
     const fetchUserAddress = async () => {
-      const address = await AsyncStorage.getItem('userAddress');
+      const address = await AsyncStorage.getItem('walletAddress');
       setUserAddress(address);
     };
     fetchUserAddress();

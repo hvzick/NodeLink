@@ -29,7 +29,7 @@ export async function sendMessage({
   };
 
   try {
-    const chatRef = gun.get(`chat/${conversationId}`);
+    const chatRef = gun.get(`nodelink/${conversationId}`);
     chatRef.set(message);
   } catch (error) {
     console.error("Failed to send GUN message:", error);
