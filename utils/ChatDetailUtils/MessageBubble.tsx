@@ -50,8 +50,8 @@ const isMe = walletAddress && message.sender?.toLowerCase() === walletAddress.to
 
 useEffect(() => {
   AsyncStorage.getItem('walletAddress').then(value => {
-    console.log("💬 Wallet address from storage:", value);
-    console.log("💬 Message sender:", message.sender);
+    // console.log("💬 Wallet address from storage:", value);
+    // console.log("💬 Message sender:", message.sender);
     setWalletAddress(value);
   });
 }, []);

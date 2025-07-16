@@ -1,17 +1,17 @@
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Message } from '../../../backend/Local database/MessageStructure';
-import { insertMessage } from '../../../backend/Local database/MessageIndex'; // 💾 For local DB
+import { insertMessage } from '../../../backend/Local database/MessageIndex';
 import { triggerTapHapticFeedback } from '../../GlobalUtils/TapHapticFeedback';
 import { ChatItemType } from '../../ChatUtils/ChatItemsTypes';
 import { ChatDetailHandlerDependencies } from './HandleDependencies';
-import { sendMessage } from '../../../backend/Gun Service/Messaging/SendMessage'; // 🌐 Gun
+import { sendMessage } from '../../../backend/Gun Service/Messaging/SendMessage';
 
 export const handleSendMessage = async (
   dependencies: ChatDetailHandlerDependencies,
 ) => {
   const {
-    conversationId, name, avatar, addOrUpdateChat,
+    name, avatar, addOrUpdateChat,
     setMessages, setNewMessage, setAttachment, setReplyMessage,
     replyMessage, newMessage, attachment,
     flatListRef,
@@ -20,7 +20,6 @@ export const handleSendMessage = async (
 
   if (!newMessage.trim() && !attachment) return;
 
-  // ✅ Fetch the real sender address from AsyncStorage
   const userAddress = await AsyncStorage.getItem('walletAddress');
   if (!userAddress) {
     Alert.alert("Error", "Wallet address not found");
@@ -30,9 +29,12 @@ export const handleSendMessage = async (
   const now = Date.now();
   const timestamp = new Date(now).toISOString();
 
+  // 🔁 Use consistent format
+  const finalConversationId = `convo_${receiverAddress}`;
+
   const tempMsg: Message = {
     id: now.toString(),
-    conversationId,
+    conversationId: finalConversationId,
     sender: userAddress,
     receiver: receiverAddress,
     timestamp,
@@ -50,43 +52,34 @@ export const handleSendMessage = async (
     status: 'sending',
   };
 
-  // 1️⃣ Optimistic UI update
   setMessages(prev =>
     [...prev, tempMsg].sort((a, b) => (a.createdAt || parseInt(a.id, 10)) - (b.createdAt || parseInt(b.id, 10)))
   );
 
-  // 2️⃣ Reset UI inputs
   setNewMessage('');
   setAttachment(null);
   setReplyMessage(null);
   triggerTapHapticFeedback();
 
   try {
-    // 3️⃣ Save to GUN (remote DB)
     await sendMessage({
       text: newMessage.trim(),
       receiver: receiverAddress,
-      conversationId,
       sender: userAddress,
     });
 
-    console.log("📤 Temp message sender:", tempMsg.sender);
-
-    // 4️⃣ Save to Local DB (SQLite, MMKV, etc.)
-    await insertMessage(tempMsg); // 💾 Store locally
+    await insertMessage(tempMsg);
     console.log("✅ Message saved to local DB");
-
   } catch (e) {
     console.error('Send error:', e);
     Alert.alert('Error', 'Could not send message.');
   }
 
-  // 5️⃣ Update chat preview
   const previewMessageContent =
     tempMsg.text || (tempMsg.imageUrl ? 'Image' : tempMsg.videoUrl ? 'Video' : 'Attachment');
 
   const updatedChatItem: ChatItemType = {
-    id: conversationId,
+    id: finalConversationId,
     name,
     message: previewMessageContent,
     time: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -94,7 +87,5 @@ export const handleSendMessage = async (
   };
 
   addOrUpdateChat(updatedChatItem);
-
-  // 6️⃣ Scroll to bottom
   flatListRef.current?.scrollToEnd({ animated: true });
 };

@@ -1,22 +1,31 @@
-// backend/Local database/InitialiseDatabase.ts
-
 import { Platform } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 
+/**
+ * Opens the database on supported platforms (iOS/Android).
+ */
 const openDatabase = async () => {
   if (Platform.OS === 'ios' || Platform.OS === 'android') {
-    return await SQLite.openDatabaseAsync('chat.db');
+    try {
+      return await SQLite.openDatabaseAsync('chat.db');
+    } catch (error) {
+      console.error('❌ Failed to open database:', error);
+      throw error;
+    }
   } else {
-    console.warn('SQLite is not supported on this platform.');
-    throw new Error('SQLite not supported');
+    const msg = 'SQLite is not supported on this platform.';
+    console.warn(msg);
+    throw new Error(msg);
   }
 };
 
+/**
+ * Initializes the messages table schema.
+ */
 export const initializeDatabase = async (): Promise<void> => {
   try {
     const db = await openDatabase();
 
-    // ✅ Create table with 18 columns including `createdAt`
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY NOT NULL,
@@ -47,8 +56,12 @@ export const initializeDatabase = async (): Promise<void> => {
   }
 };
 
+// Lazy init to prevent multiple calls
 let dbInitPromise: Promise<void> | null = null;
 
+/**
+ * Ensures the DB is initialized before access.
+ */
 export const ensureDatabaseInitialized = async () => {
   if (!dbInitPromise) {
     dbInitPromise = initializeDatabase();

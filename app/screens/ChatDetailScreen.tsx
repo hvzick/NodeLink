@@ -15,7 +15,7 @@ import { Message } from '../../backend/Local database/MessageStructure';
 import { fetchMessagesByConversation } from '../../backend/Local database/MessageIndex';
 import MessageBubble from '../../utils/ChatDetailUtils/MessageBubble';
 import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
-import { useChat } from '../../utils/ChatUtils/ChatContext';
+import { EventBus, useChat } from '../../utils/ChatUtils/ChatContext';
 
 import { ChatDetailHandlerDependencies } from '../../utils/ChatDetailUtils/ChatHandlers/HandleDependencies';
 import { handleSendMessage } from '../../utils/ChatDetailUtils/ChatHandlers/HandleSendMessage';
@@ -182,6 +182,34 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const clearAttachmentPreview = () => {
     setAttachment(null);
   };
+  
+  useEffect(() => {
+  const handleNewMessage = (newMsg: Message) => {
+    const msgSender = newMsg.sender.toLowerCase();
+    const myReceiver = receiverAddress.toLowerCase();
+    if (msgSender === myReceiver) {
+      setMessages(prev => {
+        const exists = prev.some(m => m.id === newMsg.id);
+        if (exists) return prev;
+        const updated = [...prev, newMsg].sort((a, b) =>
+          (a.createdAt || parseInt(a.id, 10)) - (b.createdAt || parseInt(b.id, 10))
+        );
+        return updated;
+      });
+
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    }
+  };
+
+  EventBus.on('new-message', handleNewMessage);
+
+  return () => {
+    EventBus.off('new-message', handleNewMessage);
+  };
+}, [receiverAddress]);
+
 
   const renderItem = ({ item }: { item: any }) => {
     if (item.type === 'date') {

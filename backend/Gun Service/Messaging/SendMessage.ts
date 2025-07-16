@@ -1,21 +1,16 @@
-// messaging/sendMessage.ts
+// backend\Gun Service\Messaging\SendMessage.ts
 
-import { v4 as uuidv4 } from 'uuid';
-import { Message } from '../../Local database/MessageStructure';
-import { insertMessage } from '../../Local database/InsertMessage';
-import { gun, setGunInstance } from '../GunState';
+import { gun } from '../GunState';
 
 interface SendMessageParams {
   text: string;
   receiver: string;
-  conversationId: string;
   sender: string;
 }
 
 export async function sendMessage({
   text,
   receiver,
-  conversationId,
   sender,
 }: SendMessageParams): Promise<void> {
   const timestamp = Date.now().toString();
@@ -28,11 +23,15 @@ export async function sendMessage({
     timestamp,
   };
 
+  console.log('📨 Message content:', message);
+  console.log(`📡 Target path: nodelink/${receiver}`);
+
   try {
-    const chatRef = gun.get(`nodelink/${conversationId}`);
-    chatRef.set(message);
+    const chatRef = gun.get(`nodelink/${receiver}`);
+    chatRef.set(message); // Set to their inbox only
+    console.log('✅ Message sent to GunDB.');
   } catch (error) {
-    console.error("Failed to send GUN message:", error);
+    console.error('❌ Failed to send message to GunDB:', error);
     throw error;
   }
 }

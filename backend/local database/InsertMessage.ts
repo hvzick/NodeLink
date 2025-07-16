@@ -1,5 +1,3 @@
-// backend/Local database/MessageIndex.ts
-
 import { openDatabase } from './InitialiseDatabase';
 import { Message } from './MessageStructure';
 
@@ -7,6 +5,18 @@ export const insertMessage = async (message: Message): Promise<any> => {
   try {
     const db = await openDatabase();
 
+    // 🔍 Check if message already exists
+    const existing = await db.getFirstAsync(
+      `SELECT id FROM messages WHERE id = ?;`,
+      [message.id]
+    );
+
+    if (existing) {
+      console.log(`⚠️ Message with ID ${message.id} already exists. Skipping insert.`);
+      return;
+    }
+
+    // 💾 Insert the new message
     const result = await db.runAsync(
       `INSERT INTO messages (
         id, conversationId, sender, receiver, text, timestamp, imageUrl,
