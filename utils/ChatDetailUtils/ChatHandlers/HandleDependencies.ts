@@ -1,7 +1,7 @@
 // utils/ChatDetailUtils/ChatHandlers/HandleDependencies.ts
 
 import React from 'react';
-import { Message } from '../../../backend/local database/MessageStructure';
+import { Message } from '../../../backend/Local database/MessageStructure';
 import { ChatItemType } from '../../ChatUtils/ChatItemsTypes';
 import { FlatList } from 'react-native';
 
@@ -9,6 +9,10 @@ export interface ChatDetailHandlerDependencies {
   conversationId: string;
   name: string;
   avatar: any;
+
+  userAddress: string; // ✅ Added
+  receiverAddress: string; // ✅ Added
+
   addOrUpdateChat: (chatItem: ChatItemType) => void;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -24,5 +28,5 @@ export interface ChatDetailHandlerDependencies {
   setMenuVisible: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedMessageForMenu: React.Dispatch<React.SetStateAction<Message | null>>;
   setMenuPosition: React.Dispatch<React.SetStateAction<{ top: number; left: number; right?: number }>>;
-  flatListRef: React.RefObject<FlatList<any> | null>; // Changed to allow null
+  flatListRef: React.RefObject<FlatList<any> | null>; // Allows null
 }

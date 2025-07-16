@@ -1,4 +1,4 @@
-// App.
+// App.tsx
 import 'react-native-webview-crypto';
 import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
@@ -23,9 +23,15 @@ import { initializeDatabase } from '../backend/Local database/InitialiseDatabase
 import LoadingScreen from './screens/LoadingScreen';
 import { handleAndPublishKeys } from '../backend/Encryption/HandleKeys';
 
-// --- 1. Import GunService functions ---
-// Using aliases like 'initializeGun' avoids potential naming conflicts.
-import { initialize as initializeGun, destroy as destroyGun, onStatusChange } from '../backend/Gun Service/GunIndex';
+// --- 🧠 NEW: Import GlobalMessageListener ---
+import GlobalMessageListener from '../backend/Gun Service/Messaging/GlobalMessageListener';
+
+// --- Gun.js setup ---
+import {
+  initialize as initializeGun,
+  destroy as destroyGun,
+  onStatusChange,
+} from '../backend/Gun Service/GunIndex';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -64,8 +70,6 @@ export default function App() {
   });
 
   useEffect(() => {
-    // --- 3. Set up a listener for Gun.js connection status ---
-    // This helps in debugging and can be used to update global state.
     const unsubscribeFromGunStatus = onStatusChange(isConnected => {
       console.log(`P2P Network Status: ${isConnected ? 'Connected' : 'Connecting...'}`);
     });
@@ -76,13 +80,9 @@ export default function App() {
       const walletAddress = await AsyncStorage.getItem('walletAddress');
       if (walletAddress) {
         setSession(true);
-        
-        // --- 2. Initialize Gun.js in the background after session is confirmed ---
-        initializeGun();
-
+        initializeGun(); // 🟢 Start Gun.js
         await handleUserData();
         await handleAndPublishKeys(walletAddress);
-
       } else {
         setSession(false);
       }
@@ -94,12 +94,10 @@ export default function App() {
       load();
     }
 
-    // --- 4. Return a cleanup function ---
-    // This will be called when the App component unmounts.
     return () => {
-      console.log("Cleaning up app-level resources...");
-      destroyGun(); // Disconnect from the Gun.js network
-      unsubscribeFromGunStatus(); // Remove the status listener
+      console.log('Cleaning up app-level resources...');
+      destroyGun();
+      unsubscribeFromGunStatus();
     };
   }, [fontsLoaded]);
 
@@ -108,6 +106,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <ChatProvider>
+        {/* 🧠 Always listen for Gun messages */}
+        <GlobalMessageListener />
+
         <NavigationContainer>
           <Stack.Navigator initialRouteName="LoadingScreen" screenOptions={{ headerShown: false }}>
             <Stack.Screen name="LoadingScreen" component={LoadingScreen} initialParams={{ hasSession: session }} />

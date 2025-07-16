@@ -1,9 +1,8 @@
-// database.ts
+// backend/Local database/InitialiseDatabase.ts
 
 import { Platform } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 
-// Helper to open the database asynchronously
 const openDatabase = async () => {
   if (Platform.OS === 'ios' || Platform.OS === 'android') {
     return await SQLite.openDatabaseAsync('chat.db');
@@ -16,28 +15,34 @@ const openDatabase = async () => {
 export const initializeDatabase = async (): Promise<void> => {
   try {
     const db = await openDatabase();
-    // Create the messages table if it doesn't exist
+
+    // ✅ Create table with 18 columns including `createdAt`
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS messages (
-          id TEXT PRIMARY KEY NOT NULL,
-          conversationId TEXT,
-          sender TEXT,
-          text TEXT,
-          timestamp TEXT,
-          imageUrl TEXT,
-          fileName TEXT,
-          fileSize TEXT,
-          videoUrl TEXT,
-          audioUrl TEXT,
-          replyTo TEXT
+        id TEXT PRIMARY KEY NOT NULL,
+        conversationId TEXT,
+        sender TEXT,
+        receiver TEXT,
+        text TEXT,
+        timestamp TEXT,
+        imageUrl TEXT,
+        fileName TEXT,
+        fileSize TEXT,
+        videoUrl TEXT,
+        audioUrl TEXT,
+        replyTo TEXT,
+        status TEXT,
+        encrypted INTEGER,
+        decrypted INTEGER,
+        encryptedContent TEXT,
+        iv TEXT,
+        createdAt INTEGER
       );
     `);
 
-    // The conversationId column is already created in the CREATE TABLE statement above.
-
-    console.log('Database initialized successfully.');
+    console.log('✅ Database initialized successfully.');
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error('❌ Error initializing database:', error);
     throw error;
   }
 };

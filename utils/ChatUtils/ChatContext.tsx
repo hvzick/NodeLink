@@ -133,3 +133,5 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     </ChatContext.Provider>
   );
 };
+export { EventBus };
+

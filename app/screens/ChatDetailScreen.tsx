@@ -27,7 +27,8 @@ import MessageLongPressMenu, { MenuOption } from '../../utils/ChatDetailUtils/Ch
 import { formatDateHeader } from '../../utils/ChatDetailUtils/FormatDate';
 import { RootStackParamList } from '../App';
 
-import { ensureDatabaseInitialized, openDatabase } from '../../backend/Local database/InitialiseDatabase';
+import { ensureDatabaseInitialized } from '../../backend/Local database/InitialiseDatabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, 'ChatDetail'>;
@@ -40,7 +41,7 @@ type Props = {
 
 const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, name, avatar } = route.params;
-  const { addOrUpdateChat } = useChat();
+  const { addOrUpdateChat } = useChat(); 
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -52,39 +53,34 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedMessageForMenu, setSelectedMessageForMenu] = useState<Message | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const receiverAddress = conversationId.replace('convo_', '');
+  const [userAddress, setUserAddress] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
 
-  const handlerDependencies: ChatDetailHandlerDependencies = useMemo(() => ({
-    conversationId, name, avatar, addOrUpdateChat,
-    messages,
-    setMessages,
-    newMessage,
-    setNewMessage,
-    attachment,
-    setAttachment,
-    replyMessage,
-    setReplyMessage,
-    setSelectedImage,
-    setSelectedVideo,
-    setHighlightedMessageId,
-    setMenuVisible,
-    setSelectedMessageForMenu,
-    setMenuPosition,
-    flatListRef,
-  }), [
-    conversationId, name, avatar, addOrUpdateChat,
-    messages,
-    setMessages, setNewMessage, setAttachment, setReplyMessage,
-    replyMessage,
-    newMessage, attachment,
-    setSelectedImage, setSelectedVideo,
-    setHighlightedMessageId, setMenuVisible,
-    setSelectedMessageForMenu, setMenuPosition,
-    flatListRef,
-  ]);
+ const handlerDependencies: ChatDetailHandlerDependencies = useMemo(() => ({
+  conversationId, name, avatar, addOrUpdateChat,
+  messages, setMessages, newMessage, setNewMessage,
+  attachment, setAttachment, replyMessage, setReplyMessage,
+  setSelectedImage, setSelectedVideo,
+  setHighlightedMessageId, setMenuVisible,
+  setSelectedMessageForMenu, setMenuPosition,
+  flatListRef,
+  userAddress: userAddress ?? '', // Ensures it's always a string
+  receiverAddress
+}), [
+  conversationId, name, avatar, addOrUpdateChat,
+  messages, setMessages, newMessage, setNewMessage,
+  attachment, setAttachment, replyMessage, setReplyMessage,
+  setSelectedImage, setSelectedVideo,
+  setHighlightedMessageId, setMenuVisible,
+  setSelectedMessageForMenu, setMenuPosition,
+  flatListRef,
+  userAddress,             // ✅ Add this
+  receiverAddress          // ✅ Add this
+]);
   
   const handleReply = useCallback((message: Message) => {
     setReplyMessage(message);
@@ -129,6 +125,14 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     };
     loadMessages();
   }, [conversationId]);
+
+  useEffect(() => {
+    const fetchUserAddress = async () => {
+      const address = await AsyncStorage.getItem('userAddress');
+      setUserAddress(address);
+    };
+    fetchUserAddress();
+  }, []);
 
   // --- NEW: Function to handle tapping on the user's profile in the header ---
   const handleProfilePress = () => {

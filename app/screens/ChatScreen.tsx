@@ -26,9 +26,7 @@ import { useChat } from '../../utils/ChatUtils/ChatContext';
 import { handleDeleteChat } from "../../utils/ChatUtils/DeleteChat";
 import { UserProfileCache } from "../../backend/Supabase/FetchAvatarAndName";
 import { refreshAllChatProfiles } from '../../utils/ChatUtils/Refresh';
-
-
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ChatItemProps {
   item: ChatItemType;
@@ -111,6 +109,16 @@ const Chats = () => {
   const { currentTheme, toggleTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
+
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadWalletAddress = async () => {
+      const address = await AsyncStorage.getItem("walletAddress");
+      setWalletAddress(address);
+    };
+    loadWalletAddress();
+  }, []);
 
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -363,7 +371,7 @@ const createStyles = (isDarkMode: boolean) =>
     pinned: {
       width: 25,
       height: 25,
-      bottom: 15, // Adjust positioning as needed
+      bottom: 15,
     },
     actionText: {
       color: "white",

@@ -9,8 +9,9 @@ import {
 } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { triggerTapHapticFeedback } from '../GlobalUtils/TapHapticFeedback';
-import { Message } from '../../backend/local database/MessageStructure';
+import { Message } from '../../backend/Local database/MessageStructure';
 import { useThemeToggle } from '../GlobalUtils/ThemeProvider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type MessageBubbleProps = {
   message: Message;
@@ -37,10 +38,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
 }) => {
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
-  const isMe = message.sender === 'Me';
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   const bubbleRef = useRef<View>(null);
-  // translateX and PanResponder logic are completely removed
+  useEffect(() => {
+    AsyncStorage.getItem('walletAddress').then(setWalletAddress);
+  }, []);
+  // ✅ Move isMe inside the component body and after walletAddress is loaded
+const isMe =
+  message.localSender === 'Me' ||
+  (walletAddress && message.sender?.toLowerCase() === walletAddress.toLowerCase());
+
   const scale = useRef(new Animated.Value(1)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
 
