@@ -4,10 +4,10 @@ import React, { useEffect, useState } from "react";
 import {
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
-  TouchableHighlight,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -32,25 +32,14 @@ import { useNavigation } from "@react-navigation/native";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { testForegroundNotification } from "./t";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-type QuietField = "start" | "end";
-const muteDurations = ["8 hours", "1 day", "1 week", "1 month", "1 year"];
 
-declare module "react-native" {
-  interface NativeModulesStatic {
-    RingtonePickerModule: {
-      showPicker(
-        type: "notification" | "alarm" | "ringtone"
-      ): Promise<{ uri: string; title: string }>;
-    };
-  }
-}
+type QuietField = "start" | "end";
+type Sensitivity = "Light" | "Medium" | "Heavy";
 const TAP_HAPTIC_KEY = "tapHapticEnabled";
 const TAP_SENSITIVITY_KEY = "tapHapticSensitivity";
 
-type Sensitivity = "Light" | "Medium" | "Heavy";
-
 export default function NotificationsScreen() {
-  // ─── conversation tones ───────────────────────────────────────────
+  // ─── Conversation Tones ─────────────────────────────────────────
   const [conversationTones, setConversationTones] = useState(true);
   useEffect(() => {
     initConversationTones();
@@ -63,14 +52,13 @@ export default function NotificationsScreen() {
     );
   }, [conversationTones]);
 
-  // ─── quiet‐hours hook ──────────────────────────────────────────────
-  const { quietRange, saveQuietRange, isQuietNow } = useQuietHours();
+  // ─── Quiet Hours ─────────────────────────────────────────────────
+  const { quietRange, saveQuietRange } = useQuietHours();
   const [timeModalVisible, setTimeModalVisible] = useState(false);
   const [timeField, setTimeField] = useState<QuietField>("start");
   const [tempH, setTempH] = useState(quietRange.start.h);
   const [tempM, setTempM] = useState(quietRange.start.m);
-  const { currentTheme } = useThemeToggle();
-  const isDarkMode = currentTheme === "dark";
+
   const openTimeModal = (field: QuietField) => {
     setTimeField(field);
     const t = quietRange[field];
@@ -81,7 +69,7 @@ export default function NotificationsScreen() {
   };
 
   const closeTimeModal = async () => {
-    const next: QuietRange = {
+    const next = {
       ...quietRange,
       [timeField]: { h: tempH, m: tempM },
     };
@@ -89,106 +77,95 @@ export default function NotificationsScreen() {
     triggerTapHapticFeedback();
     setTimeModalVisible(false);
   };
-  const navigation = useNavigation();
+
   const fmt = ({ h, m }: { h: number; m: number }) =>
     `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 
-  // ─── simulation respects quiet hours ──────────────────────────────
+  // ─── Simulation ──────────────────────────────────────────────────
   const handleSend = async () => {
     await playSendTone();
   };
   const handleReceive = async () => {
     await playReceiveTone();
   };
-  // State for all settings
+
+  // ─── Tap Haptic Settings ─────────────────────────────────────────
   const [isTapEnabled, setIsTapEnabled] = useState(true);
   const [tapSensitivity, setTapSensitivity] = useState<Sensitivity>("Light");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load all saved settings on component mount
   useEffect(() => {
-    const loadSettings = async () => {
+    (async () => {
       try {
-        const [tapValue, tapSensitivityValue] = await Promise.all([
+        const [tapValue, sensValue] = await Promise.all([
           AsyncStorage.getItem(TAP_HAPTIC_KEY),
           AsyncStorage.getItem(TAP_SENSITIVITY_KEY),
         ]);
-
         setIsTapEnabled(tapValue !== "false");
-        setTapSensitivity((tapSensitivityValue as Sensitivity) || "Light");
+        setTapSensitivity((sensValue as Sensitivity) || "Light");
       } catch (e) {
         console.error("Failed to load haptic settings.", e);
       } finally {
         setIsLoading(false);
       }
-    };
-    loadSettings();
+    })();
   }, []);
 
-  const handleTapToggle = async (newValue: boolean) => {
-    setIsTapEnabled(newValue);
-    if (newValue) {
-      await handleTapSensitivityChange(tapSensitivity, false);
-    }
-    await AsyncStorage.setItem(TAP_HAPTIC_KEY, newValue.toString());
-  };
-  const handleTapSensitivityChange = async (
-    sensitivity: Sensitivity,
-    shouldSave = true
-  ) => {
-    setTapSensitivity(sensitivity);
-    await triggerHaptic(sensitivity);
-    if (shouldSave) {
-      await AsyncStorage.setItem(TAP_SENSITIVITY_KEY, sensitivity);
-    }
-  };
-  const triggerHaptic = async (sensitivity: Sensitivity) => {
-    let style = Haptics.ImpactFeedbackStyle.Light;
-    if (sensitivity === "Medium") style = Haptics.ImpactFeedbackStyle.Medium;
-    if (sensitivity === "Heavy") style = Haptics.ImpactFeedbackStyle.Heavy;
-    await Haptics.impactAsync(style);
+  const handleTapToggle = async (newVal: boolean) => {
+    setIsTapEnabled(newVal);
+    if (newVal) await handleTapSensitivityChange(tapSensitivity, false);
+    await AsyncStorage.setItem(TAP_HAPTIC_KEY, newVal.toString());
   };
 
-  // ─── notification toggle ──────────────────────────────────────────
+  const handleTapSensitivityChange = async (
+    sensitivity: Sensitivity,
+    save = true
+  ) => {
+    setTapSensitivity(sensitivity);
+    await Haptics.impactAsync(
+      sensitivity === "Heavy"
+        ? Haptics.ImpactFeedbackStyle.Heavy
+        : sensitivity === "Medium"
+        ? Haptics.ImpactFeedbackStyle.Medium
+        : Haptics.ImpactFeedbackStyle.Light
+    );
+    if (save) await AsyncStorage.setItem(TAP_SENSITIVITY_KEY, sensitivity);
+  };
+
+  // ─── Notifications Toggle ────────────────────────────────────────
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   useEffect(() => {
     loadNotificationEnabled().then(setNotificationsEnabled);
   }, []);
-  const onToggleNotifications = async (desired: boolean) => {
-    const finalValue = await apiSetNotificationsEnabled(desired);
-    setNotificationsEnabled(finalValue);
+  const onToggleNotifications = async (d: boolean) => {
+    const finalVal = await apiSetNotificationsEnabled(d);
+    setNotificationsEnabled(finalVal);
   };
 
-  // ─── other states ─────────────────────────────────────────────────
+  // ─── Message Preview ─────────────────────────────────────────────
   const [showPreview, setShowPreview] = useState(true);
 
-  // ─── tone picker ──────────────────────────────────────────────────
-  const [setNotificationTone] = useState("System Default");
-  const [tonePickerMessage, setTonePickerMessage] = useState("");
-  useEffect(() => {
-    if (!tonePickerMessage) return;
-    const t = setTimeout(() => setTonePickerMessage(""), 3000);
-    return () => clearTimeout(t);
-  }, [tonePickerMessage]);
+  // ─── Mute Duration ───────────────────────────────────────────────
+  const { setMuteDuration } = useMuteSettings();
+  const [selectedMuteLabel, setSelectedMuteLabel] = useState("1 hour");
+  const MUTE_OPTIONS = [
+    { label: "1 Hour", value: "1 hour" },
+    { label: "1 Day", value: "1 day" },
+    { label: "7 Days", value: "7 days" },
+    { label: "1 Month", value: "1 month" },
+    { label: "1 Year", value: "1 year" },
+  ];
 
-  const styles = getStyles(isDarkMode);
-  // ─── mute settings ────────────────────────────────────────────────
-  const { isMuted, muteUntil, setMuteDuration } = useMuteSettings();
-  const [muteModalVisible, setMuteModalVisible] = useState(false);
-  const [selectedMuteLabel, setSelectedMuteLabel] = useState("1 day");
-  const [showMuteInfo, setShowMuteInfo] = useState(false);
-
-  const openMuteModal = () => {
-    triggerTapHapticFeedback();
-    setMuteModalVisible(true);
-  };
-
-  // ─── generic toggle handler ───────────────────────────────────────
   const onToggle =
     (setter: React.Dispatch<React.SetStateAction<boolean>>) => (v: boolean) => {
       setter(v);
       triggerTapHapticFeedback();
     };
+
+  const { currentTheme } = useThemeToggle();
+  const isDarkMode = currentTheme === "dark";
+  const navigation = useNavigation();
+  const styles = getStyles(isDarkMode);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -206,126 +183,135 @@ export default function NotificationsScreen() {
         </View>
       </View>
 
-      {/* Enable Notifications */}
-      <View style={styles.section}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Enable Notifications</Text>
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={onToggleNotifications}
-            trackColor={{ true: "#4CD964", false: "#ccc" }}
-          />
-        </View>
-      </View>
-
-      {/* Conversation Tones */}
-      <View style={styles.section}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Conversation Tones</Text>
-          <Switch
-            value={conversationTones}
-            onValueChange={onToggle(setConversationTones)}
-            trackColor={{ true: "#4CD964", false: "#ccc" }}
-          />
-        </View>
-        <View style={styles.row}>
-          <TouchableOpacity onPress={handleSend} style={{ marginRight: 16 }}>
-            <Text style={styles.value}>Simulate Send</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleReceive}>
-            <Text style={styles.value}>Simulate Receive</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.row}>
-          <Text style={styles.optionText}>Tap Feedback</Text>
-          <Switch
-            trackColor={{
-              false: isDarkMode ? "#2C2C2E" : "#E9E9EA",
-              true: "#34C759",
-            }}
-            thumbColor={"#FFFFFF"}
-            ios_backgroundColor={isDarkMode ? "#2C2C2E" : "#E9E9EA"}
-            onValueChange={handleTapToggle}
-            value={isTapEnabled}
-            disabled={isLoading}
-          />
+      {/* Scrollable Content */}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Enable Notifications */}
+        <View style={styles.section}>
+          <View style={styles.row}>
+            <Text style={styles.label}>Enable Notifications</Text>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={onToggleNotifications}
+              trackColor={{ true: "#4CD964", false: "#ccc" }}
+            />
+          </View>
         </View>
 
-        {isTapEnabled && (
+        {/* Conversation Tones */}
+        <View style={styles.section}>
+          <View style={styles.row}>
+            <Text style={styles.label}>Conversation Tones</Text>
+            <Switch
+              value={conversationTones}
+              onValueChange={onToggle(setConversationTones)}
+              trackColor={{ true: "#4CD964", false: "#ccc" }}
+            />
+          </View>
+          <View style={styles.row}>
+            <TouchableOpacity onPress={handleSend} style={{ marginRight: 16 }}>
+              <Text style={styles.value}>Simulate Send</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleReceive}>
+              <Text style={styles.value}>Simulate Receive</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Tap Feedback */}
+        <View style={styles.section}>
+          <View style={styles.row}>
+            <Text style={styles.optionText}>Tap Feedback</Text>
+            <Switch
+              trackColor={{
+                false: isDarkMode ? "#2C2C2E" : "#E9E9EA",
+                true: "#34C759",
+              }}
+              thumbColor={"#FFFFFF"}
+              ios_backgroundColor={isDarkMode ? "#2C2C2E" : "#E9E9EA"}
+              onValueChange={handleTapToggle}
+              value={isTapEnabled}
+              disabled={isLoading}
+            />
+          </View>
+
+          {isTapEnabled && (
+            <View style={[styles.listItem, { borderBottomWidth: 0 }]}>
+              <Text style={styles.optionText}>Tap Sensitivity</Text>
+              <Picker
+                selectedValue={tapSensitivity}
+                onValueChange={(v) =>
+                  handleTapSensitivityChange(v as Sensitivity)
+                }
+                style={styles.pickerH}
+                dropdownIconColor={isDarkMode ? "#FFFFFF" : "#8E8E93"}
+                itemStyle={{ color: isDarkMode ? "#FFFFFF" : "#000000" }}
+              >
+                <Picker.Item label="Light" value="Light" />
+                <Picker.Item label="Medium" value="Medium" />
+                <Picker.Item label="Heavy" value="Heavy" />
+              </Picker>
+            </View>
+          )}
+        </View>
+
+        {/* Message Preview */}
+        <View style={styles.section}>
+          <View style={styles.row}>
+            <Text style={styles.label}>Show Message Preview</Text>
+            <Switch
+              value={showPreview}
+              onValueChange={onToggle(setShowPreview)}
+              trackColor={{ true: "#4CD964", false: "#ccc" }}
+            />
+          </View>
+        </View>
+
+        {/* Mute Duration */}
+        <View style={styles.section}>
           <View style={[styles.listItem, { borderBottomWidth: 0 }]}>
-            <Text style={styles.optionText}>Tap Sensitivity</Text>
+            <Text style={styles.optionText}>Mute Duration</Text>
             <Picker
-              selectedValue={tapSensitivity}
-              onValueChange={(itemValue) =>
-                handleTapSensitivityChange(itemValue as Sensitivity)
-              }
+              selectedValue={selectedMuteLabel}
+              onValueChange={(v) => {
+                setSelectedMuteLabel(v);
+                setMuteDuration(v);
+              }}
               style={styles.pickerH}
               dropdownIconColor={isDarkMode ? "#FFFFFF" : "#8E8E93"}
               itemStyle={{ color: isDarkMode ? "#FFFFFF" : "#000000" }}
             >
-              <Picker.Item label="Light" value="Light" />
-              <Picker.Item label="Medium" value="Medium" />
-              <Picker.Item label="Heavy" value="Heavy" />
+              {MUTE_OPTIONS.map((opt) => (
+                <Picker.Item
+                  key={opt.value}
+                  label={opt.label}
+                  value={opt.value}
+                />
+              ))}
             </Picker>
           </View>
-        )}
-      </View>
-
-      {/* Message Preview */}
-      <View style={styles.section}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Show Message Preview</Text>
-          <Switch
-            value={showPreview}
-            onValueChange={onToggle(setShowPreview)}
-            trackColor={{ true: "#4CD964", false: "#ccc" }}
-          />
         </View>
-      </View>
 
-      {/* Mute Duration */}
-      <View style={styles.section}>
-        <TouchableOpacity style={styles.row} onPress={openMuteModal}>
-          <Text style={styles.label}>Mute Duration</Text>
-          <View style={styles.rowRight}>
-            <Text style={styles.value}>{selectedMuteLabel}</Text>
-            <Ionicons
-              name="chevron-forward-outline"
-              size={18}
-              color="#C7C7CC"
-            />
-          </View>
-        </TouchableOpacity>
-        {isMuted && showMuteInfo && (
-          <Text style={styles.infoText}>
-            Muted until {new Date(muteUntil).toLocaleString()}
-          </Text>
-        )}
-      </View>
+        {/* Quiet Hours */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => openTimeModal("start")}
+          >
+            <Text style={styles.label}>Quiet Hours Start</Text>
+            <Text style={styles.value}>{fmt(quietRange.start)}</Text>
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => openTimeModal("end")}
+          >
+            <Text style={styles.label}>Quiet Hours End</Text>
+            <Text style={styles.value}>{fmt(quietRange.end)}</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
-      {/* Quiet Hours */}
-      <View style={styles.section}>
-        <TouchableOpacity
-          style={styles.row}
-          onPress={() => openTimeModal("start")}
-        >
-          <Text style={styles.label}>Quiet Hours Start</Text>
-          <Text style={styles.value}>{fmt(quietRange.start)}</Text>
-        </TouchableOpacity>
-        <View style={styles.divider} />
-        <TouchableOpacity
-          style={styles.row}
-          onPress={() => openTimeModal("end")}
-        >
-          <Text style={styles.label}>Quiet Hours End</Text>
-          <Text style={styles.value}>{fmt(quietRange.end)}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Mute Modal */}
+      {/* Time Picker Modal */}
       <Modal
         visible={timeModalVisible}
         transparent
@@ -362,18 +348,18 @@ export default function NotificationsScreen() {
                 ))}
               </Picker>
             </View>
-            <TouchableHighlight
-              underlayColor="#DDDDDD"
+            <TouchableOpacity
               onPress={closeTimeModal}
               style={styles.doneButton}
             >
               <Text style={styles.doneText}>Done</Text>
-            </TouchableHighlight>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
-      {/*Send Notification for testing */}
-      <View style={styles.container}>
+
+      {/* Test Notification */}
+      <View style={styles.testContainer}>
         <TouchableOpacity
           style={styles.button}
           onPress={testForegroundNotification}
@@ -384,6 +370,7 @@ export default function NotificationsScreen() {
     </SafeAreaView>
   );
 }
+
 const getStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
     container: {
@@ -391,15 +378,13 @@ const getStyles = (isDarkMode: boolean) =>
       backgroundColor: isDarkMode ? "#000" : "#F5F5F5",
     },
     headerContainer: {
-      position: "relative",
       flexDirection: "row",
       alignItems: "center",
-      height: 40,
-      paddingHorizontal: 20,
+      height: 50,
+      paddingHorizontal: 16,
       backgroundColor: isDarkMode ? "#000" : "#F5F5F5",
     },
     backButton: {
-      width: 100,
       flexDirection: "row",
       alignItems: "center",
       zIndex: 1,
@@ -417,13 +402,14 @@ const getStyles = (isDarkMode: boolean) =>
       right: 0,
       justifyContent: "center",
       alignItems: "center",
-      zIndex: 0,
     },
     headerTitle: {
-      fontFamily: "SF-Pro-Text-Medium",
       fontSize: 20,
       fontWeight: "600",
       color: isDarkMode ? "#fff" : "#000",
+    },
+    scrollContent: {
+      paddingBottom: 32,
     },
     section: {
       backgroundColor: isDarkMode ? "#1c1c1e" : "#fff",
@@ -446,9 +432,22 @@ const getStyles = (isDarkMode: boolean) =>
       fontSize: 16,
       color: isDarkMode ? "#ccc" : "#8E8E93",
     },
-    rowRight: {
+    listItem: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 0,
+      borderBottomWidth: 1,
+      borderBottomColor: isDarkMode ? "#48484A" : "#EFEFEF",
+    },
+    optionText: {
+      fontSize: 17,
+      color: isDarkMode ? "#fff" : "#000",
+    },
+    pickerH: {
+      width: Platform.OS === "ios" ? 150 : 160,
+      color: isDarkMode ? "#FFFFFF" : "#000000",
     },
     divider: {
       height: StyleSheet.hairlineWidth,
@@ -459,11 +458,6 @@ const getStyles = (isDarkMode: boolean) =>
       flex: 1,
       justifyContent: "flex-end",
       backgroundColor: "rgba(0,0,0,0.3)",
-    },
-    pickerWrapper: {
-      backgroundColor: isDarkMode ? "#1c1c1e" : "#fff",
-      paddingTop: 12,
-      paddingBottom: 24,
     },
     timeWrapper: {
       backgroundColor: isDarkMode ? "#1c1c1e" : "#fff",
@@ -478,8 +472,10 @@ const getStyles = (isDarkMode: boolean) =>
       color: isDarkMode ? "#fff" : "#000",
       marginBottom: 8,
     },
-    picker: {
-      height: 180,
+    timePickers: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
     },
     hourPicker: {
       width: 100,
@@ -489,15 +485,9 @@ const getStyles = (isDarkMode: boolean) =>
       width: 100,
       height: 180,
     },
-    timePickers: {
-      flexDirection: "row",
-      justifyContent: "center",
-      alignItems: "center",
-    },
     colon: {
       fontSize: 18,
       marginHorizontal: 4,
-      alignSelf: "center",
       color: isDarkMode ? "#fff" : "#000",
     },
     doneButton: {
@@ -507,11 +497,6 @@ const getStyles = (isDarkMode: boolean) =>
     doneText: {
       fontSize: 16,
       color: "#007AFF",
-    },
-    infoText: {
-      fontSize: 14,
-      color: isDarkMode ? "#aaa" : "#8E8E93",
-      paddingHorizontal: 16,
     },
     button: {
       backgroundColor: "#4CD964",
@@ -523,22 +508,10 @@ const getStyles = (isDarkMode: boolean) =>
       color: "#fff",
       fontSize: 16,
     },
-    listItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 16,
-      paddingVertical: Platform.OS === "ios" ? 14 : 0,
-      borderBottomWidth: 1,
-      borderBottomColor: isDarkMode ? "#48484A" : "#EFEFEF",
-    },
-    optionText: {
-      fontSize: 17,
-      color: isDarkMode ? "#fff" : "#000",
-    },
-    pickerH: {
-      width: Platform.OS === "ios" ? 150 : 160, // Adjusted for Android
-      color: isDarkMode ? "#FFFFFF" : "#000000",
-      // On Android, the dropdown items are styled by the OS.
+    testContainer: {
+      padding: 16,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: isDarkMode ? "#3a3a3c" : "#E0E0E0",
+      backgroundColor: isDarkMode ? "#000" : "#F5F5F5",
     },
   });
