@@ -14,7 +14,6 @@ import WalletScreen from "./WalletScreen";
 import ChatScreen from "./ChatScreen";
 import SettingsStackScreen from "./SettingStackScreen";
 import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
-import { triggerHoldHapticFeedback } from "../../utils/GlobalUtils/HoldHapticFeedback";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { handleUserData } from "../../backend/Supabase/HandleUserData";
 import { handleAndPublishKeys } from "../../backend/Encryption/HandleKeys";
@@ -150,7 +149,13 @@ export default function BottomTabs() {
             iconSource = require("../../assets/images/settings-icon-black-active.png");
           }
           return (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <View
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <AnimatedTabIcon
                 source={iconSource}
                 focused={focused}
@@ -171,7 +176,6 @@ export default function BottomTabs() {
         component={WalletScreen}
         listeners={{
           tabLongPress: async () => {
-            await triggerHoldHapticFeedback();
             console.log("Wallet tab Hold pressed");
           },
           tabPress: () => {
@@ -185,7 +189,6 @@ export default function BottomTabs() {
         component={ChatScreen}
         listeners={{
           tabLongPress: async () => {
-            await triggerHoldHapticFeedback();
             console.log("Chats tab Hold pressed");
           },
           tabPress: () => {
@@ -199,7 +202,6 @@ export default function BottomTabs() {
         component={SettingsStackScreen}
         listeners={{
           tabLongPress: async () => {
-            await triggerHoldHapticFeedback();
             console.log("Settings tab Hold pressed");
           },
           tabPress: () => {
