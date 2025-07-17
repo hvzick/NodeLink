@@ -59,25 +59,6 @@ export default function UserProfile() {
   const [copied, setCopied] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const handleCopy = () => {
-    if (!sharedSecurityCode) return;
-    copyToClipboard(sharedSecurityCode);
-    setCopied(true);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setTimeout(() => {
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => setCopied(false));
-      }, 1500);
-    });
-  };
-
   useEffect(() => {
     const fetchMyKey = async () => {
       const key = await AsyncStorage.getItem("walletAddress"); // or "publicKey"
@@ -256,7 +237,6 @@ export default function UserProfile() {
             style={styles.infoText}
             selectable
             numberOfLines={2}
-            ellipsizeMode="middle"
           >
             {userData?.publicKey || "Loading..."}
           </Text>
