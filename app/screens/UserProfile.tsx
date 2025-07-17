@@ -1,6 +1,6 @@
 // screens/UserProfile.tsx
 
-import { StatusBar } from 'expo-status-bar';
+import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
   Text,
@@ -8,25 +8,25 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Modal, Pressable,
-  Alert, // Import Alert
-} from 'react-native';
-import { useState, useEffect } from 'react';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
-import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { UserData } from '../../backend/Supabase/RegisterUser';
-import { format } from 'date-fns';
-import { handleOpenEtherscan } from '../../utils/MyProfileUtils/OpenEtherscan';
-import { handleCopyAddress } from '../../utils/MyProfileUtils/CopyAddress';
-import { handleCopyUsername } from '../../utils/MyProfileUtils/CopyUsername';
-import { RootStackParamList } from '../App';
-import { useChat } from '../../utils/ChatUtils/ChatContext';
-import { loadUserData } from '../../utils/ProfileUtils/LoadUserData';
-import { handleConnect } from '../../utils/ProfileUtils/HandleConnect'; // This now imports the real logic
-import { handleSendMessage } from '../../utils/ProfileUtils/HandleGoToChat';
+  Modal,
+  Pressable,
+} from "react-native";
+import { useState, useEffect } from "react";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { Ionicons } from "@expo/vector-icons";
+import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { UserData } from "../../backend/Supabase/RegisterUser";
+import { format } from "date-fns";
+import { handleOpenEtherscan } from "../../utils/MyProfileUtils/OpenEtherscan";
+import { handleCopyAddress } from "../../utils/MyProfileUtils/CopyAddress";
+import { handleCopyUsername } from "../../utils/MyProfileUtils/CopyUsername";
+import { RootStackParamList } from "../App";
+import { useChat } from "../../utils/ChatUtils/ChatContext";
+import { loadUserData } from "../../utils/ProfileUtils/LoadUserData";
+import { handleConnect } from "../../utils/ProfileUtils/HandleConnect"; // This now imports the real logic
+import { handleSendMessage } from "../../utils/ProfileUtils/HandleGoToChat";
 
 export default function UserProfile() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -36,9 +36,9 @@ export default function UserProfile() {
   const { addOrUpdateChat, chatList } = useChat();
 
   const { currentTheme } = useThemeToggle();
-  const isDarkMode = currentTheme === 'dark';
-  const [copyWalletText, setCopyWalletText] = useState('');
-  const [copyUsernameText, setCopyUsernameText] = useState('');
+  const isDarkMode = currentTheme === "dark";
+  const [copyWalletText, setCopyWalletText] = useState("");
+  const [copyUsernameText, setCopyUsernameText] = useState("");
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isButtonPressed, setIsButtonPressed] = useState(false);
@@ -56,7 +56,7 @@ export default function UserProfile() {
   useEffect(() => {
     if (userData && chatList) {
       const conversationId = `convo_${userData.walletAddress}`;
-      const exists = chatList.some(chat => chat.id === conversationId);
+      const exists = chatList.some((chat) => chat.id === conversationId);
       if (exists) {
         setIsConnected(true);
       }
@@ -85,22 +85,37 @@ export default function UserProfile() {
     // The handleConnect utility now shows its own alert on failure.
   };
 
-  const handleSendMessageWrapper = () => handleSendMessage(isConnected, userData, chatList, addOrUpdateChat, navigation);
+  const handleSendMessageWrapper = () =>
+    handleSendMessage(
+      isConnected,
+      userData,
+      chatList,
+      addOrUpdateChat,
+      navigation
+    );
 
   // Show a loading indicator while fetching profile data
   if (isProfileLoading) {
     return (
-        <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
-            <ActivityIndicator size="large" color={isDarkMode ? '#fff' : '#000'} />
-        </SafeAreaView>
+      <SafeAreaView style={[styles.container, { justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={isDarkMode ? "#fff" : "#000"} />
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#007AFF" style={{ marginRight: 4 }} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={24}
+            color="#007AFF"
+            style={{ marginRight: 4 }}
+          />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.headerTitleContainer} pointerEvents="none">
@@ -110,9 +125,10 @@ export default function UserProfile() {
 
       <TouchableOpacity onPress={() => setShowAvatarModal(true)}>
         <Image
-          source={userData?.avatar === "default" || !userData?.avatar
-            ? require('../../assets/images/default-user-avatar.jpg')
-            : { uri: userData?.avatar }
+          source={
+            userData?.avatar === "default" || !userData?.avatar
+              ? require("../../assets/images/default-user-avatar.jpg")
+              : { uri: userData?.avatar }
           }
           style={styles.avatar}
         />
@@ -124,15 +140,27 @@ export default function UserProfile() {
         onRequestClose={() => setShowAvatarModal(false)}
       >
         <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.85)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
           onPress={() => setShowAvatarModal(false)}
         >
           <Image
-            source={userData?.avatar === "default" || !userData?.avatar
-              ? require('../../assets/images/default-user-avatar.jpg')
-              : { uri: userData?.avatar }
+            source={
+              userData?.avatar === "default" || !userData?.avatar
+                ? require("../../assets/images/default-user-avatar.jpg")
+                : { uri: userData?.avatar }
             }
-            style={{ width: 320, height: 320, borderRadius: 160, borderWidth: 4, borderColor: '#fff' }}
+            style={{
+              width: 320,
+              height: 320,
+              borderRadius: 160,
+              borderWidth: 4,
+              borderColor: "#fff",
+            }}
             resizeMode="contain"
           />
         </Pressable>
@@ -142,32 +170,51 @@ export default function UserProfile() {
       <View style={styles.infoBox}>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Wallet Address</Text>
-          <TouchableOpacity onPress={() => handleCopyAddress(userData, setCopyWalletText)}
-            onLongPress={() => handleOpenEtherscan(userData)}>
-            <Text style={styles.wallet}>{userData?.walletAddress || "Loading..."}</Text>
+          <TouchableOpacity
+            onPress={() => handleCopyAddress(userData, setCopyWalletText)}
+            onLongPress={() => handleOpenEtherscan(userData)}
+          >
+            <Text style={styles.wallet}>
+              {userData?.walletAddress || "Loading..."}
+            </Text>
           </TouchableOpacity>
-          {copyWalletText ? <Text style={styles.waCopyMessage}>{copyWalletText}</Text> : null}
+          {copyWalletText ? (
+            <Text style={styles.waCopyMessage}>{copyWalletText}</Text>
+          ) : null}
         </View>
         <View style={styles.separator} />
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Username</Text>
-          <TouchableOpacity onPress={() => handleCopyUsername(userData, setCopyUsernameText)}>
-            <Text style={styles.username}>@{userData?.username || "loading..."}</Text>
+          <TouchableOpacity
+            onPress={() => handleCopyUsername(userData, setCopyUsernameText)}
+          >
+            <Text style={styles.username}>
+              @{userData?.username || "loading..."}
+            </Text>
           </TouchableOpacity>
-          {copyUsernameText ? <Text style={styles.uCopyMessage}>{copyUsernameText}</Text> : null}
+          {copyUsernameText ? (
+            <Text style={styles.uCopyMessage}>{copyUsernameText}</Text>
+          ) : null}
         </View>
         <View style={styles.separator} />
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Bio</Text>
-          <Text style={styles.infoText}>{userData?.bio || "Im not being spied on!"}</Text>
+          <Text style={styles.infoText}>
+            {userData?.bio || "Im not being spied on!"}
+          </Text>
         </View>
         <View style={styles.separator} />
         <View style={styles.infoRow}>
           <Text style={styles.label}>Public Key</Text>
-          <Text style={styles.infoText} selectable numberOfLines={2} ellipsizeMode="middle">
-            {userData?.publicKey || 'Loading...'}
+          <Text
+            style={styles.infoText}
+            selectable
+            numberOfLines={2}
+            ellipsizeMode="middle"
+          >
+            {userData?.publicKey || "Loading..."}
           </Text>
         </View>
         <View style={styles.separator} />
@@ -175,7 +222,7 @@ export default function UserProfile() {
           <Text style={styles.label}>Joined</Text>
           <Text style={styles.infoText}>
             {userData?.created_at
-              ? format(new Date(userData.created_at), 'MMMM d, yyyy')
+              ? format(new Date(userData.created_at), "MMMM d, yyyy")
               : "N/A"}
           </Text>
         </View>
@@ -185,7 +232,9 @@ export default function UserProfile() {
         <TouchableOpacity
           style={[
             styles.sideBySideButton,
-            isConnected ? styles.connectButtonConnected : styles.connectButtonDefault,
+            isConnected
+              ? styles.connectButtonConnected
+              : styles.connectButtonDefault,
             isButtonPressed && !isConnected && styles.connectButtonPressed,
             (!userData || isConnecting) && styles.buttonDisabled,
           ]}
@@ -196,11 +245,19 @@ export default function UserProfile() {
           activeOpacity={0.8}
           disabled={!userData || isConnecting || isConnected}
         >
-          <Text style={[
+          <Text
+            style={[
               styles.buttonText,
-              isConnected ? styles.connectButtonTextConnected : styles.connectButtonTextDefault,
-          ]}>
-            {isConnecting ? 'Connecting...' : isConnected ? 'Connected' : 'Connect'}
+              isConnected
+                ? styles.connectButtonTextConnected
+                : styles.connectButtonTextDefault,
+            ]}
+          >
+            {isConnecting
+              ? "Connecting..."
+              : isConnected
+              ? "Connected"
+              : "Connect"}
           </Text>
         </TouchableOpacity>
 
@@ -214,10 +271,14 @@ export default function UserProfile() {
           onPress={handleSendMessageWrapper}
           disabled={!isConnected}
         >
-          <Text style={[
-            styles.buttonText,
-            isConnected ? styles.sendMessageButtonTextEnabled : styles.buttonTextDisabled,
-          ]}>
+          <Text
+            style={[
+              styles.buttonText,
+              isConnected
+                ? styles.sendMessageButtonTextEnabled
+                : styles.buttonTextDisabled,
+            ]}
+          >
             Message
           </Text>
         </TouchableOpacity>
@@ -231,41 +292,41 @@ const getStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDarkMode ? '#1C1C1D' : '#F2F2F2',
-      alignItems: 'center',
+      backgroundColor: isDarkMode ? "#1C1C1D" : "#F2F2F2",
+      alignItems: "center",
     },
     headerContainer: {
       height: 40,
-      justifyContent: 'center',
-      backgroundColor: isDarkMode ? '#1C1C1D' : '#F2F2F2',
-      width: '100%',
+      justifyContent: "center",
+      backgroundColor: isDarkMode ? "#1C1C1D" : "#F2F2F2",
+      width: "100%",
     },
     backButton: {
-      position: 'absolute',
+      position: "absolute",
       left: 10,
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       zIndex: 1,
     },
     backButtonText: {
       fontSize: 18,
-      color: '#007AFF',
+      color: "#007AFF",
     },
     headerTitleContainer: {
-      position: 'absolute',
+      position: "absolute",
       top: 0,
       bottom: 0,
       left: 0,
       right: 0,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       zIndex: 0,
     },
     headerTitleText: {
       fontSize: 20,
-      fontWeight: '600',
-      fontFamily: 'SF-Pro-Text-Medium',
-      color: isDarkMode ? '#fff' : '#333333',
+      fontWeight: "600",
+      fontFamily: "SF-Pro-Text-Medium",
+      color: isDarkMode ? "#fff" : "#333333",
     },
     avatar: {
       top: 10,
@@ -276,76 +337,86 @@ const getStyles = (isDarkMode: boolean) =>
     name: {
       top: 10,
       fontSize: 22,
-      fontFamily: 'SF-Pro-Text-Medium',
+      fontFamily: "SF-Pro-Text-Medium",
       marginTop: 10,
-      color: isDarkMode ? '#fff' : '#333333',
+      color: isDarkMode ? "#fff" : "#333333",
     },
     infoBox: {
       top: 10,
-      backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
-      width: '90%',
+      backgroundColor: isDarkMode ? "#121212" : "#FFFFFF",
+      width: "90%",
       borderRadius: 12,
       paddingHorizontal: 15,
       paddingVertical: 10,
       marginVertical: 20,
     },
     infoRow: { paddingVertical: 10 },
-    label: { fontSize: 12, color: 'gray', marginBottom: 4 },
-    wallet: { fontSize: 16, color: '#00A86B', flexWrap: 'wrap' },
-    username: { fontSize: 16, color: '#007AFF' },
-    infoText: { fontSize: 16, color: isDarkMode ? '#fff' : '#333333' },
-    separator: { height: 1, backgroundColor: isDarkMode ? '#333' : '#EFEFEF' },
-    waCopyMessage: { fontSize: 14, color: '#00A86B', marginTop: 5, fontWeight: '400' },
-    uCopyMessage: { fontSize: 14, color: '#007AFF', marginTop: 5, fontWeight: '400' },
+    label: { fontSize: 12, color: "gray", marginBottom: 4 },
+    wallet: { fontSize: 16, color: "#00A86B", flexWrap: "wrap" },
+    username: { fontSize: 16, color: "#007AFF" },
+    infoText: { fontSize: 16, color: isDarkMode ? "#fff" : "#333333" },
+    separator: { height: 1, backgroundColor: isDarkMode ? "#333" : "#EFEFEF" },
+    waCopyMessage: {
+      fontSize: 14,
+      color: "#00A86B",
+      marginTop: 5,
+      fontWeight: "400",
+    },
+    uCopyMessage: {
+      fontSize: 14,
+      color: "#007AFF",
+      marginTop: 5,
+      fontWeight: "400",
+    },
     buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '90%',
-        marginTop: 10,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      width: "90%",
+      marginTop: 10,
     },
     sideBySideButton: {
-        width: '48%',
-        padding: 15,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 1,
+      width: "48%",
+      padding: 15,
+      borderRadius: 12,
+      alignItems: "center",
+      borderWidth: 1,
     },
     buttonText: {
-        fontSize: 16,
-        fontWeight: '600',
+      fontSize: 16,
+      fontWeight: "600",
     },
     connectButtonDefault: {
-        backgroundColor: 'transparent',
-        borderColor: isDarkMode ? '#fff' : '#000',
+      backgroundColor: "transparent",
+      borderColor: isDarkMode ? "#fff" : "#000",
     },
     connectButtonTextDefault: {
-        color: isDarkMode ? '#fff' : '#000',
+      color: isDarkMode ? "#fff" : "#000",
     },
     connectButtonPressed: {
-        backgroundColor: 'rgba(0, 122, 255, 0.2)',
-        borderColor: 'rgba(0, 122, 255, 0.4)',
+      backgroundColor: "rgba(0, 122, 255, 0.2)",
+      borderColor: "rgba(0, 122, 255, 0.4)",
     },
     connectButtonConnected: {
-        backgroundColor: '#007AFF',
-        borderColor: '#007AFF',
+      backgroundColor: "#007AFF",
+      borderColor: "#007AFF",
     },
     connectButtonTextConnected: {
-        color: '#FFFFFF',
+      color: "#FFFFFF",
     },
     sendMessageButton: {
-        backgroundColor: 'transparent',
-        borderColor: isDarkMode ? '#555' : '#ccc',
+      backgroundColor: "transparent",
+      borderColor: isDarkMode ? "#555" : "#ccc",
     },
     sendMessageButtonEnabled: {
-        borderColor: isDarkMode ? '#fff' : '#000',
+      borderColor: isDarkMode ? "#fff" : "#000",
     },
     sendMessageButtonTextEnabled: {
-        color: isDarkMode ? '#fff' : '#000',
+      color: isDarkMode ? "#fff" : "#000",
     },
     buttonDisabled: {
-        opacity: 0.5,
+      opacity: 0.5,
     },
     buttonTextDisabled: {
-        color: isDarkMode ? '#555' : '#ccc',
+      color: isDarkMode ? "#555" : "#ccc",
     },
   });

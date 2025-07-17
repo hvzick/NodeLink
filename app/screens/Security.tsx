@@ -3,41 +3,57 @@ import {
   View,
   Text,
   TouchableWithoutFeedback,
-  Animated,
   StyleSheet,
   ActivityIndicator,
   Alert,
+  FlatList,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { refreshKeyData } from "../../utils/Security/HandleRefreshData";
 import { handlePrivatePress } from "../../utils/Security/HandlePrivateKeyPress";
 import { handleChangeKey } from "../../utils/Security/HandleChangeKey";
 import { handleValidateKeys } from "../../utils/Security/HandleValidateKeys";
+import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 
-export default function SecurityScreen() {
+interface SharedItem {
+  name: string;
+  sharedPublicKey: string;
+  sharedSecret: string;
+}
+
+const SecurityScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { currentTheme } = useThemeToggle();
+  const isDarkMode = currentTheme === "dark";
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [userPublicKey, setUserPublicKey] = useState<string | null>(null);
   const [privateKey, setPrivateKey] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [showPrivate, setShowPrivate] = useState(false);
   const [compressedPublicKey, setCompressedPublicKey] = useState<string | null>(
     null
   );
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showPrivate, setShowPrivate] = useState(false);
   const [changeSuccess, setChangeSuccess] = useState(false);
   const [keysValid, setKeysValid] = useState(false);
+  const [sharedList, setSharedList] = useState<SharedItem[]>([]);
+  const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>(
+    {}
+  );
 
   useEffect(() => {
     refreshKeyData(
       setWalletAddress,
-      setPublicKey,
+      setUserPublicKey,
       setPrivateKey,
       setCompressedPublicKey,
       setLoading
     );
+    loadSharedSecrets();
     return () => {
       setKeysValid(false);
       setChangeSuccess(false);
@@ -45,52 +61,71 @@ export default function SecurityScreen() {
   }, []);
 
   useFocusEffect(
-    React.useCallback(() => {
-      return () => {
+    React.useCallback(
+      () => () => {
         setKeysValid(false);
         setChangeSuccess(false);
-      };
-    }, [])
+      },
+      []
+    )
   );
 
-  const maskPrivateKey = (key: string | null): string =>
-    key
-      ? key
-          .split("")
+  const loadSharedSecrets = async () => {
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const sharedKeys = allKeys.filter((k) => k.startsWith("shared_key_"));
+      const entries = await AsyncStorage.multiGet(sharedKeys);
+
+      const items: SharedItem[] = [];
+      const visibilityMap: Record<string, boolean> = {};
+
+      for (const [storageKey, secret] of entries) {
+        const sharedKey = storageKey.replace("shared_key_", "");
+        let name = sharedKey;
+        visibilityMap[sharedKey] = false;
+
+        try {
+          const raw = await AsyncStorage.getItem(`user_profile_${sharedKey}`);
+          if (raw) {
+            const profile = JSON.parse(raw);
+            if (profile.name) {
+              name = profile.name;
+            }
+          }
+        } catch (e) {
+          console.warn(`Error parsing profile for ${sharedKey}`, e);
+        }
+
+        items.push({
+          name,
+          sharedPublicKey: sharedKey,
+          sharedSecret: secret || "",
+        });
+      }
+
+      setSharedList(items);
+      setVisibleSecrets(visibilityMap);
+    } catch (e) {
+      console.warn("Failed to load shared secrets", e);
+      setSharedList([]);
+    }
+  };
+
+  const maskString = (str: string | null): string =>
+    str
+      ? Array.from({ length: str.length })
           .map(() => (Math.random() > 0.5 ? "." : "-"))
           .join("")
       : "";
 
-  const ButtonWithScale = ({
-    onPress,
-    children,
-    style,
-    disabled,
-  }: {
-    onPress: () => void;
-    children: React.ReactNode;
-    style?: any;
-    disabled?: boolean;
-  }) => {
-    const scale = new Animated.Value(1);
-    const animate = (toValue: number) => {
-      Animated.spring(scale, { toValue, useNativeDriver: true }).start();
-    };
-    return (
-      <TouchableWithoutFeedback
-        onPressIn={() => animate(1.06)}
-        onPressOut={() => animate(1)}
-        onPress={onPress}
-        disabled={disabled}
-      >
-        <Animated.View style={[style, { transform: [{ scale }] }]}>
-          {children}
-        </Animated.View>
-      </TouchableWithoutFeedback>
-    );
+  const toggleSecretVisibility = (key: string) => {
+    setVisibleSecrets((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   };
 
-  const styles = getStyles();
+  const styles = getStyles(isDarkMode);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,7 +136,7 @@ export default function SecurityScreen() {
             <Text style={styles.backButtonText}>Back</Text>
           </View>
         </TouchableWithoutFeedback>
-        <View style={styles.headerTitleContainer} pointerEvents="none">
+        <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitleText}>Security</Text>
         </View>
       </View>
@@ -110,12 +145,13 @@ export default function SecurityScreen() {
         <ActivityIndicator size="large" style={{ marginTop: 40 }} />
       ) : (
         <View style={styles.contentContainer}>
+          {/* User Keys */}
           <Text style={styles.label}>Public Key:</Text>
-          <Text style={styles.keyBox}>{publicKey || "No key found."}</Text>
+          <Text style={styles.keyBox}>{userPublicKey ?? "No key found."}</Text>
 
           <Text style={styles.label}>Compressed Public Key:</Text>
           <Text style={styles.keyBox}>
-            {compressedPublicKey || "No compressed key found."}
+            {compressedPublicKey ?? "No compressed key found."}
           </Text>
 
           <Text style={styles.label}>Private Key:</Text>
@@ -124,26 +160,24 @@ export default function SecurityScreen() {
           >
             <View style={styles.privateKeyRow}>
               <Text style={styles.keyBox}>
-                {showPrivate ? privateKey : maskPrivateKey(privateKey)}
+                {showPrivate ? privateKey : maskString(privateKey)}
               </Text>
             </View>
           </TouchableWithoutFeedback>
 
+          {/* Actions */}
           <View style={styles.buttonWrapper}>
-            {actionLoading ? (
-              <View style={[styles.button, styles.neutralButton]}>
-                <Text style={styles.buttonTextDefault}>Changing...</Text>
-              </View>
-            ) : changeSuccess ? (
-              <ButtonWithScale
-                onPress={() => {}}
-                style={[styles.button, styles.blueOutline]}
-              >
-                <Text style={styles.blueText}>Successful</Text>
-              </ButtonWithScale>
-            ) : (
-              <ButtonWithScale
-                onPress={() => {
+            <Pressable
+              style={[
+                styles.button,
+                actionLoading
+                  ? styles.neutralButton
+                  : changeSuccess
+                  ? styles.blueOutline
+                  : styles.neutralButton,
+              ]}
+              onPress={() => {
+                if (!actionLoading && !changeSuccess) {
                   Alert.alert(
                     "Change Key Pair",
                     "Are you sure you want to generate a new key pair? This will replace your current keys.",
@@ -160,7 +194,7 @@ export default function SecurityScreen() {
                             () =>
                               refreshKeyData(
                                 setWalletAddress,
-                                setPublicKey,
+                                setUserPublicKey,
                                 setPrivateKey,
                                 setCompressedPublicKey,
                                 setLoading
@@ -169,87 +203,125 @@ export default function SecurityScreen() {
                       },
                     ]
                   );
-                }}
-                style={[styles.button, styles.neutralButton]}
+                }
+              }}
+            >
+              <Text
+                style={
+                  changeSuccess ? styles.blueText : styles.buttonTextDefault
+                }
               >
-                <Text style={styles.buttonTextDefault}>Change Key Pair</Text>
-              </ButtonWithScale>
-            )}
+                {actionLoading
+                  ? "Changing..."
+                  : changeSuccess
+                  ? "Successful"
+                  : "Change Key Pair"}
+              </Text>
+            </Pressable>
 
-            <ButtonWithScale
-              onPress={() => handleValidateKeys(walletAddress, setKeysValid)}
+            <Pressable
               style={[
                 styles.button,
                 keysValid ? styles.greenOutline : styles.neutralButton,
               ]}
+              onPress={() => handleValidateKeys(walletAddress, setKeysValid)}
             >
               <Text
                 style={keysValid ? styles.greenText : styles.buttonTextDefault}
               >
                 {keysValid ? "Valid Keys" : "Validate Keys"}
               </Text>
-            </ButtonWithScale>
+            </Pressable>
           </View>
+
+          {/* Shared Secrets */}
+          <Text style={styles.label}>Shared Secrets</Text>
+          <FlatList
+            data={sharedList}
+            keyExtractor={(item) => item.sharedPublicKey}
+            renderItem={({ item }) => (
+              <View style={styles.sharedItem}>
+                <View style={styles.sharedRow}>
+                  <Text style={styles.sharedLabel}>Name:</Text>
+                  <Text style={styles.sharedValueName}>{item.name}</Text>
+                </View>
+                <View style={styles.sharedRow}>
+                  <Text style={styles.sharedLabel}>Public Key:</Text>
+                  <Text style={styles.sharedValue}>{item.sharedPublicKey}</Text>
+                </View>
+                <Pressable
+                  onPress={() => toggleSecretVisibility(item.sharedPublicKey)}
+                >
+                  <View style={styles.sharedRowLast}>
+                    <Text style={styles.sharedLabel}>Shared Secret:</Text>
+                    <Text style={styles.sharedValue}>
+                      {visibleSecrets[item.sharedPublicKey]
+                        ? item.sharedSecret
+                        : maskString(item.sharedSecret)}
+                    </Text>
+                  </View>
+                </Pressable>
+              </View>
+            )}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListEmptyComponent={
+              <Text style={styles.infoText}>No shared secrets found.</Text>
+            }
+            style={{ marginBottom: 24 }}
+          />
         </View>
       )}
     </SafeAreaView>
   );
-}
+};
 
-const getStyles = () =>
+export default SecurityScreen;
+
+const getStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: "#F2F2F2",
-    },
+    container: { flex: 1, backgroundColor: isDarkMode ? "#1C1C1D" : "#F2F2F2" },
     headerContainer: {
       flexDirection: "row",
       alignItems: "center",
       height: 40,
       paddingHorizontal: 16,
-      backgroundColor: "#F2F2F2",
+      backgroundColor: isDarkMode ? "#1C1C1D" : "#F2F2F2",
     },
-    backButton: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    backButtonText: {
-      fontSize: 17,
-      color: "#007AFF",
-      marginLeft: 4,
-    },
+    backButton: { flexDirection: "row", alignItems: "center" },
+    backButtonText: { fontSize: 17, color: "#007AFF", marginLeft: 4 },
     headerTitleContainer: {
-      flex: 1,
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
       justifyContent: "center",
       alignItems: "center",
+      zIndex: 0,
     },
     headerTitleText: {
       fontSize: 20,
       fontWeight: "600",
-      color: "#333333",
+      fontFamily: "SF-Pro-Text-Medium",
+      color: isDarkMode ? "#fff" : "#333333",
     },
-    contentContainer: {
-      marginTop: 40,
-      paddingHorizontal: 20,
-    },
+    contentContainer: { marginTop: 40, paddingHorizontal: 20 },
     label: {
       fontSize: 16,
       fontWeight: "bold",
       marginBottom: 8,
-      color: "#333",
+      color: isDarkMode ? "#fff" : "#333",
     },
     keyBox: {
       fontSize: 15,
-      backgroundColor: "#fff",
+      backgroundColor: isDarkMode ? "#121212" : "#fff",
       padding: 12,
       borderRadius: 8,
       marginBottom: 24,
       fontFamily: "monospace",
-      color: "#333",
+      color: isDarkMode ? "#fff" : "#333",
     },
-    privateKeyRow: {
-      marginBottom: 24,
-    },
+    privateKeyRow: { marginBottom: 24 },
     buttonWrapper: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -269,7 +341,7 @@ const getStyles = () =>
     },
     neutralButton: {
       backgroundColor: "transparent",
-      borderColor: "#999999",
+      borderColor: isDarkMode ? "#555" : "#999",
     },
     blueOutline: {
       backgroundColor: "transparent",
@@ -279,19 +351,52 @@ const getStyles = () =>
       backgroundColor: "transparent",
       borderColor: "#34C759",
     },
-    blueText: {
-      fontSize: 16,
-      fontWeight: "600",
-      color: "#007AFF",
-    },
-    greenText: {
-      fontSize: 16,
-      fontWeight: "600",
-      color: "#34C759",
-    },
+    blueText: { fontSize: 16, fontWeight: "600", color: "#007AFF" },
+    greenText: { fontSize: 16, fontWeight: "600", color: "#34C759" },
     buttonTextDefault: {
       fontSize: 16,
       fontWeight: "600",
-      color: "#666666",
+      color: isDarkMode ? "#ccc" : "#666",
+    },
+    infoText: {
+      fontSize: 14,
+      color: isDarkMode ? "#aaa" : "#888",
+      textAlign: "center",
+      marginTop: 10,
+    },
+    sharedItem: {
+      backgroundColor: isDarkMode ? "#222" : "#fff",
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 12,
+    },
+    sharedRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 8,
+    },
+    sharedRowLast: { flexDirection: "row", justifyContent: "space-between" },
+    sharedLabel: {
+      width: 100,
+      fontSize: 14,
+      fontWeight: "600",
+      color: isDarkMode ? "#fff" : "#333",
+    },
+    sharedValue: {
+      flex: 1,
+      fontSize: 14,
+      color: isDarkMode ? "#fff" : "#555",
+      marginLeft: 8,
+    },
+    sharedValueName: {
+      flex: 1,
+      fontSize: 15,
+      color: isDarkMode ? "#fff" : "#555",
+      marginLeft: 8,
+    },
+    separator: {
+      height: 1,
+      backgroundColor: isDarkMode ? "#333" : "#e0e0e0",
+      marginVertical: 8,
     },
   });
