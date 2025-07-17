@@ -1,3 +1,4 @@
+// ✅ Same imports
 import React, { useCallback, useState } from "react";
 import {
   View,
@@ -23,6 +24,7 @@ import { useLogout } from "../../utils/AuthenticationUtils/Logout";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// ✅ Navigation type
 export type SettingsStackParamList = {
   Settings: undefined;
   Appearance: undefined;
@@ -38,23 +40,14 @@ type SettingsNavigationProp = StackNavigationProp<
   "Settings"
 >;
 
-const phoneIcon = require("../../assets/images/fc.jpg");
-const moonIcon = require("../../assets/images/fc.jpg");
-const bellIcon = require("../../assets/images/fc.jpg");
-const lockIcon = require("../../assets/images/fc.jpg");
-const paintIcon = require("../../assets/images/fc.jpg");
-const hapticIcon = require("../../assets/images/fc.jpg");
-
 export default function SettingsScreen() {
   const { currentTheme, toggleTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
   const [copied, setCopied] = useState(false);
   const navigation = useNavigation<SettingsNavigationProp>();
   const logout = useLogout();
-
   const [userData, setUserData] = useState<UserData | null>(null);
 
-  // Load user data each time settings is loaded
   useFocusEffect(
     useCallback(() => {
       loadUserData();
@@ -66,7 +59,6 @@ export default function SettingsScreen() {
       const storedData = await AsyncStorage.getItem("userData");
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        console.log("📱 Loaded user data in settings");
         setUserData(parsedData);
       } else {
         const walletAddress = await AsyncStorage.getItem("walletAddress");
@@ -78,7 +70,6 @@ export default function SettingsScreen() {
         }
       }
     } catch (error) {
-      console.error("Error loading user data:", error);
       const walletAddress = await AsyncStorage.getItem("walletAddress");
       if (walletAddress) {
         setUserData({
@@ -140,6 +131,7 @@ export default function SettingsScreen() {
           )}
         </TouchableOpacity>
       </View>
+
       <ScrollView style={styles.scrollContainer}>
         <TouchableOpacity
           style={styles.profileContainer}
@@ -161,100 +153,110 @@ export default function SettingsScreen() {
           <ProfileRightArrow />
         </TouchableOpacity>
 
+        {/* Security Settings */}
         <TouchableOpacity onPress={() => navigation.navigate("Security")}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
-              <View
-                style={[styles.iconBackground, { backgroundColor: "#4CD964" }]}
-              >
-                <Image source={phoneIcon} style={styles.icon} />
-              </View>
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={24}
+                color={isDarkMode ? "#FFF" : "#000"}
+                style={{ marginRight: 12 }}
+              />
               <Text style={styles.itemTitle}>Security Settings</Text>
             </View>
             <RightArrow />
           </View>
         </TouchableOpacity>
 
+        {/* Theme */}
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
-            <View style={[styles.iconBackground, { backgroundColor: "#000" }]}>
-              <Image source={moonIcon} style={styles.icon} />
-            </View>
+            <Ionicons
+              name={isDarkMode ? "moon" : "sunny"}
+              size={24}
+              color={isDarkMode ? "#FFF" : "#000"}
+              style={{ marginRight: 12 }}
+            />
             <Text style={styles.itemTitle}>
               {isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             </Text>
           </View>
-          <View style={styles.switchContainer}>
-            <Switch value={isDarkMode} onValueChange={toggleDarkMode} />
-          </View>
+          <Switch value={isDarkMode} onValueChange={toggleDarkMode} />
         </View>
 
+        {/* Notifications */}
         <TouchableOpacity onPress={() => navigation.navigate("Notifications")}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
-              <View
-                style={[styles.iconBackground, { backgroundColor: "#FF9500" }]}
-              >
-                <Image source={bellIcon} style={styles.icon} />
-              </View>
+              <Ionicons
+                name="notifications-outline"
+                size={24}
+                color={isDarkMode ? "#FFF" : "#000"}
+                style={{ marginRight: 12 }}
+              />
               <Text style={styles.itemTitle}>Notifications</Text>
             </View>
             <RightArrow />
           </View>
         </TouchableOpacity>
 
+        {/* Appearance */}
         <TouchableOpacity onPress={() => navigation.navigate("Appearance")}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
-              <View
-                style={[styles.iconBackground, { backgroundColor: "#AF52DE" }]}
-              >
-                <Image source={paintIcon} style={styles.icon} />
-              </View>
+              <Ionicons
+                name="color-palette-outline"
+                size={24}
+                color={isDarkMode ? "#FFF" : "#000"}
+                style={{ marginRight: 12 }}
+              />
               <Text style={styles.itemTitle}>Appearance</Text>
             </View>
             <RightArrow />
           </View>
         </TouchableOpacity>
 
+        {/* Haptic Feedback */}
         <TouchableOpacity onPress={() => navigation.navigate("HapticFeedback")}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
-              <View
-                style={[styles.iconBackground, { backgroundColor: "#5AC8FA" }]}
-              >
-                <Image source={hapticIcon} style={styles.icon} />
-              </View>
+              <Ionicons
+                name="hardware-chip-outline"
+                size={24}
+                color={isDarkMode ? "#FFF" : "#000"}
+                style={{ marginRight: 12 }}
+              />
               <Text style={styles.itemTitle}>Turn on Haptic Feedback</Text>
             </View>
             <RightArrow />
           </View>
         </TouchableOpacity>
 
+        {/* Privacy */}
         <TouchableOpacity onPress={() => navigation.navigate("PrivacyPolicy")}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
-              <View
-                style={[styles.iconBackground, { backgroundColor: "#8E8E93" }]}
-              >
-                <Image source={lockIcon} style={styles.icon} />
-              </View>
+              <Ionicons
+                name="lock-closed-outline"
+                size={24}
+                color={isDarkMode ? "#FFF" : "#000"}
+                style={{ marginRight: 12 }}
+              />
               <Text style={styles.itemTitle}>Privacy and Security</Text>
             </View>
             <RightArrow />
           </View>
         </TouchableOpacity>
 
+        {/* Logout / Delete */}
         <View style={styles.accountActionsContainer}>
           <TouchableOpacity onPress={() => logout()}>
             <View style={styles.accountActionItem}>
               <Text style={styles.deleteTitle}>Logout</Text>
             </View>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => console.log("Delete Account pressed")}
-          >
+          <TouchableOpacity onPress={() => console.log("Delete Account")}>
             <View style={styles.accountActionItem}>
               <Text style={[styles.deleteTitle, { color: "#FF3B30" }]}>
                 Delete Account
@@ -325,7 +327,7 @@ const getStyles = (isDarkMode: boolean) =>
     },
     profileAddress: {
       fontSize: 13,
-      color: isDarkMode ? "#1E90FF" : "#1E90FF",
+      color: "#1E90FF",
       marginTop: 4,
     },
     settingsItem: {
@@ -342,19 +344,6 @@ const getStyles = (isDarkMode: boolean) =>
       flexDirection: "row",
       alignItems: "center",
     },
-    iconBackground: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: 12,
-    },
-    icon: {
-      width: 16,
-      height: 16,
-      tintColor: "#FFFFFF",
-    },
     itemTitle: {
       fontSize: 16,
       color: isDarkMode ? "#fff" : "#333333",
@@ -362,10 +351,6 @@ const getStyles = (isDarkMode: boolean) =>
     deleteTitle: {
       fontSize: 16,
       color: "#EB5545",
-    },
-    switchContainer: {
-      flexDirection: "row",
-      alignItems: "center",
     },
     arrowIcon: {
       width: 7,
