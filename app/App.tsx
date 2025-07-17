@@ -8,7 +8,7 @@ import { useFonts } from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthScreen from './screens/Authentication';
 import TermsOfServiceScreen from './screens/TermsOfService';
-import PrivacyPolicyScreen from './screens/Privacyolicy';
+import PrivacyPolicyScreen from './screens/PrivacyPolicy';
 import ChatDetailScreen from './screens/ChatDetailScreen';
 import BottomTabs from './screens/BottomTabs';
 import '@ethersproject/shims';
