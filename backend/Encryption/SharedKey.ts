@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../Supabase/Supabase';
 import { p256 } from '@noble/curves/p256';
 import { base64 } from '@scure/base';
-import { bytesToHex } from '@noble/curves/abstract/utils';
+import { hexToBytes } from '@noble/hashes/utils';
 
 // Helper: Convert Uint8Array to hex string
 const toHex = (bytes: Uint8Array): string =>
@@ -46,11 +46,11 @@ export async function deriveSharedKeyWithUser(
 
     // 4. Validate public key is on curve
     console.log("🔬 Validating public key on curve...");
-    const point = p256.ProjectivePoint.fromHex(theirPublicKeyUncompressed);
+    const point = p256.Point.fromHex(theirPublicKeyUncompressed);
     console.log("✅ Public key is valid on the curve.");
 
     // 5. Compress it for shared secret derivation
-    const theirPublicKeyCompressed = point.toRawBytes(true);
+    const theirPublicKeyCompressed = hexToBytes(point.toHex(true));
     console.log("📎 Compressed public key byte 0 (should be 0x02 or 0x03):", theirPublicKeyCompressed[0]);
 
     const fullSharedSecret = p256.getSharedSecret(ownPrivateKeyBytes, theirPublicKeyCompressed);
@@ -64,6 +64,20 @@ export async function deriveSharedKeyWithUser(
 
   } catch (error) {
     console.error("❌ Error in deriveAndStoreSharedKey:", error);
+    return null;
+  }
+}
+
+export function getCompressedPublicKey(publicKeyB64: string): string | null {
+  try {
+    if (typeof publicKeyB64 !== 'string' || !publicKeyB64) return null;
+    const publicKeyBytes = base64.decode(publicKeyB64);
+    const point = p256.Point.fromHex(publicKeyBytes);
+    const compressedHex = point.toHex(true); // compressed hex
+    const compressedBytes = hexToBytes(compressedHex);
+    return base64.encode(compressedBytes);
+  } catch (e) {
+    console.error('Compress error:', e);
     return null;
   }
 }

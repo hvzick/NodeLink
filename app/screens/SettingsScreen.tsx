@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -7,18 +7,21 @@ import {
   Switch,
   TouchableOpacity,
   StyleSheet,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { copyToClipboard } from '../../utils/GlobalUtils/CopyToClipboard';
-import { useThemeToggle } from '../../utils/GlobalUtils/ThemeProvider';
-import { UserData, DEFAULT_USER_DATA } from '../../backend/Supabase/RegisterUser';
-import ArrowSVG from '../../assets/images/arrow-icon.svg';
-import ProfileArrowSvg from '../../assets/images/profile-arrow-icon.svg';
-import { useLogout } from '../../utils/AuthenticationUtils/Logout';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { copyToClipboard } from "../../utils/GlobalUtils/CopyToClipboard";
+import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
+import {
+  UserData,
+  DEFAULT_USER_DATA,
+} from "../../backend/Supabase/RegisterUser";
+import ArrowSVG from "../../assets/images/arrow-icon.svg";
+import ProfileArrowSvg from "../../assets/images/profile-arrow-icon.svg";
+import { useLogout } from "../../utils/AuthenticationUtils/Logout";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export type SettingsStackParamList = {
   Settings: undefined;
@@ -27,20 +30,24 @@ export type SettingsStackParamList = {
   Notifications: undefined;
   HapticFeedback: undefined;
   PrivacyPolicy: undefined;
+  Security: undefined;
 };
 
-type SettingsNavigationProp = StackNavigationProp<SettingsStackParamList, 'Settings'>;
+type SettingsNavigationProp = StackNavigationProp<
+  SettingsStackParamList,
+  "Settings"
+>;
 
-const phoneIcon = require('../../assets/images/fc.jpg');
-const moonIcon = require('../../assets/images/fc.jpg');
-const bellIcon = require('../../assets/images/fc.jpg');
-const lockIcon = require('../../assets/images/fc.jpg');
-const paintIcon = require('../../assets/images/fc.jpg');
-const hapticIcon = require('../../assets/images/fc.jpg');
+const phoneIcon = require("../../assets/images/fc.jpg");
+const moonIcon = require("../../assets/images/fc.jpg");
+const bellIcon = require("../../assets/images/fc.jpg");
+const lockIcon = require("../../assets/images/fc.jpg");
+const paintIcon = require("../../assets/images/fc.jpg");
+const hapticIcon = require("../../assets/images/fc.jpg");
 
 export default function SettingsScreen() {
   const { currentTheme, toggleTheme } = useThemeToggle();
-  const isDarkMode = currentTheme === 'dark';
+  const isDarkMode = currentTheme === "dark";
   const [copied, setCopied] = useState(false);
   const navigation = useNavigation<SettingsNavigationProp>();
   const logout = useLogout();
@@ -102,27 +109,31 @@ export default function SettingsScreen() {
   );
 
   const ProfileRightArrow = () => (
-    <ProfileArrowSvg width={styles.profileArrowIcon.width} height={styles.profileArrowIcon.height} />
+    <ProfileArrowSvg
+      width={styles.profileArrowIcon.width}
+      height={styles.profileArrowIcon.height}
+    />
   );
 
   const profileImageSource =
-    userData && userData.avatar !== 'default'
+    userData && userData.avatar !== "default"
       ? { uri: userData.avatar }
-      : require('../../assets/images/default-avatar.jpg');
-
-  function handleLogout(arg0: any, setIsLoggedIn: any): void {
-    throw new Error('Function not implemented.');
-  }
+      : require("../../assets/images/default-avatar.jpg");
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
         <TouchableOpacity onPress={handleCopyAddress}>
           {copied ? (
             <View style={styles.copyContainer}>
               <Text style={styles.copyAddressButton}>Copied</Text>
-              <Ionicons name="checkmark" size={20} color="#007AFF" style={{ marginLeft: 5 }} />
+              <Ionicons
+                name="checkmark"
+                size={20}
+                color="#007AFF"
+                style={{ marginLeft: 5 }}
+              />
             </View>
           ) : (
             <Text style={styles.copyAddressButton}>Copy Address</Text>
@@ -130,16 +141,16 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
       <ScrollView style={styles.scrollContainer}>
-        <TouchableOpacity style={styles.profileContainer} onPress={() => navigation.navigate('MyProfile')}>
-          <Image
-            source={profileImageSource}
-            style={styles.profileImage}
-          />
+        <TouchableOpacity
+          style={styles.profileContainer}
+          onPress={() => navigation.navigate("MyProfile")}
+        >
+          <Image source={profileImageSource} style={styles.profileImage} />
           <View style={styles.profileTextContainer}>
             <Text style={styles.profileName}>
               {userData
                 ? userData.name.length > 25
-                  ? userData.name.slice(0, 25) + '...'
+                  ? userData.name.slice(0, 25) + "..."
                   : userData.name
                 : "NodeLink User"}
             </Text>
@@ -150,23 +161,27 @@ export default function SettingsScreen() {
           <ProfileRightArrow />
         </TouchableOpacity>
 
-        <View style={styles.settingsItem}>
-          <View style={styles.itemLeft}>
-            <View style={[styles.iconBackground, { backgroundColor: '#4CD964' }]}>
-              <Image source={phoneIcon} style={styles.icon} />
+        <TouchableOpacity onPress={() => navigation.navigate("Security")}>
+          <View style={styles.settingsItem}>
+            <View style={styles.itemLeft}>
+              <View
+                style={[styles.iconBackground, { backgroundColor: "#4CD964" }]}
+              >
+                <Image source={phoneIcon} style={styles.icon} />
+              </View>
+              <Text style={styles.itemTitle}>Security Settings</Text>
             </View>
-            <Text style={styles.itemTitle}>Security Settings</Text>
+            <RightArrow />
           </View>
-          <RightArrow />
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.settingsItem}>
           <View style={styles.itemLeft}>
-            <View style={[styles.iconBackground, { backgroundColor: '#000' }]}>
+            <View style={[styles.iconBackground, { backgroundColor: "#000" }]}>
               <Image source={moonIcon} style={styles.icon} />
             </View>
             <Text style={styles.itemTitle}>
-              {isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              {isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             </Text>
           </View>
           <View style={styles.switchContainer}>
@@ -174,10 +189,12 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+        <TouchableOpacity onPress={() => navigation.navigate("Notifications")}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
-              <View style={[styles.iconBackground, { backgroundColor: '#FF9500' }]}>
+              <View
+                style={[styles.iconBackground, { backgroundColor: "#FF9500" }]}
+              >
                 <Image source={bellIcon} style={styles.icon} />
               </View>
               <Text style={styles.itemTitle}>Notifications</Text>
@@ -186,10 +203,12 @@ export default function SettingsScreen() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Appearance')}>
+        <TouchableOpacity onPress={() => navigation.navigate("Appearance")}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
-              <View style={[styles.iconBackground, { backgroundColor: '#AF52DE' }]}>
+              <View
+                style={[styles.iconBackground, { backgroundColor: "#AF52DE" }]}
+              >
                 <Image source={paintIcon} style={styles.icon} />
               </View>
               <Text style={styles.itemTitle}>Appearance</Text>
@@ -198,10 +217,12 @@ export default function SettingsScreen() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('HapticFeedback')}>
+        <TouchableOpacity onPress={() => navigation.navigate("HapticFeedback")}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
-              <View style={[styles.iconBackground, { backgroundColor: '#5AC8FA' }]}>
+              <View
+                style={[styles.iconBackground, { backgroundColor: "#5AC8FA" }]}
+              >
                 <Image source={hapticIcon} style={styles.icon} />
               </View>
               <Text style={styles.itemTitle}>Turn on Haptic Feedback</Text>
@@ -210,16 +231,18 @@ export default function SettingsScreen() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+        <TouchableOpacity onPress={() => navigation.navigate("PrivacyPolicy")}>
           <View style={styles.settingsItem}>
             <View style={styles.itemLeft}>
-              <View style={[styles.iconBackground, { backgroundColor: '#8E8E93' }]}>
+              <View
+                style={[styles.iconBackground, { backgroundColor: "#8E8E93" }]}
+              >
                 <Image source={lockIcon} style={styles.icon} />
               </View>
               <Text style={styles.itemTitle}>Privacy and Security</Text>
             </View>
-          <RightArrow />
-         </View>
+            <RightArrow />
+          </View>
         </TouchableOpacity>
 
         <View style={styles.accountActionsContainer}>
@@ -229,9 +252,13 @@ export default function SettingsScreen() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => console.log('Delete Account pressed')}>
+          <TouchableOpacity
+            onPress={() => console.log("Delete Account pressed")}
+          >
             <View style={styles.accountActionItem}>
-              <Text style={[styles.deleteTitle, { color: '#FF3B30' }]}>Delete Account</Text>
+              <Text style={[styles.deleteTitle, { color: "#FF3B30" }]}>
+                Delete Account
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -244,35 +271,35 @@ const getStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDarkMode ? '#1C1C1D' : '#F2F2F2',
+      backgroundColor: isDarkMode ? "#1C1C1D" : "#F2F2F2",
     },
     header: {
       height: 60,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: 16,
     },
     headerTitle: {
       fontSize: 25,
-      fontWeight: '600',
-      color: isDarkMode ? '#fff' : '#333333',
+      fontWeight: "600",
+      color: isDarkMode ? "#fff" : "#333333",
     },
     copyAddressButton: {
       fontSize: 13,
-      color: '#007AFF',
+      color: "#007AFF",
     },
     copyContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
     },
     scrollContainer: {
       flex: 1,
     },
     profileContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: isDarkMode ? "#121212" : "#FFFFFF",
       padding: 16,
       height: 120,
       marginBottom: 35,
@@ -282,7 +309,7 @@ const getStyles = (isDarkMode: boolean) =>
       height: 75,
       borderRadius: 40,
       marginRight: 12,
-      backgroundColor: '#ccc',
+      backgroundColor: "#ccc",
     },
     profileTextContainer: {
       flex: 1,
@@ -291,80 +318,80 @@ const getStyles = (isDarkMode: boolean) =>
     },
     profileName: {
       fontSize: 19,
-      fontFamily: 'SF-Pro-Text-Medium',
-      fontWeight: '600',
-      color: isDarkMode ? '#fff' : '#333333',
+      fontFamily: "SF-Pro-Text-Medium",
+      fontWeight: "600",
+      color: isDarkMode ? "#fff" : "#333333",
       marginBottom: 4,
     },
     profileAddress: {
       fontSize: 13,
-      color: isDarkMode ? '#1E90FF' : '#1E90FF',
+      color: isDarkMode ? "#1E90FF" : "#1E90FF",
       marginTop: 4,
     },
     settingsItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: isDarkMode ? "#121212" : "#FFFFFF",
       paddingHorizontal: 16,
       paddingVertical: 14,
       borderBottomWidth: 1,
-      borderBottomColor: isDarkMode ? '#333' : '#EFEFEF',
-      justifyContent: 'space-between',
+      borderBottomColor: isDarkMode ? "#333" : "#EFEFEF",
+      justifyContent: "space-between",
     },
     itemLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
     },
     iconBackground: {
       width: 28,
       height: 28,
       borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       marginRight: 12,
     },
     icon: {
       width: 16,
       height: 16,
-      tintColor: '#FFFFFF',
+      tintColor: "#FFFFFF",
     },
     itemTitle: {
       fontSize: 16,
-      color: isDarkMode ? '#fff' : '#333333',
+      color: isDarkMode ? "#fff" : "#333333",
     },
     deleteTitle: {
       fontSize: 16,
-      color: '#EB5545',
+      color: "#EB5545",
     },
     switchContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
     },
     arrowIcon: {
       width: 7,
       height: 12,
       marginLeft: 8,
-      tintColor: '#3C3C43',
+      tintColor: "#3C3C43",
     },
     profileArrowIcon: {
       width: 12,
       height: 18,
       marginLeft: 8,
-      tintColor: '#3C3C43',
+      tintColor: "#3C3C43",
     },
     accountActionsContainer: {
       marginTop: 35,
       borderTopWidth: 1,
-      borderTopColor: isDarkMode ? '#333' : '#ddd',
+      borderTopColor: isDarkMode ? "#333" : "#ddd",
     },
     accountActionItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: isDarkMode ? "#121212" : "#FFFFFF",
       paddingHorizontal: 16,
       paddingVertical: 14,
       borderBottomWidth: 1,
-      borderBottomColor: isDarkMode ? '#333' : '#EFEFEF',
+      borderBottomColor: isDarkMode ? "#333" : "#EFEFEF",
     },
   });

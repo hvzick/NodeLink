@@ -62,3 +62,18 @@ export const generateAndStoreKeys = async (
     return null;
   }
 };
+
+export function validateKeyPair(publicKeyB64: string, privateKeyB64: string): boolean {
+  try {
+    const privateKeyBytes = base64.decode(privateKeyB64);
+    const publicKeyBytes = base64.decode(publicKeyB64);
+    const derivedPublicKey = p256.getPublicKey(privateKeyBytes, false); // uncompressed
+    if (publicKeyBytes.length !== derivedPublicKey.length) return false;
+    for (let i = 0; i < publicKeyBytes.length; i++) {
+      if (publicKeyBytes[i] !== derivedPublicKey[i]) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}

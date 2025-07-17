@@ -49,7 +49,6 @@ const MessageInfoWindow: React.FC<MessageInfoWindowProps> = ({
     if (message) {
       infoWindowPosition.current?.setValue(defaultPosition);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message, defaultPosition]);
 
   const infoWindowPanResponder = useRef(

@@ -10,7 +10,7 @@ const toHex = (bytes: Uint8Array) =>
 /**
  * Load key pair from AsyncStorage.
  */
-const loadKeyPairFromStorage = async (
+export const loadKeyPairFromStorage = async (
   walletAddress: string
 ): Promise<{ publicKey: string; privateKey: string } | null> => {
   try {
@@ -26,7 +26,7 @@ const loadKeyPairFromStorage = async (
  * Validate that the public key matches the private key.
  * Compares uncompressed derived public key to stored key.
  */
-const isValidECDHKeyPair = (
+export const isValidECDHKeyPair = (
   publicKeyB64: string,
   privateKeyB64: string
 ): boolean => {
@@ -136,3 +136,5 @@ export const fixKeyPair = async (walletAddress: string) => {
     console.error("❌ Failed to fix key pair:", e);
   }
 };
+
+export { generateAndStoreKeys } from './KeyGen';
