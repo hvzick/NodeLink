@@ -110,6 +110,7 @@ const SecurityScreen: React.FC = () => {
       setSharedList([]);
     }
   };
+console.log("Rendering SecurityScreen");
 
   const maskString = (str: string | null): string =>
     str

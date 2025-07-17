@@ -50,8 +50,10 @@ import { RootStackParamList } from "../App";
 import { ensureDatabaseInitialized } from "../../backend/Local database/InitialiseDatabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../../backend/Supabase/Supabase";
-import { deriveSharedKeyWithUser } from "../../backend/Encryption/SharedKey";
-import { getCompressedPublicKey } from "../../backend/Encryption/SharedKey";
+import {
+  deriveSharedKeyWithUser,
+  getCompressedPublicKey,
+} from "../../backend/Encryption/SharedKey";
 import {
   playSendTone,
   initConversationTones,
@@ -226,7 +228,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       }
     };
     fetchUserAddress();
-  }, []);
+  }, [receiverAddress]);
 
   useEffect(() => {
     // Compare local and Supabase public keys for the receiver

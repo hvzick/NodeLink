@@ -1,26 +1,13 @@
 // utils/ChatDetailUtils/MessageLongPressMenu.tsx
 
 import React from "react";
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Clipboard,
-} from "react-native"; // Import Alert and Clipboard
+import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native"; // Import Alert and Clipboard
 import { Ionicons } from "@expo/vector-icons";
 import { Message } from "../../../backend/Local database/MessageStructure"; // Ensure this path is correct and Message has imageUrl/videoUrl
 import { copyToClipboard } from "../../GlobalUtils/CopyToClipboard";
 
 // Defines the options that can be selected from the menu
-export type MenuOption =
-  | "Info"
-  | "Reply"
-  | "Copy"
-  | "Delete"
-  | "Forward"
-  | "Delete Chat";
+export type MenuOption = "Info" | "Reply" | "Copy" | "Delete" | "Delete Chat";
 
 interface MessageLongPressMenuProps {
   isVisible: boolean;
@@ -66,9 +53,6 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   }
   // --- END MODIFIED COPY LOGIC ---
 
-  // 'Forward' is always an option
-  menuOptions.push({ name: "Forward", icon: "arrow-redo" });
-
   // Always show 'Delete Chat' at the bottom
   menuOptions.push({ name: "Delete Chat", icon: "trash-bin-outline" });
 
@@ -87,7 +71,6 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      {/* The overlay allows dismissing the menu by tapping anywhere else on the screen */}
       <TouchableOpacity
         style={styles.overlay}
         onPress={onClose}
