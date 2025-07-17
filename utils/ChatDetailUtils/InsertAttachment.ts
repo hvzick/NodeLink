@@ -1,6 +1,6 @@
 // utils/ChatDetailUtils/InsertAttachment.ts
 import * as ImagePicker from 'expo-image-picker';
-import { Message } from '../../backend/local database/MessageStructure';
+import { Message } from '../../backend/Local database/MessageStructure';
 
 export default async function handleAttachment(): Promise<Partial<Message> | null> {
   try {

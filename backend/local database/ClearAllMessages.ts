@@ -10,7 +10,7 @@ export const clearAllMessagesFromDB = async (): Promise<void> => {
     const db = await openDatabase();
     // This SQL command deletes every row from the 'messages' table.
     await db.runAsync('DELETE FROM messages;');
-    console.log('✅ All messages have been deleted from the local database.');
+    console.log('✅ All messages have been deleted from the Local database.');
   } catch (error) {
     console.error('❌ Error clearing messages from the database:', error);
     throw error; // Re-throw the error to be handled by the caller
