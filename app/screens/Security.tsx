@@ -5,20 +5,16 @@ import {
   TouchableWithoutFeedback,
   Animated,
   StyleSheet,
-  Alert,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  generateAndStoreKeys,
-  handleAndPublishKeys,
-} from "../../backend/Encryption/HandleKeys";
-import * as LocalAuthentication from "expo-local-authentication";
-import { getCompressedPublicKey } from "../../backend/Encryption/SharedKey";
-import { validateKeyPair } from "../../backend/Encryption/KeyGen";
+import { refreshKeyData } from "../../utils/Security/HandleRefreshData";
+import { handlePrivatePress } from "../../utils/Security/HandlePrivateKeyPress";
+import { handleChangeKey } from "../../utils/Security/HandleChangeKey";
+import { handleValidateKeys } from "../../utils/Security/HandleValidateKeys";
 
 export default function SecurityScreen() {
   const navigation = useNavigation();
@@ -35,7 +31,17 @@ export default function SecurityScreen() {
   const [keysValid, setKeysValid] = useState(false);
 
   useEffect(() => {
-    refreshKeyData();
+    refreshKeyData(
+      setWalletAddress,
+      setPublicKey,
+      setPrivateKey,
+      setCompressedPublicKey,
+      setLoading
+    );
+    return () => {
+      setKeysValid(false);
+      setChangeSuccess(false);
+    };
   }, []);
 
   useFocusEffect(
@@ -46,92 +52,6 @@ export default function SecurityScreen() {
       };
     }, [])
   );
-
-  const refreshKeyData = async () => {
-    const addr = await AsyncStorage.getItem("walletAddress");
-    setWalletAddress(addr);
-    if (addr) {
-      const raw = await AsyncStorage.getItem(`crypto_key_pair_${addr}`);
-      if (raw) {
-        const keyPair = JSON.parse(raw);
-        setPublicKey(keyPair.publicKey);
-        setPrivateKey(keyPair.privateKey);
-        try {
-          const compressed = getCompressedPublicKey(keyPair.publicKey);
-          setCompressedPublicKey(compressed);
-        } catch {
-          setCompressedPublicKey(null);
-        }
-      }
-    }
-    setLoading(false);
-  };
-
-  const handlePrivatePress = async () => {
-    if (showPrivate) return;
-    const hasHardware = await LocalAuthentication.hasHardwareAsync();
-    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-    if (!hasHardware || !isEnrolled) {
-      Alert.alert(
-        "Biometric authentication not available",
-        "No biometrics or device PIN enrolled."
-      );
-      return;
-    }
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: "Authenticate to view your private key",
-      fallbackLabel: "Enter device PIN",
-    });
-    if (result.success) setShowPrivate(true);
-    else
-      Alert.alert("Authentication failed", "Could not verify your identity.");
-  };
-
-  const handleChangeKey = async () => {
-    if (!walletAddress) return;
-    const oldRaw = await AsyncStorage.getItem(
-      `crypto_key_pair_${walletAddress}`
-    );
-    if (oldRaw) {
-      const oldKeyPair = JSON.parse(oldRaw);
-      await AsyncStorage.setItem(
-        `old_private_key_${walletAddress}`,
-        oldKeyPair.privateKey
-      );
-    }
-    Alert.alert(
-      "Change Key Pair",
-      "Are you sure you want to generate a new key pair? This will replace your current keys.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Change",
-          style: "destructive",
-          onPress: async () => {
-            setActionLoading(true);
-            setChangeSuccess(false);
-            await generateAndStoreKeys(walletAddress);
-            await handleAndPublishKeys(walletAddress);
-            await refreshKeyData();
-            setActionLoading(false);
-            setChangeSuccess(true);
-          },
-        },
-      ]
-    );
-  };
-
-  const handleValidateKeys = async () => {
-    if (!walletAddress) return;
-    const raw = await AsyncStorage.getItem(`crypto_key_pair_${walletAddress}`);
-    if (raw) {
-      const keyPair = JSON.parse(raw);
-      const valid = validateKeyPair(keyPair.publicKey, keyPair.privateKey);
-      setKeysValid(valid);
-    } else {
-      setKeysValid(false);
-    }
-  };
 
   const maskPrivateKey = (key: string | null): string =>
     key
@@ -199,7 +119,9 @@ export default function SecurityScreen() {
           </Text>
 
           <Text style={styles.label}>Private Key:</Text>
-          <TouchableWithoutFeedback onPress={handlePrivatePress}>
+          <TouchableWithoutFeedback
+            onPress={() => handlePrivatePress(showPrivate, setShowPrivate)}
+          >
             <View style={styles.privateKeyRow}>
               <Text style={styles.keyBox}>
                 {showPrivate ? privateKey : maskPrivateKey(privateKey)}
@@ -221,7 +143,33 @@ export default function SecurityScreen() {
               </ButtonWithScale>
             ) : (
               <ButtonWithScale
-                onPress={handleChangeKey}
+                onPress={() => {
+                  Alert.alert(
+                    "Change Key Pair",
+                    "Are you sure you want to generate a new key pair? This will replace your current keys.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Change",
+                        style: "destructive",
+                        onPress: () =>
+                          handleChangeKey(
+                            walletAddress,
+                            setActionLoading,
+                            setChangeSuccess,
+                            () =>
+                              refreshKeyData(
+                                setWalletAddress,
+                                setPublicKey,
+                                setPrivateKey,
+                                setCompressedPublicKey,
+                                setLoading
+                              )
+                          ),
+                      },
+                    ]
+                  );
+                }}
                 style={[styles.button, styles.neutralButton]}
               >
                 <Text style={styles.buttonTextDefault}>Change Key Pair</Text>
@@ -229,7 +177,7 @@ export default function SecurityScreen() {
             )}
 
             <ButtonWithScale
-              onPress={handleValidateKeys}
+              onPress={() => handleValidateKeys(walletAddress, setKeysValid)}
               style={[
                 styles.button,
                 keysValid ? styles.greenOutline : styles.neutralButton,
