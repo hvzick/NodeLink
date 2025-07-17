@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Platform,
+  Animated,
 } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,8 +27,11 @@ import { handleCopyUsername } from "../../utils/MyProfileUtils/CopyUsername";
 import { RootStackParamList } from "../App";
 import { useChat } from "../../utils/ChatUtils/ChatContext";
 import { loadUserData } from "../../utils/ProfileUtils/LoadUserData";
-import { handleConnect } from "../../utils/ProfileUtils/HandleConnect"; // This now imports the real logic
+import { handleConnect } from "../../utils/ProfileUtils/HandleConnect";
+import { generateSharedSecurityCode } from "../../backend/Encryption/SecurityCodeGen";
+import { copyToClipboard } from "../../utils/GlobalUtils/CopyToClipboard";
 import { handleSendMessage } from "../../utils/ProfileUtils/HandleGoToChat";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function UserProfile() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -45,7 +50,41 @@ export default function UserProfile() {
   const [isConnected, setIsConnected] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [sharedSecurityCode, setSharedSecurityCode] = useState<string | null>(
+    null
+  );
+
   const styles = getStyles(isDarkMode);
+  const [myPublicKey, setMyPublicKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const handleCopy = () => {
+    if (!sharedSecurityCode) return;
+    copyToClipboard(sharedSecurityCode);
+    setCopied(true);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => setCopied(false));
+      }, 1500);
+    });
+  };
+
+  useEffect(() => {
+    const fetchMyKey = async () => {
+      const key = await AsyncStorage.getItem("walletAddress"); // or "publicKey"
+      setMyPublicKey(key);
+    };
+    fetchMyKey();
+  }, []);
 
   useEffect(() => {
     if (walletAddress) {
@@ -54,14 +93,19 @@ export default function UserProfile() {
   }, [walletAddress]);
 
   useEffect(() => {
-    if (userData && chatList) {
+    if (userData && chatList && myPublicKey) {
       const conversationId = `convo_${userData.walletAddress}`;
       const exists = chatList.some((chat) => chat.id === conversationId);
       if (exists) {
         setIsConnected(true);
+        const code = generateSharedSecurityCode(
+          myPublicKey,
+          userData.walletAddress
+        );
+        setSharedSecurityCode(code);
       }
     }
-  }, [userData, chatList]);
+  }, [userData, chatList, myPublicKey]);
 
   // --- NEW: A self-contained handler function inside the component ---
   const connectToUser = async () => {
@@ -226,6 +270,39 @@ export default function UserProfile() {
               : "N/A"}
           </Text>
         </View>
+        {isConnected && sharedSecurityCode && (
+          <View style={[styles.infoRow, styles.securityBox]}>
+            <Text style={styles.label}>Shared Security Code</Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                copyToClipboard(sharedSecurityCode);
+                setCopied(true);
+                Animated.timing(fadeAnim, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start(() => {
+                  setTimeout(() => {
+                    Animated.timing(fadeAnim, {
+                      toValue: 0,
+                      duration: 300,
+                      useNativeDriver: true,
+                    }).start(() => setCopied(false));
+                  }, 1500);
+                });
+              }}
+            >
+              <Text style={styles.securityCode}>{sharedSecurityCode}</Text>
+            </TouchableOpacity>
+
+            {copied && (
+              <Animated.Text style={[styles.copiedText, { opacity: fadeAnim }]}>
+                ✅ Copied
+              </Animated.Text>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={styles.buttonContainer}>
@@ -418,5 +495,29 @@ const getStyles = (isDarkMode: boolean) =>
     },
     buttonTextDisabled: {
       color: isDarkMode ? "#555" : "#ccc",
+    },
+    securityBox: {
+      marginTop: 15,
+      padding: 10,
+      borderRadius: 10,
+      backgroundColor: isDarkMode ? "#2C2C2E" : "#F0F0F5",
+      alignItems: "center",
+    },
+    securityCode: {
+      fontSize: 24,
+      fontWeight: "800",
+      fontFamily: Platform.select({
+        ios: "Courier", // Built-in on iOS
+        android: "monospace", // Built-in on Android
+      }),
+      color: isDarkMode ? "#00FFAA" : "#007AFF",
+      letterSpacing: 2,
+      marginTop: 4,
+    },
+    copiedText: {
+      marginTop: 6,
+      fontSize: 14,
+      fontWeight: "500",
+      color: "green",
     },
   });

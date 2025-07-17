@@ -51,6 +51,7 @@ import { ensureDatabaseInitialized } from "../../backend/Local database/Initiali
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../../backend/Supabase/Supabase";
 import { deriveSharedKeyWithUser } from "../../backend/Encryption/SharedKey";
+import { getCompressedPublicKey } from "../../backend/Encryption/SharedKey";
 import {
   playSendTone,
   initConversationTones,
@@ -238,7 +239,12 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         let localPublicKey = null;
         if (localProfileRaw) {
           const localProfile = JSON.parse(localProfileRaw);
-          localPublicKey = localProfile.publicKey;
+          // Use the correct property and compress it
+          if (localProfile.public_key) {
+            localPublicKey = getCompressedPublicKey(localProfile.public_key);
+          } else if (localProfile.publicKey) {
+            localPublicKey = getCompressedPublicKey(localProfile.publicKey);
+          }
         }
 
         // 2. Fetch current public key from Supabase
@@ -251,9 +257,11 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           console.warn("Could not fetch public key from Supabase:", error);
           return;
         }
-        const supabasePublicKey = data.public_key;
+        // Compress the Supabase public key for comparison
+        const supabasePublicKey = getCompressedPublicKey(data.public_key);
 
         // 3. Compare
+        // console.log("local = ", localPublicKey, " supa = ", supabasePublicKey);
         if (localPublicKey !== supabasePublicKey) {
           console.warn(
             "Public key mismatch detected. Reloading user data and re-deriving shared key."
@@ -420,19 +428,21 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     }
     if (!isMessage(item)) return null;
     return (
-      <MessageBubble
-        message={item}
-        onImagePress={(uri) => handlerDependencies.setSelectedImage(uri)}
-        onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
-        onQuotedPress={handleQuotedPressWrapper}
-        onLongPress={handleLongPressWrapper}
-        highlighted={
-          item.id === highlightedMessageId || item.id === replyMessage?.id
-        }
-        isMenuVisibleForThisMessage={
-          menuVisible && selectedMessageForMenu?.id === item.id
-        }
-      />
+      <View style={styles.messageBubble}>
+        <MessageBubble
+          message={item}
+          onImagePress={(uri) => handlerDependencies.setSelectedImage(uri)}
+          onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
+          onQuotedPress={handleQuotedPressWrapper}
+          onLongPress={handleLongPressWrapper}
+          highlighted={
+            item.id === highlightedMessageId || item.id === replyMessage?.id
+          }
+          isMenuVisibleForThisMessage={
+            menuVisible && selectedMessageForMenu?.id === item.id
+          }
+        />
+      </View>
     );
   };
 
@@ -681,7 +691,6 @@ const getStyles = (theme: "light" | "dark") =>
     },
     headerLeft: { flexDirection: "row", alignItems: "center" },
     profileTapArea: {
-      // Added style for the new tappable area
       flexDirection: "row",
       alignItems: "center",
     },
@@ -834,6 +843,9 @@ const getStyles = (theme: "light" | "dark") =>
     infoValue: {
       color: theme === "dark" ? "#fff" : "#000",
       fontWeight: "500",
+    },
+    messageBubble: {
+      marginVertical: 2, // Adjust this value for more or less space
     },
   });
 

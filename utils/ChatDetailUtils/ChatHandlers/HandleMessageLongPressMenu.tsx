@@ -1,12 +1,26 @@
 // utils/ChatDetailUtils/MessageLongPressMenu.tsx
 
-import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Alert, Clipboard } from 'react-native'; // Import Alert and Clipboard
-import { Ionicons } from '@expo/vector-icons';
-import { Message } from '../../../backend/Local database/MessageStructure'; // Ensure this path is correct and Message has imageUrl/videoUrl
+import React from "react";
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Clipboard,
+} from "react-native"; // Import Alert and Clipboard
+import { Ionicons } from "@expo/vector-icons";
+import { Message } from "../../../backend/Local database/MessageStructure"; // Ensure this path is correct and Message has imageUrl/videoUrl
+import { copyToClipboard } from "../../GlobalUtils/CopyToClipboard";
 
 // Defines the options that can be selected from the menu
-export type MenuOption = 'Info' | 'Reply' | 'Copy' | 'Delete' | 'Forward' | 'Delete Chat';
+export type MenuOption =
+  | "Info"
+  | "Reply"
+  | "Copy"
+  | "Delete"
+  | "Forward"
+  | "Delete Chat";
 
 interface MessageLongPressMenuProps {
   isVisible: boolean;
@@ -28,9 +42,12 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   onDeleteChat,
 }) => {
   // Dynamically build the list of options based on message content and sender
-  const menuOptions: { name: MenuOption; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { name: 'Info', icon: 'information-circle-outline' },
-    { name: 'Reply', icon: 'arrow-undo' },
+  const menuOptions: {
+    name: MenuOption;
+    icon: keyof typeof Ionicons.glyphMap;
+  }[] = [
+    { name: "Info", icon: "information-circle-outline" },
+    { name: "Reply", icon: "arrow-undo" },
   ];
 
   // --- MODIFIED COPY LOGIC ---
@@ -45,35 +62,40 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
 
   // Only show 'Copy' if there is any content (text, image URL, or video URL) to copy
   if (copyContent) {
-    menuOptions.push({ name: 'Copy', icon: 'copy-outline' });
+    menuOptions.push({ name: "Copy", icon: "copy-outline" });
   }
   // --- END MODIFIED COPY LOGIC ---
 
   // 'Forward' is always an option
-  menuOptions.push({ name: 'Forward', icon: 'arrow-redo' });
-
+  menuOptions.push({ name: "Forward", icon: "arrow-redo" });
 
   // Always show 'Delete Chat' at the bottom
-  menuOptions.push({ name: 'Delete Chat', icon: 'trash-bin-outline' });
+  menuOptions.push({ name: "Delete Chat", icon: "trash-bin-outline" });
 
   // Handle the 'Copy' action directly within this component
   const handleCopy = () => {
     if (copyContent) {
-      Clipboard.setString(copyContent);
-      Alert.alert("Copied!", "Content copied to clipboard."); // User feedback
-    } else {
-      Alert.alert("Info", "Nothing to copy from this message.");
+      copyToClipboard(copyContent);
     }
     onClose(); // Close the menu after copying
   };
 
   return (
-    <Modal visible={isVisible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={isVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       {/* The overlay allows dismissing the menu by tapping anywhere else on the screen */}
-      <TouchableOpacity style={styles.overlay} onPress={onClose} activeOpacity={1}>
+      <TouchableOpacity
+        style={styles.overlay}
+        onPress={onClose}
+        activeOpacity={1}
+      >
         <View
           // Prevent menu from closing when tapping on the menu itself
-          onStartShouldSetResponder={() => true} 
+          onStartShouldSetResponder={() => true}
           style={[
             styles.menuContainer,
             { top: menuPosition.top, left: menuPosition.left },
@@ -84,9 +106,9 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
               key={option.name}
               style={styles.optionButton}
               onPress={() => {
-                if (option.name === 'Copy') {
+                if (option.name === "Copy") {
                   handleCopy(); // Handle copy action internally
-                } else if (option.name === 'Delete Chat') {
+                } else if (option.name === "Delete Chat") {
                   onDeleteChat();
                   onClose();
                 } else {
@@ -109,27 +131,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuContainer: {
-    position: 'absolute',
-    backgroundColor: '#fff',
+    position: "absolute",
+    backgroundColor: "#fff",
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    overflow: 'hidden', // Ensures the border radius is respected by children
+    overflow: "hidden", // Ensures the border radius is respected by children
   },
   optionButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 15,
     width: 160, // Fixed width for consistency
   },
   optionText: {
     fontSize: 16,
-    color: '#333',
+    color: "#333",
     marginRight: 15,
   },
 });

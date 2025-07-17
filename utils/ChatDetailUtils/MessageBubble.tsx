@@ -192,7 +192,7 @@ const getStyles = (theme: "light" | "dark") =>
     bubbleContainer: {
       maxWidth: "80%",
       paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingVertical: 5,
       borderRadius: 18,
       overflow: "hidden",
     },
