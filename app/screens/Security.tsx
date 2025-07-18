@@ -155,143 +155,155 @@ const SecurityScreen: React.FC = () => {
       {loading ? (
         <ActivityIndicator size="large" style={{ marginTop: 40 }} />
       ) : (
-        <View style={styles.contentContainer}>
-          {/* User Keys */}
-          <Text style={styles.label}>Public Key:</Text>
-          <Text style={styles.keyBox}>{userPublicKey ?? "No key found."}</Text>
+        <ScrollView
+          style={styles.scrollViewContainer}
+          showsVerticalScrollIndicator={true}
+          contentContainerStyle={styles.scrollViewContent}
+        >
+          <View style={styles.contentContainer}>
+            {/* User Keys */}
+            <Text style={styles.label}>Public Key:</Text>
+            <Text style={styles.keyBox}>
+              {userPublicKey ?? "No key found."}
+            </Text>
 
-          <Text style={styles.label}>Compressed Public Key:</Text>
-          <Text style={styles.keyBox}>
-            {compressedPublicKey ?? "No compressed key found."}
-          </Text>
+            <Text style={styles.label}>Compressed Public Key:</Text>
+            <Text style={styles.keyBox}>
+              {compressedPublicKey ?? "No compressed key found."}
+            </Text>
 
-          <Text style={styles.label}>Private Key:</Text>
-          <TouchableWithoutFeedback
-            onPress={() => handlePrivatePress(showPrivate, setShowPrivate)}
-          >
-            <View style={styles.privateKeyRow}>
-              <Text style={styles.keyBox}>
-                {showPrivate ? privateKey : maskString(privateKey)}
-              </Text>
+            <Text style={styles.label}>Private Key:</Text>
+            <TouchableWithoutFeedback
+              onPress={() => handlePrivatePress(showPrivate, setShowPrivate)}
+            >
+              <View style={styles.privateKeyRow}>
+                <Text style={styles.keyBox}>
+                  {showPrivate ? privateKey : maskString(privateKey)}
+                </Text>
+              </View>
+            </TouchableWithoutFeedback>
+
+            {/* Actions */}
+            <View style={styles.buttonWrapper}>
+              <Pressable
+                style={[
+                  styles.button,
+                  actionLoading
+                    ? styles.neutralButton
+                    : changeSuccess
+                    ? styles.blueOutline
+                    : styles.neutralButton,
+                ]}
+                onPress={() => {
+                  if (!actionLoading && !changeSuccess) {
+                    Alert.alert(
+                      "Change Key Pair",
+                      "Are you sure you want to generate a new key pair? This will replace your current keys.",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Change",
+                          style: "destructive",
+                          onPress: () =>
+                            handleChangeKey(
+                              walletAddress,
+                              setActionLoading,
+                              setChangeSuccess,
+                              () =>
+                                refreshKeyData(
+                                  setWalletAddress,
+                                  setUserPublicKey,
+                                  setPrivateKey,
+                                  setCompressedPublicKey,
+                                  setLoading
+                                )
+                            ),
+                        },
+                      ]
+                    );
+                  }
+                }}
+              >
+                <Text
+                  style={
+                    changeSuccess ? styles.blueText : styles.buttonTextDefault
+                  }
+                >
+                  {actionLoading
+                    ? "Changing..."
+                    : changeSuccess
+                    ? "Successful"
+                    : "Change Key Pair"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.button,
+                  keysValid ? styles.greenOutline : styles.neutralButton,
+                ]}
+                onPress={() => handleValidateKeys(walletAddress, setKeysValid)}
+              >
+                <Text
+                  style={
+                    keysValid ? styles.greenText : styles.buttonTextDefault
+                  }
+                >
+                  {keysValid ? "Valid Keys" : "Validate Keys"}
+                </Text>
+              </Pressable>
             </View>
-          </TouchableWithoutFeedback>
 
-          {/* Actions */}
-          <View style={styles.buttonWrapper}>
-            <Pressable
-              style={[
-                styles.button,
-                actionLoading
-                  ? styles.neutralButton
-                  : changeSuccess
-                  ? styles.blueOutline
-                  : styles.neutralButton,
-              ]}
-              onPress={() => {
-                if (!actionLoading && !changeSuccess) {
-                  Alert.alert(
-                    "Change Key Pair",
-                    "Are you sure you want to generate a new key pair? This will replace your current keys.",
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Change",
-                        style: "destructive",
-                        onPress: () =>
-                          handleChangeKey(
-                            walletAddress,
-                            setActionLoading,
-                            setChangeSuccess,
-                            () =>
-                              refreshKeyData(
-                                setWalletAddress,
-                                setUserPublicKey,
-                                setPrivateKey,
-                                setCompressedPublicKey,
-                                setLoading
-                              )
-                          ),
-                      },
-                    ]
-                  );
-                }
-              }}
-            >
-              <Text
-                style={
-                  changeSuccess ? styles.blueText : styles.buttonTextDefault
-                }
-              >
-                {actionLoading
-                  ? "Changing..."
-                  : changeSuccess
-                  ? "Successful"
-                  : "Change Key Pair"}
-              </Text>
-            </Pressable>
+            {/* Shared Secrets - Non-scrollable Container */}
+            <View style={styles.sharedSecretsContainer}>
+              <Text style={styles.label}>Shared Secrets</Text>
 
-            <Pressable
-              style={[
-                styles.button,
-                keysValid ? styles.greenOutline : styles.neutralButton,
-              ]}
-              onPress={() => handleValidateKeys(walletAddress, setKeysValid)}
-            >
-              <Text
-                style={keysValid ? styles.greenText : styles.buttonTextDefault}
-              >
-                {keysValid ? "Valid Keys" : "Validate Keys"}
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Shared Secrets - Scrollable Container */}
-          <View style={styles.sharedSecretsContainer}>
-            <Text style={styles.label}>Shared Secrets</Text>
-            <ScrollView
-              style={styles.scrollContainer}
-              showsVerticalScrollIndicator={true}
-            >
-              {sharedList.length === 0 ? (
-                <Text style={styles.infoText}>No shared secrets found.</Text>
-              ) : (
-                sharedList.map((item, index) => (
-                  <View key={item.sharedPublicKey}>
-                    <View style={styles.sharedItem}>
-                      <View style={styles.sharedRow}>
-                        <Text style={styles.sharedLabel}>Name:</Text>
-                        <Text style={styles.sharedValueName}>{item.name}</Text>
-                      </View>
-                      <View style={styles.sharedRow}>
-                        <Text style={styles.sharedLabel}>Public Key:</Text>
-                        <Text style={styles.sharedValue}>
-                          {item.sharedPublicKey}
-                        </Text>
-                      </View>
-                      <Pressable
-                        onPress={() =>
-                          toggleSecretVisibility(item.sharedPublicKey)
-                        }
-                      >
-                        <View style={styles.sharedRowLast}>
-                          <Text style={styles.sharedLabel}>Shared Secret:</Text>
-                          <Text style={styles.sharedValue}>
-                            {visibleSecrets[item.sharedPublicKey]
-                              ? item.sharedSecret
-                              : maskString(item.sharedSecret)}
+              <View style={styles.sharedSecretsContent}>
+                {sharedList.length === 0 ? (
+                  <Text style={styles.infoText}>No shared secrets found.</Text>
+                ) : (
+                  sharedList.map((item, index) => (
+                    <View key={item.sharedPublicKey}>
+                      <View style={styles.sharedItem}>
+                        <View style={styles.sharedRow}>
+                          <Text style={styles.sharedLabel}>Name:</Text>
+                          <Text style={styles.sharedValueName}>
+                            {item.name}
                           </Text>
                         </View>
-                      </Pressable>
+                        <View style={styles.sharedRow}>
+                          <Text style={styles.sharedLabel}>Public Key:</Text>
+                          <Text style={styles.sharedValue}>
+                            {item.sharedPublicKey}
+                          </Text>
+                        </View>
+                        <Pressable
+                          onPress={() =>
+                            toggleSecretVisibility(item.sharedPublicKey)
+                          }
+                        >
+                          <View style={styles.sharedRowLast}>
+                            <Text style={styles.sharedLabel}>
+                              Shared Secret:
+                            </Text>
+                            <Text style={styles.sharedValue}>
+                              {visibleSecrets[item.sharedPublicKey]
+                                ? item.sharedSecret
+                                : maskString(item.sharedSecret)}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      </View>
+                      {index < sharedList.length - 1 && (
+                        <View style={styles.separator} />
+                      )}
                     </View>
-                    {index < sharedList.length - 1 && (
-                      <View style={styles.separator} />
-                    )}
-                  </View>
-                ))
-              )}
-            </ScrollView>
+                  ))
+                )}
+              </View>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       )}
     </SafeAreaView>
   );
@@ -301,7 +313,10 @@ export default SecurityScreen;
 
 const getStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: isDarkMode ? "#1C1C1D" : "#F2F2F2" },
+    container: {
+      flex: 1,
+      backgroundColor: isDarkMode ? "#1C1C1D" : "#F2F2F2",
+    },
     headerContainer: {
       flexDirection: "row",
       alignItems: "center",
@@ -309,8 +324,15 @@ const getStyles = (isDarkMode: boolean) =>
       paddingHorizontal: 16,
       backgroundColor: isDarkMode ? "#1C1C1D" : "#F2F2F2",
     },
-    backButton: { flexDirection: "row", alignItems: "center" },
-    backButtonText: { fontSize: 17, color: "#007AFF", marginLeft: 4 },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    backButtonText: {
+      fontSize: 17,
+      color: "#007AFF",
+      marginLeft: 4,
+    },
     headerTitleContainer: {
       position: "absolute",
       top: 0,
@@ -327,7 +349,17 @@ const getStyles = (isDarkMode: boolean) =>
       fontFamily: "SF-Pro-Text-Medium",
       color: isDarkMode ? "#fff" : "#333333",
     },
-    contentContainer: { marginTop: 40, paddingHorizontal: 20, flex: 1 },
+    scrollViewContainer: {
+      flex: 1,
+    },
+    scrollViewContent: {
+      flexGrow: 1,
+      paddingBottom: 20,
+    },
+    contentContainer: {
+      marginTop: 40,
+      paddingHorizontal: 20,
+    },
     label: {
       fontSize: 16,
       fontWeight: "bold",
@@ -343,7 +375,9 @@ const getStyles = (isDarkMode: boolean) =>
       fontFamily: "monospace",
       color: isDarkMode ? "#fff" : "#333",
     },
-    privateKeyRow: { marginBottom: 24 },
+    privateKeyRow: {
+      marginBottom: 24,
+    },
     buttonWrapper: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -373,8 +407,16 @@ const getStyles = (isDarkMode: boolean) =>
       backgroundColor: "transparent",
       borderColor: "#34C759",
     },
-    blueText: { fontSize: 16, fontWeight: "600", color: "#007AFF" },
-    greenText: { fontSize: 16, fontWeight: "600", color: "#34C759" },
+    blueText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: "#007AFF",
+    },
+    greenText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: "#34C759",
+    },
     buttonTextDefault: {
       fontSize: 16,
       fontWeight: "600",
@@ -387,11 +429,9 @@ const getStyles = (isDarkMode: boolean) =>
       marginTop: 10,
     },
     sharedSecretsContainer: {
-      flex: 1,
-      marginBottom: 15,
+      marginBottom: 20,
     },
-    scrollContainer: {
-      maxHeight: 300,
+    sharedSecretsContent: {
       backgroundColor: isDarkMode ? "#222" : "#fff",
       borderRadius: 15,
       padding: 8,
@@ -407,7 +447,10 @@ const getStyles = (isDarkMode: boolean) =>
       justifyContent: "space-between",
       marginBottom: 8,
     },
-    sharedRowLast: { flexDirection: "row", justifyContent: "space-between" },
+    sharedRowLast: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+    },
     sharedLabel: {
       width: 100,
       fontSize: 14,
