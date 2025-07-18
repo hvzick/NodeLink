@@ -128,13 +128,29 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
                 style={styles.contentWrapper}
                 disabled={!quotedMsg}
               >
-                <View style={styles.replyPreview}>
+                <View
+                  style={[
+                    styles.replyPreview,
+                    isMe ? styles.replyPreviewRight : styles.replyPreviewLeft,
+                  ]}
+                >
                   {quotedMsg ? (
                     <>
-                      <Text style={styles.replyLabel}>
+                      <Text
+                        style={[
+                          styles.replyLabel,
+                          isMe ? styles.replyLabelRight : styles.replyLabelLeft,
+                        ]}
+                      >
                         Replying to {getReplyName(quotedMsg.sender)}
                       </Text>
-                      <Text numberOfLines={1} style={styles.replyText}>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.replyText,
+                          isMe ? styles.replyTextRight : styles.replyTextLeft,
+                        ]}
+                      >
                         {quotedMsg.text ||
                           (quotedMsg.imageUrl
                             ? "Image"
@@ -145,8 +161,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
                     </>
                   ) : (
                     <>
-                      <Text style={styles.replyLabel}>Replied to message</Text>
-                      <Text numberOfLines={1} style={styles.replyText}>
+                      <Text
+                        style={[
+                          styles.replyLabel,
+                          isMe ? styles.replyLabelRight : styles.replyLabelLeft,
+                        ]}
+                      >
+                        Replied to message
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.replyText,
+                          isMe ? styles.replyTextRight : styles.replyTextLeft,
+                        ]}
+                      >
                         {message.replyTo}
                       </Text>
                     </>
@@ -290,25 +319,52 @@ const getStyles = (theme: "light" | "dark") =>
       borderRadius: 10,
     },
     timeTextOverlay: { fontSize: 11, color: "#FFFFFF", fontWeight: "500" },
+
+    // Base reply preview styles
     replyPreview: {
-      backgroundColor:
-        theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
       borderRadius: 8,
-      borderLeftWidth: 3,
-      borderLeftColor: "#FFFFFf",
       padding: 8,
       marginBottom: 5,
+      borderLeftWidth: 3,
     },
+
+    // Reply preview for received messages (left side)
+    replyPreviewLeft: {
+      backgroundColor:
+        theme === "dark" ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)",
+      borderLeftColor: theme === "dark" ? "#FFFFFF" : "#666666",
+    },
+
+    // Reply preview for sent messages (right side)
+    replyPreviewRight: {
+      backgroundColor: "rgba(255,255,255,0.2)",
+      borderLeftColor: "#FFFFFF",
+    },
+
+    // Reply label styles
     replyLabel: {
       fontSize: 13,
       fontWeight: "600",
-      color: "#000000",
       marginBottom: 2,
     },
-    replyText: {
-      fontSize: 14,
+    replyLabelLeft: {
+      color: theme === "dark" ? "#FFFFFF" : "#666666",
+    },
+    replyLabelRight: {
       color: "#FFFFFF",
     },
+
+    // Reply text styles
+    replyText: {
+      fontSize: 14,
+    },
+    replyTextLeft: {
+      color: theme === "dark" ? "#CCCCCC" : "#888888",
+    },
+    replyTextRight: {
+      color: "rgba(255,255,255,0.9)",
+    },
+
     highlighted: { backgroundColor: theme === "dark" ? "#5A4A02" : "#FFF3B2" },
     contentWrapper: {},
   });
