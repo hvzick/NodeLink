@@ -45,8 +45,8 @@ export async function handleConnect(
   } catch (err) {
     console.error(`❌ Connection failed with ${recipientAddress}:`, err);
     Alert.alert(
-      "Connection Failed",
-      "Could not establish a secure session. The user's public key might be missing."
+      "Could not establish Shared Key",
+      "The user's public key is missing or invalid."
     );
     return false;
   }

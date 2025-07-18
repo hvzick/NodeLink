@@ -8,6 +8,7 @@ import {
   StyleSheet,
   FlatList,
   Pressable,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -245,41 +246,52 @@ const SecurityScreen: React.FC = () => {
             </Pressable>
           </View>
 
-          {/* Shared Secrets */}
-          <Text style={styles.label}>Shared Secrets</Text>
-          <FlatList
-            data={sharedList}
-            keyExtractor={(item) => item.sharedPublicKey}
-            renderItem={({ item }) => (
-              <View style={styles.sharedItem}>
-                <View style={styles.sharedRow}>
-                  <Text style={styles.sharedLabel}>Name:</Text>
-                  <Text style={styles.sharedValueName}>{item.name}</Text>
-                </View>
-                <View style={styles.sharedRow}>
-                  <Text style={styles.sharedLabel}>Public Key:</Text>
-                  <Text style={styles.sharedValue}>{item.sharedPublicKey}</Text>
-                </View>
-                <Pressable
-                  onPress={() => toggleSecretVisibility(item.sharedPublicKey)}
-                >
-                  <View style={styles.sharedRowLast}>
-                    <Text style={styles.sharedLabel}>Shared Secret:</Text>
-                    <Text style={styles.sharedValue}>
-                      {visibleSecrets[item.sharedPublicKey]
-                        ? item.sharedSecret
-                        : maskString(item.sharedSecret)}
-                    </Text>
+          {/* Shared Secrets - Scrollable Container */}
+          <View style={styles.sharedSecretsContainer}>
+            <Text style={styles.label}>Shared Secrets</Text>
+            <ScrollView
+              style={styles.scrollContainer}
+              showsVerticalScrollIndicator={true}
+            >
+              {sharedList.length === 0 ? (
+                <Text style={styles.infoText}>No shared secrets found.</Text>
+              ) : (
+                sharedList.map((item, index) => (
+                  <View key={item.sharedPublicKey}>
+                    <View style={styles.sharedItem}>
+                      <View style={styles.sharedRow}>
+                        <Text style={styles.sharedLabel}>Name:</Text>
+                        <Text style={styles.sharedValueName}>{item.name}</Text>
+                      </View>
+                      <View style={styles.sharedRow}>
+                        <Text style={styles.sharedLabel}>Public Key:</Text>
+                        <Text style={styles.sharedValue}>
+                          {item.sharedPublicKey}
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={() =>
+                          toggleSecretVisibility(item.sharedPublicKey)
+                        }
+                      >
+                        <View style={styles.sharedRowLast}>
+                          <Text style={styles.sharedLabel}>Shared Secret:</Text>
+                          <Text style={styles.sharedValue}>
+                            {visibleSecrets[item.sharedPublicKey]
+                              ? item.sharedSecret
+                              : maskString(item.sharedSecret)}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    </View>
+                    {index < sharedList.length - 1 && (
+                      <View style={styles.separator} />
+                    )}
                   </View>
-                </Pressable>
-              </View>
-            )}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListEmptyComponent={
-              <Text style={styles.infoText}>No shared secrets found.</Text>
-            }
-            style={{ marginBottom: 24 }}
-          />
+                ))
+              )}
+            </ScrollView>
+          </View>
         </View>
       )}
     </SafeAreaView>
@@ -316,7 +328,7 @@ const getStyles = (isDarkMode: boolean) =>
       fontFamily: "SF-Pro-Text-Medium",
       color: isDarkMode ? "#fff" : "#333333",
     },
-    contentContainer: { marginTop: 40, paddingHorizontal: 20 },
+    contentContainer: { marginTop: 40, paddingHorizontal: 20, flex: 1 },
     label: {
       fontSize: 16,
       fontWeight: "bold",
@@ -375,11 +387,21 @@ const getStyles = (isDarkMode: boolean) =>
       textAlign: "center",
       marginTop: 10,
     },
-    sharedItem: {
+    sharedSecretsContainer: {
+      flex: 1,
+      marginBottom: 24,
+    },
+    scrollContainer: {
+      maxHeight: 300,
       backgroundColor: isDarkMode ? "#222" : "#fff",
+      borderRadius: 8,
+      padding: 8,
+    },
+    sharedItem: {
+      backgroundColor: isDarkMode ? "#333" : "#f9f9f9",
       padding: 12,
       borderRadius: 8,
-      marginBottom: 12,
+      marginBottom: 8,
     },
     sharedRow: {
       flexDirection: "row",
@@ -407,7 +429,7 @@ const getStyles = (isDarkMode: boolean) =>
     },
     separator: {
       height: 1,
-      backgroundColor: isDarkMode ? "#333" : "#e0e0e0",
-      marginVertical: 8,
+      backgroundColor: isDarkMode ? "#444" : "#e0e0e0",
+      marginVertical: 4,
     },
   });

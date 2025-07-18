@@ -1,7 +1,7 @@
 import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { deleteMessagesByConversation } from "../../backend/Local database/SQLite/DeleteConversation";
-import { deleteConversationFromMyNode } from "../../backend/Gun Service/Messaging/DeleteFromGun"; // ✅ Import Gun delete
+import { deleteConversationFromMyNode } from "../../backend/Gun Service/Messaging/DeleteFromGun";
 
 /**
  * Handles the deletion of a chat item, including its messages from the database,
@@ -37,12 +37,17 @@ export const handleDeleteChat = (
             // 🧹 Step 3: Delete messages from local DB
             await deleteMessagesByConversation(conversationId);
 
-            // 🔑 Step 4: Remove shared key from local storage
-            const storageKey = `shared_key_${conversationId}`;
-            await AsyncStorage.removeItem(storageKey);
-            console.log(`🗑️ Shared key removed for: ${storageKey}`);
+            // 🔑 Step 4: Remove shared key from local storage (FIXED)
+            const sharedKeyStorageKey = `shared_key_${otherWallet}`;
+            await AsyncStorage.removeItem(sharedKeyStorageKey);
+            console.log(`🗑️ Shared key removed for: ${sharedKeyStorageKey}`);
 
-            // ✅ Step 5: Update UI
+            // 🔑 Step 5: Also remove user profile cache if it exists
+            const userProfileKey = `user_profile_${otherWallet}`;
+            await AsyncStorage.removeItem(userProfileKey);
+            console.log(`🗑️ User profile cache removed for: ${userProfileKey}`);
+
+            // ✅ Step 6: Update UI
             deleteChatFromUI();
           } catch (error) {
             console.error("Failed to complete chat deletion process:", error);
