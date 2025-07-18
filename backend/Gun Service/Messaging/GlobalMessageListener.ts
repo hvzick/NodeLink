@@ -3,12 +3,13 @@ import { Message } from "../../Local database/SQLite/MessageStructure";
 import { insertMessage } from "../../Local database/SQLite/InsertMessage";
 import { useChat, EventBus } from "../../../utils/ChatUtils/ChatContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fetchAndCacheUserProfile } from "../../../backend/Supabase/FetchAvatarAndName";
+import { loadChatProfiles } from "../../../utils/ChatUtils/HandleRefresh";
 import { listenForMessages } from "./RecieveMessages";
 import { gun } from "../GunState";
 import { decryptMessage } from "../../../backend/Encryption/Decrypt";
 import { deriveSharedKeyWithUser } from "../../../backend/Encryption/SharedKey";
 import { formatTimeForUser } from "../../../utils/GlobalUtils/FormatDate";
+import { ChatItemType } from "../../../utils/ChatUtils/ChatItemsTypes";
 
 const GlobalMessageListener = () => {
   const { addOrUpdateChat } = useChat();
@@ -34,7 +35,6 @@ const GlobalMessageListener = () => {
           msg.createdAt ||
           (msg.timestamp ? parseInt(msg.timestamp, 10) : Date.now());
         msg.receivedAt = Date.now();
-        // Important: Always ensure these two fields are set
         msg.encryptionVersion = msg.encryptionVersion || "AES-256-GCM";
         msg.readAt = typeof msg.readAt === "number" ? msg.readAt : null;
 
@@ -86,7 +86,12 @@ const GlobalMessageListener = () => {
 
         EventBus.emit("new-message", msg);
 
-        const profile = await fetchAndCacheUserProfile(msg.conversationId);
+        // FIX: call loadChatProfiles with [{ id: ... }]
+        const profiles = await loadChatProfiles([
+          { id: msg.conversationId } as ChatItemType,
+        ]);
+        const profile = profiles[msg.conversationId];
+
         if (!profile) {
           console.warn(`⚠️ No profile found for ${msg.sender}`);
           return;

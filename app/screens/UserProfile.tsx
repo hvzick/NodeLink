@@ -36,7 +36,7 @@ import {
   getUserDataFromSession,
   loadUserDataFromStorage,
   storeUserDataInStorage,
-} from "../../backend/Local database/AsyncStorage/Utilities/UtilityIndex";
+} from "../../backend/Local database/AsyncStorage/UserDataStorage/UtilityIndex";
 
 export default function UserProfile() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();

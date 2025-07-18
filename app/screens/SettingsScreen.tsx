@@ -10,6 +10,7 @@ import {
   StyleSheet,
   RefreshControl,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -20,7 +21,7 @@ import { UserData } from "../../backend/Supabase/RegisterUser";
 import {
   getUserDataFromSession,
   loadUserDataFromStorage,
-} from "../../backend/Local database/AsyncStorage/Utilities/UtilityIndex";
+} from "../../backend/Local database/AsyncStorage/UserDataStorage/UtilityIndex";
 import { refreshUserDataFromSupabase } from "../../backend/Supabase/RefreshUserData";
 import ArrowSVG from "../../assets/images/arrow-icon.svg";
 import ProfileArrowSvg from "../../assets/images/profile-arrow-icon.svg";
@@ -53,6 +54,7 @@ export default function SettingsScreen() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true); // Add image loading state
 
   // Load wallet address first
   useEffect(() => {
@@ -198,7 +200,23 @@ export default function SettingsScreen() {
           style={styles.profileContainer}
           onPress={() => navigation.navigate("MyProfile")}
         >
-          <Image source={profileImageSource} style={styles.profileImage} />
+          <View style={styles.profileImageContainer}>
+            <Image
+              source={profileImageSource}
+              style={styles.profileImage}
+              onLoadStart={() => setImageLoading(true)}
+              onLoadEnd={() => setImageLoading(false)}
+              onError={() => setImageLoading(false)}
+            />
+            {imageLoading && (
+              <View style={styles.imageLoadingOverlay}>
+                <ActivityIndicator
+                  size="small"
+                  color={isDarkMode ? "#fff" : "#007AFF"}
+                />
+              </View>
+            )}
+          </View>
           <View style={styles.profileTextContainer}>
             <Text style={styles.profileName}>
               {userData
@@ -367,12 +385,28 @@ const getStyles = (isDarkMode: boolean) =>
       height: 120,
       marginBottom: 35,
     },
+    profileImageContainer: {
+      position: "relative",
+      marginRight: 12,
+    },
     profileImage: {
       width: 75,
       height: 75,
       borderRadius: 40,
-      marginRight: 12,
       backgroundColor: "#ccc",
+    },
+    imageLoadingOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: 75,
+      height: 75,
+      borderRadius: 40,
+      backgroundColor: "rgba(0, 0, 0, 0.3)",
+      justifyContent: "center",
+      alignItems: "center",
     },
     profileTextContainer: {
       flex: 1,

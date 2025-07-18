@@ -4,7 +4,7 @@ import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./Supabase";
 import { UserData, DEFAULT_USER_DATA, registerUser } from "./RegisterUser";
-import { storeUserDataInStorage } from "../Local database/AsyncStorage/Utilities/UtilityIndex";
+import { storeUserDataInStorage } from "../Local database/AsyncStorage/UserDataStorage/UtilityIndex";
 
 export async function handleUserData(): Promise<UserData | null> {
   try {

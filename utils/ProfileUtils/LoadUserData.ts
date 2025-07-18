@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../backend/Supabase/Supabase';
-import { UserData } from '../../backend/Supabase/RegisterUser';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../../backend/Supabase/Supabase";
+import { UserData } from "../../backend/Supabase/RegisterUser";
 
 // Fetch and cache user profile data
 export const loadUserData = async (
@@ -11,9 +11,9 @@ export const loadUserData = async (
   setIsProfileLoading(true);
   try {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('wallet_address', address)
+      .from("profiles")
+      .select("*")
+      .eq("wallet_address", address)
       .single();
 
     if (data && !error) {
@@ -27,7 +27,10 @@ export const loadUserData = async (
         publicKey: data.public_key,
       };
       setUserData(formattedUser);
-      await AsyncStorage.setItem(`user_profile_${address}`, JSON.stringify(formattedUser));
+      await AsyncStorage.setItem(
+        `user_profile_${address}`,
+        JSON.stringify(formattedUser)
+      );
     } else {
       const cachedData = await AsyncStorage.getItem(`user_profile_${address}`);
       if (cachedData) {
@@ -36,6 +39,7 @@ export const loadUserData = async (
         setUserData(null);
       }
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (err) {
     setUserData(null);
   } finally {

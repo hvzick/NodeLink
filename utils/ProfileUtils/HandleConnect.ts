@@ -2,7 +2,7 @@
 import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { deriveSharedKeyWithUser } from "../../backend/Encryption/SharedKey";
-import { SessionKeyStore } from "../../backend/Local database/KeyStorage/SessionKeyStore";
+import { SessionKeyStore } from "../../backend/Local database/AsyncStorage/KeyStorage/SessionKeyStore";
 
 /**
  * Establishes a secure session by retrieving or deriving a shared key

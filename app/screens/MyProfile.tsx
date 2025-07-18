@@ -36,9 +36,11 @@ import { format } from "date-fns";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../backend/Supabase/Supabase";
 import "react-native-url-polyfill/auto";
-import { getUserDataFromSession } from "../../backend/Local database/AsyncStorage/Utilities/GetUserDataFromSession";
-import { loadUserDataFromStorage } from "../../backend/Local database/AsyncStorage/Utilities/LoadUserDataFromStorage";
-import { storeUserDataInStorage } from "../../backend/Local database/AsyncStorage/Utilities/UtilityIndex";
+import {
+  getUserDataFromSession,
+  loadUserDataFromStorage,
+  storeUserDataInStorage,
+} from "../../backend/Local database/AsyncStorage/UserDataStorage/UtilityIndex";
 import { updateUserData } from "../../utils/ProfileUtils/HandleUpdateUserData";
 
 export default function MyProfile() {
@@ -51,6 +53,7 @@ export default function MyProfile() {
   const [copyWalletText, setCopyWalletText] = useState("");
   const [copyUsernameText, setCopyUsernameText] = useState("");
   const [userData, setUserData] = useState<UserData | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sessionData, setSessionData] = useState<UserData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState("");

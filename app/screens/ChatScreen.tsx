@@ -26,8 +26,11 @@ import { searchUser } from "../../backend/Supabase/SearchUser";
 import RightActions, { SwipeAction } from "../../utils/ChatUtils/RightActions";
 import { useChat } from "../../utils/ChatUtils/ChatContext";
 import { handleDeleteChat } from "../../utils/ChatUtils/DeleteChat";
-import { UserProfileCache } from "../../backend/Supabase/FetchAvatarAndName";
-import { refreshAllChatProfiles } from "../../utils/ChatUtils/Refresh";
+// 🔧 FIX: Import from the correct file
+import {
+  loadChatProfiles,
+  UserProfileCache,
+} from "../../utils/ChatUtils/HandleRefresh";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface ChatItemProps {
@@ -145,7 +148,6 @@ const Chats = () => {
   const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   useEffect(() => {
@@ -167,23 +169,34 @@ const Chats = () => {
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // This function is for the pull-to-refresh action
+  // 🔧 FIX: Use the correct function for pull-to-refresh
   const handleRefresh = useCallback(async () => {
+    console.log("🔄 Pull-to-refresh triggered");
     setRefreshing(true);
-    const newProfileData = await refreshAllChatProfiles(chatList);
-    setProfileData((prevData) => ({ ...prevData, ...newProfileData }));
-    setRefreshing(false);
+    try {
+      const newProfileData = await loadChatProfiles(chatList);
+      setProfileData((prevData) => ({ ...prevData, ...newProfileData }));
+      console.log("✅ Pull-to-refresh completed");
+    } catch (error) {
+      console.error("❌ Pull-to-refresh failed:", error);
+    } finally {
+      setRefreshing(false);
+    }
   }, [chatList]);
 
-  // --- MODIFIED: This useEffect no longer has a dependency that causes a loop ---
+  // 🔧 FIX: Use the same function for initial fetch
   useEffect(() => {
-    // This function will run once when the component loads with the chat list
     const performInitialFetch = async () => {
-      console.log("Performing initial profile fetch...");
-      // We can call the same logic as handleRefresh
-      const newProfileData = await refreshAllChatProfiles(chatList);
-      setProfileData((prevData) => ({ ...prevData, ...newProfileData }));
-      setInitialFetchDone(true); // Mark as done to prevent re-running
+      console.log("🔄 Performing initial profile fetch...");
+      try {
+        const newProfileData = await loadChatProfiles(chatList);
+        setProfileData((prevData) => ({ ...prevData, ...newProfileData }));
+        setInitialFetchDone(true);
+        console.log("✅ Initial profile fetch completed");
+      } catch (error) {
+        console.error("❌ Initial profile fetch failed:", error);
+        setInitialFetchDone(true); // Mark as done even on error to prevent retry loop
+      }
     };
 
     if (!isLoading && chatList.length > 0 && !initialFetchDone) {
@@ -207,14 +220,12 @@ const Chats = () => {
     } else {
       const lowercasedQuery = searchQuery.toLowerCase();
       const filtered = chatList.filter((chat) => {
-        // Search using the most up-to-date name from profileData, with a fallback
         const currentName = profileData[chat.id]?.name || chat.name;
         return currentName.toLowerCase().includes(lowercasedQuery);
       });
       setFilteredChats(filtered);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, chatList]); // Removed profileData from dependency array to prevent potential loops
+  }, [searchQuery, chatList]);
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) return;
@@ -233,7 +244,6 @@ const Chats = () => {
   };
 
   const handleChatPress = (item: ChatItemType) => {
-    // Ensure we pass the latest profile info when navigating
     const currentProfile = profileData[item.id];
     const name = currentProfile?.name || item.name;
     const avatar = currentProfile?.avatar

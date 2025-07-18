@@ -2,7 +2,7 @@
 
 import { UserData } from "../../backend/Supabase/RegisterUser";
 import { updateSupabaseUser } from "../../backend/Supabase/UpdateUserData";
-import { storeUserDataInStorage } from "../../backend/Local database/AsyncStorage/Utilities/UtilityIndex";
+import { storeUserDataInStorage } from "../../backend/Local database/AsyncStorage/UserDataStorage/UtilityIndex";
 
 /**
  * Syncs user data with Supabase and updates all storage layers

@@ -1,12 +1,11 @@
-import 'react-native-get-random-values';
-import { Alert, Linking, AppState } from 'react-native';
-import { Core } from '@walletconnect/core';
-import { SignClient } from '@walletconnect/sign-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import "react-native-get-random-values";
+import { Alert, Linking, AppState } from "react-native";
+import { SignClient } from "@walletconnect/sign-client";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type SignClientType = InstanceType<typeof SignClient>;
 
-const projectId = '0b183fc0707f5795787aefe996f3df28'; // Replace with your WalletConnect Project ID
+const projectId = "0b183fc0707f5795787aefe996f3df28"; // Replace with your WalletConnect Project ID
 
 let signClient: SignClientType | null = null;
 // Prevent multiple navigations
@@ -14,23 +13,26 @@ let navigationHandled = false;
 
 const waitForActive = (timeoutMs = 20000) => {
   return new Promise<void>((resolve) => {
-    if (AppState.currentState === 'active') {
+    if (AppState.currentState === "active") {
       resolve();
     } else {
       let didResolve = false;
-      const subscription = AppState.addEventListener('change', (nextAppState) => {
-        if (nextAppState === 'active' && !didResolve) {
-          didResolve = true;
-          subscription.remove();
-          resolve();
+      const subscription = AppState.addEventListener(
+        "change",
+        (nextAppState) => {
+          if (nextAppState === "active" && !didResolve) {
+            didResolve = true;
+            subscription.remove();
+            resolve();
+          }
         }
-      });
+      );
       setTimeout(() => {
         if (!didResolve) {
           didResolve = true;
           subscription.remove();
           console.warn(
-            '⚠️ App did not return to active state within timeout, proceeding anyway.'
+            "⚠️ App did not return to active state within timeout, proceeding anyway."
           );
           resolve();
         }
@@ -49,31 +51,31 @@ export const initializeWalletConnect = async (
   setLoading: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
   setLoading(true);
-  console.log('Attempting to initialize WalletConnect...');
+  console.log("Attempting to initialize WalletConnect...");
 
   try {
     signClient = await SignClient.init({
       projectId,
-      relayUrl: 'wss://relay.walletconnect.com',
+      relayUrl: "wss://relay.walletconnect.com",
       metadata: {
-        name: 'Node Link',
-        description: 'Haziks Branch',
-        url: 'https://nodelink.com',
-        icons: ['https://example.com/icon.png'],
+        name: "Node Link",
+        description: "Haziks Branch",
+        url: "https://nodelink.com",
+        icons: ["https://example.com/icon.png"],
       },
     });
 
-    console.log('✅ WalletConnect instance created');
+    console.log("✅ WalletConnect instance created");
 
-    signClient.on('session_delete', () => {
-      console.log('🔹 Session deleted');
+    signClient.on("session_delete", () => {
+      console.log("🔹 Session deleted");
       setWalletAddress(null);
     });
 
     setConnector(signClient);
   } catch (error) {
-    console.error('⚠️ Error initializing WalletConnect:', error);
-    Alert.alert('Error', `WalletConnect initialization failed: ${error}`);
+    console.error("⚠️ Error initializing WalletConnect:", error);
+    Alert.alert("Error", `WalletConnect initialization failed: ${error}`);
   } finally {
     setLoading(false);
   }
@@ -87,18 +89,18 @@ export const connectWallet = async (
   setIsAuthenticated: (auth: boolean) => void
 ) => {
   if (!signClient) {
-    console.warn('⚠️ WalletConnect is not initialized (ignored)');
+    console.warn("⚠️ WalletConnect is not initialized (ignored)");
     return;
   }
 
   try {
-    console.log('🔹 Creating WalletConnect session...');
+    console.log("🔹 Creating WalletConnect session...");
     const { uri, approval } = await signClient.connect({
       requiredNamespaces: {
         eip155: {
-          methods: ['eth_sendTransaction', 'personal_sign'],
-          chains: ['eip155:1'],
-          events: ['chainChanged', 'accountsChanged'],
+          methods: ["eth_sendTransaction", "personal_sign"],
+          chains: ["eip155:1"],
+          events: ["chainChanged", "accountsChanged"],
         },
       },
     });
@@ -106,26 +108,26 @@ export const connectWallet = async (
     if (uri) {
       await extraDelay(0);
       const deepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
-      console.log('🔹 Opening MetaMask with deep link:', deepLink);
+      console.log("🔹 Opening MetaMask with deep link:", deepLink);
       Linking.openURL(deepLink).catch((err) =>
-        console.warn('Error opening MetaMask deep link', err)
+        console.warn("Error opening MetaMask deep link", err)
       );
 
       await approval();
-      console.log('✅ Wallet connected');
+      console.log("✅ Wallet connected");
       await waitForActive();
 
       const session = signClient.session.getAll()[0];
       if (session) {
         const walletAddress = session.namespaces.eip155.accounts[0].replace(
-          'eip155:1:',
-          ''
+          "eip155:1:",
+          ""
         );
-        console.log('🔹 Connected Wallet Address:', walletAddress);
+        console.log("🔹 Connected Wallet Address:", walletAddress);
 
         // Persist address
-        await AsyncStorage.setItem('walletAddress', walletAddress);
-        console.log('💾 Wallet address stored in AsyncStorage');
+        await AsyncStorage.setItem("walletAddress", walletAddress);
+        console.log("💾 Wallet address stored in AsyncStorage");
         setWalletAddress(walletAddress);
       }
 
@@ -140,14 +142,14 @@ export const connectWallet = async (
         }
         parentNav?.reset({
           index: 0,
-          routes: [{ name: 'Main' }],
+          routes: [{ name: "Main" }],
         });
-        console.log('🔄 Navigation reset to Main flow');
+        console.log("🔄 Navigation reset to Main flow");
       }
     }
   } catch (error: any) {
-    console.warn('⚠️ Wallet connection error:', error.message);
-    Alert.alert('Connection Error', error.message);
+    console.warn("⚠️ Wallet connection error:", error.message);
+    Alert.alert("Connection Error", error.message);
   } finally {
     setLoading(false);
   }
@@ -164,16 +166,12 @@ export const handleConnectPress = async (
   setLoading(true);
 
   if (!signClient) {
-    console.log('Initializing WalletConnect...');
-    await initializeWalletConnect(
-      setWalletAddress,
-      setConnector,
-      setLoading
-    );
+    console.log("Initializing WalletConnect...");
+    await initializeWalletConnect(setWalletAddress, setConnector, setLoading);
   }
 
   if (signClient) {
-    console.log('WalletConnect initialized, proceeding to connect...');
+    console.log("WalletConnect initialized, proceeding to connect...");
     await connectWallet(
       setLoading,
       navigation,
@@ -181,11 +179,11 @@ export const handleConnectPress = async (
       setIsAuthenticated
     );
   } else {
-    console.log('WalletConnect initialization failed');
+    console.log("WalletConnect initialization failed");
     setLoading(false);
     Alert.alert(
-      'Error',
-      'WalletConnect initialization failed. Please try again.'
+      "Error",
+      "WalletConnect initialization failed. Please try again."
     );
   }
 };

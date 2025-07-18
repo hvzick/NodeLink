@@ -1,7 +1,7 @@
 // backend\Supabase\RegisterUser.ts
 
 import { supabase } from "./Supabase";
-import { storeCurrentUserData } from "../Local database/AsyncStorage/Storage/CurrentUserStorage";
+import { storeUserDataInStorage } from "../Local database/AsyncStorage/UserDataStorage/UtilityIndex";
 
 // User interface
 export interface UserData {
@@ -26,7 +26,7 @@ export const DEFAULT_USER_DATA: Omit<UserData, "walletAddress" | "created_at"> =
   };
 
 /**
- * Registers a user if they don't already exist, and saves to AsyncStorage
+ * Registers a user if they don't already exist, and saves to storage
  *
  * @param userInfo User data to register
  * @returns Object containing user data and whether they're new
@@ -63,12 +63,12 @@ export async function registerUser(userInfo: UserData): Promise<{
         name: existingUser.name,
         avatar: existingUser.avatar,
         bio: existingUser.bio,
-        created_at: existingUser.created_at, // ✅ Include created_at
-        publicKey: existingUser.public_key || existingUser.publicKey, // ✅ Include publicKey
+        created_at: existingUser.created_at,
+        publicKey: existingUser.public_key || existingUser.publicKey,
       };
 
-      // Store using the new multi-user storage system
-      await storeCurrentUserData(user);
+      // Store using the storage utility function
+      await storeUserDataInStorage(user);
       console.log("✅ Existing user loaded and stored:", user);
       return {
         error: null,
@@ -141,8 +141,8 @@ export async function registerUser(userInfo: UserData): Promise<{
       publicKey: newUser.public_key || newUser.publicKey,
     };
 
-    // Store using the new multi-user storage system
-    await storeCurrentUserData(user);
+    // Store using the storage utility function
+    await storeUserDataInStorage(user);
     console.log("✅ New user registered and stored:", user);
 
     return {
@@ -278,7 +278,7 @@ export async function updateUserProfile(
     };
 
     // Update local storage
-    await storeCurrentUserData(user);
+    await storeUserDataInStorage(user);
     console.log("✅ User profile updated:", user);
 
     return user;
