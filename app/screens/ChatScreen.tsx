@@ -12,7 +12,7 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -26,14 +26,15 @@ import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedb
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
 import { searchUser } from "../../backend/Supabase/SearchUser";
 import RightActions, { SwipeAction } from "../../utils/ChatUtils/RightActions";
-import { useChat } from "../../utils/ChatUtils/ChatContext";
+import { useChat, EventBus } from "../../utils/ChatUtils/ChatContext";
 import { handleDeleteChat } from "../../utils/ChatUtils/DeleteChat";
-// 🔧 FIX: Import from the correct file
 import {
   loadChatProfiles,
   UserProfileCache,
 } from "../../utils/ChatUtils/HandleRefresh";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getUnreadMessageCounts } from "../../backend/Local database/SQLite/GetUnreadCounts";
+import { markMessagesAsRead } from "../../backend/Local database/SQLite/MarkMessagesAsRead";
 
 interface ChatItemProps {
   item: ChatItemType;
@@ -45,6 +46,7 @@ interface ChatItemProps {
   onDelete: () => void;
   isPinned: boolean;
   onPress: (item: ChatItemType) => void;
+  unreadCount?: number;
 }
 
 const ChatItem = memo(
@@ -58,6 +60,7 @@ const ChatItem = memo(
     onDelete,
     isPinned,
     onPress,
+    unreadCount = 0,
   }: ChatItemProps) => {
     const { currentTheme } = useThemeToggle();
     const isDarkMode = currentTheme === "dark";
@@ -114,11 +117,31 @@ const ChatItem = memo(
           activeOpacity={0.7}
         >
           <View style={styles.chatItem}>
-            <Image source={currentAvatar} style={styles.avatar} />
+            <View style={styles.avatarContainer}>
+              <Image source={currentAvatar} style={styles.avatar} />
+              {/* Unread badge */}
+              {unreadCount > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>
+                    {unreadCount > 99 ? "99+" : unreadCount.toString()}
+                  </Text>
+                </View>
+              )}
+            </View>
             <View style={styles.chatContent}>
-              <Text style={styles.chatName}>{currentName}</Text>
               <Text
-                style={styles.chatMessage}
+                style={[
+                  styles.chatName,
+                  unreadCount > 0 && styles.chatNameUnread,
+                ]}
+              >
+                {currentName}
+              </Text>
+              <Text
+                style={[
+                  styles.chatMessage,
+                  unreadCount > 0 && styles.chatMessageUnread,
+                ]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -126,7 +149,14 @@ const ChatItem = memo(
               </Text>
             </View>
             <View style={styles.chatTimeContainer}>
-              <Text style={styles.chatTime}>{item.time}</Text>
+              <Text
+                style={[
+                  styles.chatTime,
+                  unreadCount > 0 && styles.chatTimeUnread,
+                ]}
+              >
+                {item.time}
+              </Text>
               {isPinned && (
                 <Image
                   source={require("../../assets/images/pinned-logo-white.png")}
@@ -151,6 +181,7 @@ const Chats = () => {
   const styles = createStyles(isDarkMode);
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const loadWalletAddress = async () => {
@@ -159,6 +190,44 @@ const Chats = () => {
     };
     loadWalletAddress();
   }, []);
+
+  // Function to load unread counts from SQLite
+  const loadUnreadCounts = useCallback(async () => {
+    try {
+      console.log("📊 Loading unread message counts...");
+      const counts = await getUnreadMessageCounts();
+      setUnreadCounts(counts);
+      console.log("✅ Unread counts loaded:", counts);
+    } catch (error) {
+      console.error("❌ Failed to load unread counts:", error);
+    }
+  }, []);
+
+  // Load unread counts when component mounts
+  useEffect(() => {
+    loadUnreadCounts();
+  }, [loadUnreadCounts]);
+
+  // Refresh unread counts when screen comes into focus (when returning from ChatDetail)
+  useFocusEffect(
+    useCallback(() => {
+      console.log("🔄 Chat screen focused, refreshing unread counts...");
+      loadUnreadCounts();
+    }, [loadUnreadCounts])
+  );
+
+  // Listen for new messages to update unread counts
+  useEffect(() => {
+    const handleNewMessage = () => {
+      console.log("🔔 New message received, updating unread counts...");
+      loadUnreadCounts();
+    };
+
+    EventBus.on("new-message", handleNewMessage);
+    return () => {
+      EventBus.off("new-message", handleNewMessage);
+    };
+  }, [loadUnreadCounts]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -171,22 +240,21 @@ const Chats = () => {
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // 🔧 FIX: Use the correct function for pull-to-refresh
   const handleRefresh = useCallback(async () => {
     console.log("🔄 Pull-to-refresh triggered");
     setRefreshing(true);
     try {
       const newProfileData = await loadChatProfiles(chatList);
       setProfileData((prevData) => ({ ...prevData, ...newProfileData }));
+      await loadUnreadCounts(); // Refresh unread counts
       console.log("✅ Pull-to-refresh completed");
     } catch (error) {
       console.error("❌ Pull-to-refresh failed:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [chatList]);
+  }, [chatList, loadUnreadCounts]);
 
-  // 🔧 FIX: Use the same function for initial fetch
   useEffect(() => {
     const performInitialFetch = async () => {
       console.log("🔄 Performing initial profile fetch...");
@@ -197,7 +265,7 @@ const Chats = () => {
         console.log("✅ Initial profile fetch completed");
       } catch (error) {
         console.error("❌ Initial profile fetch failed:", error);
-        setInitialFetchDone(true); // Mark as done even on error to prevent retry loop
+        setInitialFetchDone(true);
       }
     };
 
@@ -245,12 +313,17 @@ const Chats = () => {
     });
   };
 
-  const handleChatPress = (item: ChatItemType) => {
+  const handleChatPress = async (item: ChatItemType) => {
     const currentProfile = profileData[item.id];
     const name = currentProfile?.name || item.name;
     const avatar = currentProfile?.avatar
       ? { uri: currentProfile.avatar }
       : item.avatar;
+
+    // Clear unread count immediately when opening chat (for immediate UI feedback)
+    if (unreadCounts[item.id] > 0) {
+      setUnreadCounts((prev) => ({ ...prev, [item.id]: 0 }));
+    }
 
     navigation.push("ChatDetail", {
       conversationId: item.id,
@@ -295,6 +368,7 @@ const Chats = () => {
           const avatar = currentProfile?.avatar
             ? { uri: currentProfile.avatar }
             : item.avatar;
+          const unreadCount = unreadCounts[item.id] || 0;
 
           return (
             <ChatItem
@@ -309,6 +383,7 @@ const Chats = () => {
               }
               isPinned={pinnedChats.includes(item.id)}
               onPress={handleChatPress}
+              unreadCount={unreadCount}
             />
           );
         }}
@@ -420,7 +495,34 @@ const createStyles = (isDarkMode: boolean) =>
       minHeight: 80,
       maxHeight: 80,
     },
-    avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 12 },
+    avatarContainer: {
+      position: "relative",
+      marginRight: 12,
+    },
+    avatar: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+    },
+    unreadBadge: {
+      position: "absolute",
+      top: -5,
+      right: -5,
+      backgroundColor: "#FF3B30",
+      borderRadius: 12,
+      minWidth: 24,
+      height: 24,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 2,
+      borderColor: isDarkMode ? "#121212" : "#fff",
+    },
+    unreadBadgeText: {
+      color: "#FFFFFF",
+      fontSize: 12,
+      fontWeight: "bold",
+      textAlign: "center",
+    },
     chatContent: {
       flex: 1,
       flexShrink: 1,
@@ -434,11 +536,18 @@ const createStyles = (isDarkMode: boolean) =>
       bottom: 5,
       color: isDarkMode ? "#fff" : "#000",
     },
+    chatNameUnread: {
+      fontWeight: "800", // Make bolder for unread
+    },
     chatMessage: {
       color: isDarkMode ? "#aaa" : "#777",
       fontFamily: "SF-Pro-Text-Regular",
       fontSize: 12,
       bottom: 0,
+    },
+    chatMessageUnread: {
+      color: isDarkMode ? "#fff" : "#000",
+      fontWeight: "600", // Make bolder for unread
     },
     chatTimeContainer: {
       alignItems: "flex-end",
@@ -451,7 +560,14 @@ const createStyles = (isDarkMode: boolean) =>
       marginBottom: 30,
       top: 5,
     },
-    rightActions: { flexDirection: "row", alignItems: "center" },
+    chatTimeUnread: {
+      color: "#007AFF",
+      fontWeight: "600",
+    },
+    rightActions: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
     actionButton: {
       width: 75,
       justifyContent: "center",

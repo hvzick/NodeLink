@@ -265,7 +265,6 @@ const getStyles = (theme: "light" | "dark") =>
       alignSelf: "flex-start",
       backgroundColor: theme === "dark" ? "#3A3A3C" : "#E5E5EA",
       borderTopLeftRadius: 0,
-      marginVertical: 10,
     },
     bubbleRight: {
       alignSelf: "flex-end",

@@ -24,7 +24,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { RouteProp } from "@react-navigation/native";
+import { RouteProp, useIsFocused } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import { Video, ResizeMode } from "expo-av";
@@ -34,6 +34,7 @@ import { fetchMessagesByConversation } from "../../backend/Local database/SQLite
 import MessageBubble from "../../utils/ChatDetailUtils/MessageBubble";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { EventBus, useChat } from "../../utils/ChatUtils/ChatContext";
+import { markMessagesAsRead } from "../../backend/Local database/SQLite/MarkMessagesAsRead";
 
 import { ChatDetailHandlerDependencies } from "../../utils/ChatDetailUtils/ChatHandlers/HandleDependencies";
 import { handleSendMessage } from "../../utils/ChatDetailUtils/ChatHandlers/HandleSendMessage";
@@ -75,6 +76,7 @@ type Props = {
 const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { conversationId, name, avatar } = route.params;
   const { addOrUpdateChat } = useChat();
+  const isFocused = useIsFocused();
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -148,6 +150,49 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       receiverAddress, // ✅ Add this
     ]
   );
+
+  // Mark messages as read when screen is focused
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const markAsRead = async () => {
+      try {
+        await markMessagesAsRead(conversationId);
+        console.log(`✅ Messages marked as read for: ${conversationId}`);
+      } catch (error) {
+        console.error("❌ Failed to mark messages as read:", error);
+      }
+    };
+
+    // Mark as read when screen opens
+    markAsRead();
+
+    // Listen for new messages while focused on this chat
+    const handleNewMessage = (message: any) => {
+      if (message.conversationId === conversationId && isFocused) {
+        // Small delay to ensure message is inserted into database
+        setTimeout(() => {
+          markAsRead();
+        }, 100);
+      }
+    };
+
+    EventBus.on("new-message", handleNewMessage);
+
+    return () => {
+      EventBus.off("new-message", handleNewMessage);
+    };
+  }, [conversationId, isFocused]);
+
+  // Optional: Mark as read when scrolling to bottom
+  const onEndReached = useCallback(async () => {
+    try {
+      await markMessagesAsRead(conversationId);
+      console.log("✅ Messages marked as read - reached bottom");
+    } catch (error) {
+      console.error("❌ Failed to mark messages as read:", error);
+    }
+  }, [conversationId]);
 
   const handleReply = useCallback((message: Message) => {
     setReplyMessage(message);
@@ -561,6 +606,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               onContentSizeChange={() =>
                 flatListRef.current?.scrollToEnd({ animated: false })
               }
+              onEndReached={onEndReached}
+              onEndReachedThreshold={0.1}
             />
           )}
 
