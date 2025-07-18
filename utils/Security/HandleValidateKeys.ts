@@ -1,7 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { validateKeyPair } from "../../backend/Encryption/KeyGen";
+import { SetStateAction } from "react";
 
-export async function handleValidateKeys(walletAddress, setKeysValid) {
+export async function handleValidateKeys(walletAddress: string | null, setKeysValid: { (value: SetStateAction<boolean>): void; (arg0: boolean): void; }) {
     if (!walletAddress) return;
     const raw = await AsyncStorage.getItem(`crypto_key_pair_${walletAddress}`);
     if (raw) {

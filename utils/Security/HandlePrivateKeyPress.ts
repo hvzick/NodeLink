@@ -1,7 +1,8 @@
 import { Alert } from "react-native";
 import * as LocalAuthentication from 'expo-local-authentication';
+import { SetStateAction } from "react";
 
-export async function handlePrivatePress(showPrivate, setShowPrivate) {
+export async function handlePrivatePress(showPrivate: boolean, setShowPrivate: { (value: SetStateAction<boolean>): void; (arg0: boolean): void; }) {
     if (showPrivate) return;
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
@@ -28,5 +29,4 @@ export async function handlePrivatePress(showPrivate, setShowPrivate) {
       });
     }
     if (result.success) setShowPrivate(true);
-    else Alert.alert('Authentication failed', 'Could not verify your identity.');
   }

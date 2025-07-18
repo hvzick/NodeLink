@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
   TouchableWithoutFeedback,
-  StyleSheet,
   ActivityIndicator,
   Alert,
+  StyleSheet,
   FlatList,
   Pressable,
 } from "react-native";
@@ -45,32 +45,8 @@ const SecurityScreen: React.FC = () => {
     {}
   );
 
-  useEffect(() => {
-    refreshKeyData(
-      setWalletAddress,
-      setUserPublicKey,
-      setPrivateKey,
-      setCompressedPublicKey,
-      setLoading
-    );
-    loadSharedSecrets();
-    return () => {
-      setKeysValid(false);
-      setChangeSuccess(false);
-    };
-  }, []);
-
-  useFocusEffect(
-    React.useCallback(
-      () => () => {
-        setKeysValid(false);
-        setChangeSuccess(false);
-      },
-      []
-    )
-  );
-
-  const loadSharedSecrets = async () => {
+  // Extracted to variable to allow refresh calls inside useFocusEffect
+  const loadSharedSecrets = useCallback(async () => {
     try {
       const allKeys = await AsyncStorage.getAllKeys();
       const sharedKeys = allKeys.filter((k) => k.startsWith("shared_key_"));
@@ -109,8 +85,42 @@ const SecurityScreen: React.FC = () => {
       console.warn("Failed to load shared secrets", e);
       setSharedList([]);
     }
-  };
-console.log("Rendering SecurityScreen");
+  }, []);
+
+  // Only resets on mount/unmount
+  useEffect(() => {
+    setKeysValid(false);
+    setChangeSuccess(false);
+  }, []);
+
+  // Use useFocusEffect to always refetch data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      setLoading(true);
+
+      const fetchData = async () => {
+        await refreshKeyData(
+          setWalletAddress,
+          setUserPublicKey,
+          setPrivateKey,
+          setCompressedPublicKey,
+          setLoading
+        );
+        await loadSharedSecrets();
+        // Don't set state if unmounted
+        if (isActive) setLoading(false);
+      };
+
+      fetchData();
+
+      return () => {
+        isActive = false;
+        setKeysValid(false);
+        setChangeSuccess(false);
+      };
+    }, [loadSharedSecrets])
+  );
 
   const maskString = (str: string | null): string =>
     str
