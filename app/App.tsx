@@ -1,32 +1,35 @@
-import 'react-native-webview-crypto';
-import 'react-native-get-random-values';
-import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { useFonts } from 'expo-font';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import AuthScreen from './screens/Authentication';
-import TermsOfServiceScreen from './screens/TermsOfService';
-import PrivacyPolicyScreen from './screens/PrivacyPolicy';
-import ChatDetailScreen from './screens/ChatDetailScreen';
-import BottomTabs from './screens/BottomTabs';
-import '@ethersproject/shims';
-import 'react-native-polyfill-globals/auto';
-import { ThemeProvider } from '../utils/GlobalUtils/ThemeProvider';
-import * as Notifications from 'expo-notifications';
-import { handleUserData } from '../backend/Supabase/HandleUserData';
-import UserProfile from './screens/UserProfile';
-import { ChatProvider } from '../utils/ChatUtils/ChatContext';
-import { initializeDatabase } from '../backend/Local database/InitialiseDatabase';
-import LoadingScreen from './screens/LoadingScreen';
+import "react-native-webview-crypto";
+import "react-native-get-random-values";
+import "react-native-gesture-handler";
+import React, { useEffect, useState } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { useFonts } from "expo-font";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import AuthScreen from "./screens/Authentication";
+import TermsOfServiceScreen from "./screens/TermsOfService";
+import PrivacyPolicyScreen from "./screens/PrivacyPolicy";
+import ChatDetailScreen from "./screens/ChatDetailScreen";
+import BottomTabs from "./screens/BottomTabs";
+import "@ethersproject/shims";
+import "react-native-polyfill-globals/auto";
+import { ThemeProvider } from "../utils/GlobalUtils/ThemeProvider";
+import * as Notifications from "expo-notifications";
+import { handleUserData } from "../backend/Supabase/HandleUserData";
+import UserProfile from "./screens/UserProfile";
+import { ChatProvider } from "../utils/ChatUtils/ChatContext";
+import { initializeDatabase } from "../backend/Local database/SQLite/InitialiseDatabase";
+import LoadingScreen from "./screens/LoadingScreen";
 import {
   initialize as initializeGun,
   destroy as destroyGun,
-  onStatusChange
-} from '../backend/Gun Service/GunIndex';
-import { AuthProvider, useAuth } from '../utils/AuthenticationUtils/AuthContext';
-import GlobalMessageListener from '../backend/Gun Service/Messaging/GlobalMessageListener'; // ✅ import listener
+  onStatusChange,
+} from "../backend/Gun Service/GunIndex";
+import {
+  AuthProvider,
+  useAuth,
+} from "../utils/AuthenticationUtils/AuthContext";
+import GlobalMessageListener from "../backend/Gun Service/Messaging/GlobalMessageListener"; // ✅ import listener
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -53,24 +56,26 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 function AppContent() {
   const [fontsLoaded] = useFonts({
-    'MontserratAlternates-Regular': require('../assets/fonts/MontserratAlternates-Regular.ttf'),
-    'Inter_18pt-Medium': require('../assets/fonts/Inter_18pt-Medium.ttf'),
-    'Inter_28pt-Medium': require('../assets/fonts/Inter_28pt-Medium.ttf'),
-    'SF-Pro-Text-Regular': require('../assets/fonts/SF-Pro-Text-Regular.otf'),
-    'SF-Pro-Text-Medium': require('../assets/fonts/SF-Pro-Text-Medium.otf'),
+    "MontserratAlternates-Regular": require("../assets/fonts/MontserratAlternates-Regular.ttf"),
+    "Inter_18pt-Medium": require("../assets/fonts/Inter_18pt-Medium.ttf"),
+    "Inter_28pt-Medium": require("../assets/fonts/Inter_28pt-Medium.ttf"),
+    "SF-Pro-Text-Regular": require("../assets/fonts/SF-Pro-Text-Regular.otf"),
+    "SF-Pro-Text-Medium": require("../assets/fonts/SF-Pro-Text-Medium.otf"),
   });
 
   const [ready, setReady] = useState(false);
   const { isLoggedIn, setIsLoggedIn } = useAuth();
 
   useEffect(() => {
-    const unsubscribe = onStatusChange(isConnected => {
-      console.log(`P2P Network Status: ${isConnected ? 'Connected' : 'Connecting...'}`);
+    const unsubscribe = onStatusChange((isConnected) => {
+      console.log(
+        `P2P Network Status: ${isConnected ? "Connected" : "Connecting..."}`
+      );
     });
 
     const init = async () => {
       await initializeDatabase();
-      const walletAddress = await AsyncStorage.getItem('walletAddress');
+      const walletAddress = await AsyncStorage.getItem("walletAddress");
 
       if (walletAddress) {
         setIsLoggedIn(true);
@@ -103,7 +108,10 @@ function AppContent() {
             <>
               <Stack.Screen name="Auth" component={AuthScreen} />
               <Stack.Screen name="TOS" component={TermsOfServiceScreen} />
-              <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+              <Stack.Screen
+                name="PrivacyPolicy"
+                component={PrivacyPolicyScreen}
+              />
             </>
           ) : (
             <>

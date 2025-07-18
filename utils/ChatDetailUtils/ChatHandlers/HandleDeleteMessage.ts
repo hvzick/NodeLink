@@ -1,8 +1,8 @@
 // utils/ChatDetailUtils/handleDeleteMessage.ts
 
-import { Alert } from 'react-native';
-import { deleteMessage } from '../../../backend/Local database/MessageIndex';
-import { ChatDetailHandlerDependencies } from './HandleDependencies';
+import { Alert } from "react-native";
+import { deleteMessage } from "../../../backend/Local database/SQLite/MessageIndex";
+import { ChatDetailHandlerDependencies } from "./HandleDependencies";
 
 export const handleDeleteMessage = async (
   dependencies: ChatDetailHandlerDependencies,
@@ -11,8 +11,8 @@ export const handleDeleteMessage = async (
   const { setMessages } = dependencies;
   try {
     await deleteMessage(id);
-    setMessages(msgs => msgs.filter(m => m.id !== id));
+    setMessages((msgs) => msgs.filter((m) => m.id !== id));
   } catch {
-    Alert.alert('Error', 'Could not delete message');
+    Alert.alert("Error", "Could not delete message");
   }
 };

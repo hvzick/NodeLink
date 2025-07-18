@@ -3,7 +3,7 @@
 import React from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native"; // Import Alert and Clipboard
 import { Ionicons } from "@expo/vector-icons";
-import { Message } from "../../../backend/Local database/MessageStructure"; // Ensure this path is correct and Message has imageUrl/videoUrl
+import { Message } from "../../../backend/Local database/SQLite/MessageStructure"; // Ensure this path is correct and Message has imageUrl/videoUrl
 import { copyToClipboard } from "../../GlobalUtils/CopyToClipboard";
 
 // Defines the options that can be selected from the menu

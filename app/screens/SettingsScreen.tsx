@@ -1,30 +1,34 @@
-// ✅ Same imports
-import React, { useCallback, useState } from "react";
+// screens/Settings/SettingsScreen.tsx
+
+import React, { useCallback, useState, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
-  Image,
   Switch,
   TouchableOpacity,
   StyleSheet,
+  RefreshControl,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { copyToClipboard } from "../../utils/GlobalUtils/CopyToClipboard";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
+import { UserData } from "../../backend/Supabase/RegisterUser";
 import {
-  UserData,
-  DEFAULT_USER_DATA,
-} from "../../backend/Supabase/RegisterUser";
+  getUserDataFromSession,
+  loadUserDataFromStorage,
+} from "../../backend/Local database/AsyncStorage/Utilities/UtilityIndex";
+import { refreshUserDataFromSupabase } from "../../backend/Supabase/RefreshUserData";
 import ArrowSVG from "../../assets/images/arrow-icon.svg";
 import ProfileArrowSvg from "../../assets/images/profile-arrow-icon.svg";
 import { useLogout } from "../../utils/AuthenticationUtils/Logout";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// ✅ Navigation type
+// Navigation type
 export type SettingsStackParamList = {
   Settings: undefined;
   Appearance: undefined;
@@ -47,36 +51,88 @@ export default function SettingsScreen() {
   const navigation = useNavigation<SettingsNavigationProp>();
   const logout = useLogout();
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadUserData();
-    }, [])
-  );
-
-  const loadUserData = async () => {
-    try {
-      const storedData = await AsyncStorage.getItem("userData");
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        setUserData(parsedData);
-      } else {
-        const walletAddress = await AsyncStorage.getItem("walletAddress");
-        if (walletAddress) {
-          setUserData({
-            walletAddress,
-            ...DEFAULT_USER_DATA,
-          });
+  // Load wallet address first
+  useEffect(() => {
+    const loadWalletAddress = async () => {
+      try {
+        const address = await AsyncStorage.getItem("walletAddress");
+        if (address) {
+          setWalletAddress(address);
         }
+      } catch (error) {
+        console.error("❌ Error loading wallet address:", error);
+      }
+    };
+    loadWalletAddress();
+  }, []);
+
+  // Load user data function
+  const loadUserData = useCallback(async () => {
+    if (!walletAddress) {
+      console.warn("⚠️ No wallet address available");
+      return;
+    }
+
+    // First try to get from session memory (fastest)
+    const sessionData = getUserDataFromSession(walletAddress);
+    if (sessionData) {
+      setUserData(sessionData);
+      return;
+    }
+
+    // If not in session, try to load from storage (now with wallet address parameter)
+    const storageData = await loadUserDataFromStorage(walletAddress);
+    if (storageData) {
+      setUserData(storageData);
+      return;
+    }
+
+    // If still no data, try to refresh from Supabase
+    console.log("🔄 No local data found, refreshing from Supabase...");
+    try {
+      const refreshedData = await refreshUserDataFromSupabase();
+      if (refreshedData) {
+        setUserData(refreshedData as UserData);
       }
     } catch (error) {
-      const walletAddress = await AsyncStorage.getItem("walletAddress");
+      console.error("❌ Error refreshing from Supabase:", error);
+    }
+  }, [walletAddress]);
+
+  // Load data when wallet address is available
+  useEffect(() => {
+    if (walletAddress) {
+      loadUserData();
+    }
+  }, [walletAddress, loadUserData]);
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
       if (walletAddress) {
-        setUserData({
-          walletAddress,
-          ...DEFAULT_USER_DATA,
-        });
+        loadUserData();
       }
+    }, [walletAddress, loadUserData])
+  );
+
+  /**
+   * Handle pull-to-refresh
+   */
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const refreshedData = await refreshUserDataFromSupabase();
+      if (refreshedData) {
+        setUserData(refreshedData as UserData);
+        console.log("✅ Profile refreshed via pull-to-refresh");
+      }
+    } catch (error) {
+      console.error("❌ Error during pull-to-refresh:", error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -132,7 +188,12 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView
+        style={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+      >
         <TouchableOpacity
           style={styles.profileContainer}
           onPress={() => navigation.navigate("MyProfile")}
@@ -141,13 +202,13 @@ export default function SettingsScreen() {
           <View style={styles.profileTextContainer}>
             <Text style={styles.profileName}>
               {userData
-                ? userData.name.length > 25
+                ? userData.name && userData.name.length > 25
                   ? userData.name.slice(0, 25) + "..."
-                  : userData.name
+                  : userData.name ?? "NodeLink User"
                 : "NodeLink User"}
             </Text>
             <Text style={styles.profileAddress}>
-              {userData?.walletAddress || "Loading..."}
+              {userData?.walletAddress ?? "Loading..."}
             </Text>
           </View>
           <ProfileRightArrow />

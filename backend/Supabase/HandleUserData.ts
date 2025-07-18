@@ -1,60 +1,73 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserData, DEFAULT_USER_DATA, registerUser } from './RegisterUser';
-import { supabase } from './Supabase';
+// utils/ProfileUtils/HandleUserData.ts
 
-export async function handleUserData(): Promise<void> {
+import { Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "./Supabase";
+import { UserData, DEFAULT_USER_DATA, registerUser } from "./RegisterUser";
+import { storeUserDataInStorage } from "../Local database/AsyncStorage/Utilities/UtilityIndex";
+
+export async function handleUserData(): Promise<UserData | null> {
   try {
-    console.log("🔍 Starting Supabase user data handling...");
+    console.log("🔍 Checking Supabase user profile...");
 
     const walletAddress = await AsyncStorage.getItem("walletAddress");
 
     if (!walletAddress) {
-      console.log("⚠️ No wallet address found in storage.");
-      return;
+      console.warn("⚠️ No wallet address found in AsyncStorage.");
+      return null;
     }
 
-    // 🔍 Check if user exists in Supabase
-    const { data: user, error } = await supabase
-      .from('profiles')
-      .select('*') // created_at will be included automatically if present in the schema
-      .eq('wallet_address', walletAddress)
+    // 1. Check if user exists in Supabase and GET ALL DATA
+    const { data: existingUser, error } = await supabase
+      .from("profiles")
+      .select("*") // Get ALL user data, not just wallet_address
+      .eq("wallet_address", walletAddress)
       .maybeSingle();
 
     if (error) {
+      console.error("❌ Error querying Supabase:", error);
       throw error;
     }
 
     let userData: UserData;
 
-    if (user) {
-      console.log("✅ User found in Supabase:");
+    if (existingUser) {
+      console.log("✅ User already exists in Supabase.");
+
+      // Map the REAL user data from Supabase
       userData = {
-        walletAddress: user.wallet_address,
-        username: user.username,
-        name: user.name,
-        avatar: user.avatar,
-        bio: user.bio,
-        created_at: user.created_at, // ✅ include createdAt
+        walletAddress: existingUser.wallet_address,
+        username: existingUser.username,
+        name: existingUser.name,
+        avatar: existingUser.avatar,
+        bio: existingUser.bio,
+        created_at: existingUser.created_at,
+        publicKey: existingUser.public_key || existingUser.publicKey,
       };
     } else {
-      console.log("👤 User not found — registering new one...");
-
-      const newUserData: UserData = {
+      console.log("🆕 User not found — registering new user...");
+      const newUser: UserData = {
         walletAddress,
-        ...DEFAULT_USER_DATA
+        ...DEFAULT_USER_DATA,
       };
 
-      const { user: newUser } = await registerUser(newUserData);
+      const result = await registerUser(newUser);
 
-      console.log("✅ New user registered:");
-      userData = newUser;
+      if (result.error || !result.user) {
+        throw new Error(result.error?.message || "User registration failed");
+      }
+
+      userData = result.user;
     }
 
-    // ✅ Store the final userData (found or new) into AsyncStorage
-    await AsyncStorage.setItem("userData", JSON.stringify(userData));
-    console.log("📦 User data saved to AsyncStorage");
+    // 2. Store user data locally
+    await storeUserDataInStorage(userData);
 
+    console.log("✅ User data handled successfully");
+    return userData;
   } catch (err) {
-    console.error("❌ Error handling Supabase user data:", err);
+    console.error("❌ handleUserData error:", err);
+    Alert.alert("User Init Failed", "Unable to verify or create user profile.");
+    return null;
   }
 }

@@ -1,7 +1,7 @@
-import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { deleteMessagesByConversation } from '../../backend/Local database/DeleteConversation';
-import { deleteConversationFromMyNode } from '../../backend/Gun Service/Messaging/DeleteFromGun'; // ✅ Import Gun delete
+import { Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { deleteMessagesByConversation } from "../../backend/Local database/SQLite/DeleteConversation";
+import { deleteConversationFromMyNode } from "../../backend/Gun Service/Messaging/DeleteFromGun"; // ✅ Import Gun delete
 
 /**
  * Handles the deletion of a chat item, including its messages from the database,
@@ -21,15 +21,15 @@ export const handleDeleteChat = (
     `Are you sure you want to delete your chat with ${chatName}? This action cannot be undone.`,
     [
       {
-        text: 'Cancel',
-        style: 'cancel',
+        text: "Cancel",
+        style: "cancel",
       },
       {
-        text: 'Delete',
+        text: "Delete",
         onPress: async () => {
           try {
             // 🧠 Step 1: Extract the other wallet address from convo ID
-            const otherWallet = conversationId.replace(/^convo_/, '');
+            const otherWallet = conversationId.replace(/^convo_/, "");
 
             // 🗑️ Step 2: Delete from GunDB node
             await deleteConversationFromMyNode(otherWallet);
@@ -46,10 +46,13 @@ export const handleDeleteChat = (
             deleteChatFromUI();
           } catch (error) {
             console.error("Failed to complete chat deletion process:", error);
-            Alert.alert("Error", "Could not delete the chat's data. Please try again.");
+            Alert.alert(
+              "Error",
+              "Could not delete the chat's data. Please try again."
+            );
           }
         },
-        style: 'destructive',
+        style: "destructive",
       },
     ],
     { cancelable: true }

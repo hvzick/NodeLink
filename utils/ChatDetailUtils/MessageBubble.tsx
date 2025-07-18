@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { triggerTapHapticFeedback } from "../GlobalUtils/TapHapticFeedback";
-import { Message } from "../../backend/Local database/MessageStructure";
+import { Message } from "../../backend/Local database/SQLite/MessageStructure";
 import { useThemeToggle } from "../GlobalUtils/ThemeProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { formatTimeForUser } from "../GlobalUtils/FormatDate";

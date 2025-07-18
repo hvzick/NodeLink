@@ -1,4 +1,6 @@
-import { supabase } from './Supabase';
+// backend\Supabase\SearchUser.ts
+
+import { supabase } from "./Supabase";
 
 /**
  * Search for a user by username (prefixed with '@') or wallet address.
@@ -8,35 +10,34 @@ export const searchUser = async (input: string) => {
   try {
     let query;
 
-    if (input.startsWith('@')) {
+    if (input.startsWith("@")) {
       // Case-insensitive username search (strip '@' and convert to lowercase)
       const username = input.slice(1).toLowerCase();
       query = supabase
-        .from('profiles')
-        .select('*')
-        .ilike('username', username) // case-insensitive match
+        .from("profiles")
+        .select("*")
+        .ilike("username", username) // case-insensitive match
         .single();
     } else {
       // Exact match on wallet address
       query = supabase
-        .from('profiles')
-        .select('*')
-        .eq('wallet_address', input)
+        .from("profiles")
+        .select("*")
+        .eq("wallet_address", input)
         .single();
     }
 
     const { data, error } = await query;
 
     if (error || !data) {
-      console.log('❌ User not found or error:', error?.message);
+      console.log("❌ User not found or error:", error?.message);
       return null;
     }
 
-    console.log('✅ User found');
+    console.log("✅ User found");
     return data;
-
   } catch (err) {
-    console.error('❌ Unexpected error:', err);
+    console.error("❌ Unexpected error:", err);
     return null;
   }
 };

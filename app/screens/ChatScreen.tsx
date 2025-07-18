@@ -14,19 +14,21 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ReanimatedSwipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
+import ReanimatedSwipeable, {
+  SwipeableMethods,
+} from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Ionicons } from "@expo/vector-icons";
 import { SharedValue } from "react-native-reanimated";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
-import { searchUser } from '../../backend/Supabase/SearchUser';
-import RightActions, { SwipeAction } from '../../utils/ChatUtils/RightActions';
-import { useChat } from '../../utils/ChatUtils/ChatContext';
+import { searchUser } from "../../backend/Supabase/SearchUser";
+import RightActions, { SwipeAction } from "../../utils/ChatUtils/RightActions";
+import { useChat } from "../../utils/ChatUtils/ChatContext";
 import { handleDeleteChat } from "../../utils/ChatUtils/DeleteChat";
 import { UserProfileCache } from "../../backend/Supabase/FetchAvatarAndName";
-import { refreshAllChatProfiles } from '../../utils/ChatUtils/Refresh';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { refreshAllChatProfiles } from "../../utils/ChatUtils/Refresh";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface ChatItemProps {
   item: ChatItemType;
@@ -41,7 +43,17 @@ interface ChatItemProps {
 }
 
 const ChatItem = memo(
-  ({ item, currentName, currentAvatar, swipeRefs, onSwipe, onPin, onDelete, isPinned, onPress }: ChatItemProps) => {
+  ({
+    item,
+    currentName,
+    currentAvatar,
+    swipeRefs,
+    onSwipe,
+    onPin,
+    onDelete,
+    isPinned,
+    onPress,
+  }: ChatItemProps) => {
     const { currentTheme } = useThemeToggle();
     const isDarkMode = currentTheme === "dark";
     const styles = createStyles(isDarkMode);
@@ -50,32 +62,42 @@ const ChatItem = memo(
     const renderRightActions = (progress: SharedValue<number>) => {
       const handleAction = (action: SwipeAction) => {
         if (swipeRefs.current) {
-            swipeRefs.current[item.id]?.close?.();
+          swipeRefs.current[item.id]?.close?.();
         }
         if (action === "Pin") onPin();
         else if (action === "Delete") onDelete();
-        else if (action === "Mute") console.log(`Mute action for ${currentName}`);
+        else if (action === "Mute")
+          console.log(`Mute action for ${currentName}`);
       };
 
-      return <RightActions
-        progress={progress}
-        onAction={handleAction}
-        isPinned={isPinned}
-        styles={{
+      return (
+        <RightActions
+          progress={progress}
+          onAction={handleAction}
+          isPinned={isPinned}
+          styles={{
             rightActions: styles.rightActions,
             actionButton: styles.actionButton,
-            actionText: styles.actionText
-        }}
-      />;
+            actionText: styles.actionText,
+          }}
+        />
+      );
     };
 
     return (
       <ReanimatedSwipeable
-        ref={ref => { if (ref && swipeRefs.current) swipeRefs.current[item.id] = ref; }}
+        ref={(ref) => {
+          if (ref && swipeRefs.current) swipeRefs.current[item.id] = ref;
+        }}
         renderRightActions={renderRightActions}
         overshootRight={false}
-        onSwipeableWillOpen={() => { isSwiping.current = true; onSwipe(item.id); }}
-        onSwipeableClose={() => { isSwiping.current = false; }}
+        onSwipeableWillOpen={() => {
+          isSwiping.current = true;
+          onSwipe(item.id);
+        }}
+        onSwipeableClose={() => {
+          isSwiping.current = false;
+        }}
       >
         <TouchableOpacity
           delayPressIn={200}
@@ -90,11 +112,23 @@ const ChatItem = memo(
             <Image source={currentAvatar} style={styles.avatar} />
             <View style={styles.chatContent}>
               <Text style={styles.chatName}>{currentName}</Text>
-              <Text style={styles.chatMessage} numberOfLines={1} ellipsizeMode="tail">{item.message}</Text>
+              <Text
+                style={styles.chatMessage}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {item.message}
+              </Text>
             </View>
             <View style={styles.chatTimeContainer}>
               <Text style={styles.chatTime}>{item.time}</Text>
-              {isPinned && <Image source={require("../../assets/images/pinned-logo-white.png")} style={styles.pinned} resizeMode="contain" />}
+              {isPinned && (
+                <Image
+                  source={require("../../assets/images/pinned-logo-white.png")}
+                  style={styles.pinned}
+                  resizeMode="contain"
+                />
+              )}
             </View>
           </View>
         </TouchableOpacity>
@@ -104,12 +138,14 @@ const ChatItem = memo(
 );
 
 const Chats = () => {
-  const { chatList, pinnedChats, togglePinChat, deleteChat, isLoading } = useChat();
+  const { chatList, pinnedChats, togglePinChat, deleteChat, isLoading } =
+    useChat();
   const swipeRefs = useRef<{ [key: string]: SwipeableMethods | null }>({});
   const { currentTheme, toggleTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
   const styles = createStyles(isDarkMode);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   useEffect(() => {
@@ -124,7 +160,9 @@ const Chats = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredChats, setFilteredChats] = useState<ChatItemType[]>([]);
   const [searchError, setSearchError] = useState("");
-  const [profileData, setProfileData] = useState<Record<string, UserProfileCache>>({});
+  const [profileData, setProfileData] = useState<
+    Record<string, UserProfileCache>
+  >({});
   const [initialFetchDone, setInitialFetchDone] = useState(false);
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -133,7 +171,7 @@ const Chats = () => {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     const newProfileData = await refreshAllChatProfiles(chatList);
-    setProfileData(prevData => ({ ...prevData, ...newProfileData }));
+    setProfileData((prevData) => ({ ...prevData, ...newProfileData }));
     setRefreshing(false);
   }, [chatList]);
 
@@ -144,7 +182,7 @@ const Chats = () => {
       console.log("Performing initial profile fetch...");
       // We can call the same logic as handleRefresh
       const newProfileData = await refreshAllChatProfiles(chatList);
-      setProfileData(prevData => ({ ...prevData, ...newProfileData }));
+      setProfileData((prevData) => ({ ...prevData, ...newProfileData }));
       setInitialFetchDone(true); // Mark as done to prevent re-running
     };
 
@@ -153,27 +191,29 @@ const Chats = () => {
     }
   }, [isLoading, chatList, initialFetchDone]);
 
-
   useEffect(() => {
     const initialProfiles: Record<string, UserProfileCache> = {};
-    chatList.forEach(chat => {
-      initialProfiles[chat.id] = { name: chat.name, avatar: chat.avatar?.uri || null };
+    chatList.forEach((chat) => {
+      initialProfiles[chat.id] = {
+        name: chat.name,
+        avatar: chat.avatar?.uri || null,
+      };
     });
-    setProfileData(prevData => ({ ...prevData, ...initialProfiles }));
+    setProfileData((prevData) => ({ ...prevData, ...initialProfiles }));
 
     if (searchQuery.trim() === "") {
       setFilteredChats(chatList);
       setSearchError("");
     } else {
       const lowercasedQuery = searchQuery.toLowerCase();
-      const filtered = chatList.filter(chat => {
+      const filtered = chatList.filter((chat) => {
         // Search using the most up-to-date name from profileData, with a fallback
         const currentName = profileData[chat.id]?.name || chat.name;
         return currentName.toLowerCase().includes(lowercasedQuery);
       });
       setFilteredChats(filtered);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, chatList]); // Removed profileData from dependency array to prevent potential loops
 
   const handleSearch = async (query: string) => {
@@ -196,22 +236,41 @@ const Chats = () => {
     // Ensure we pass the latest profile info when navigating
     const currentProfile = profileData[item.id];
     const name = currentProfile?.name || item.name;
-    const avatar = currentProfile?.avatar ? { uri: currentProfile.avatar } : item.avatar;
+    const avatar = currentProfile?.avatar
+      ? { uri: currentProfile.avatar }
+      : item.avatar;
 
     navigation.push("ChatDetail", {
       conversationId: item.id,
       name: name,
-      avatar: avatar
+      avatar: avatar,
     });
   };
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Image source={isDarkMode ? require('../../assets/images/logo-white.png') : require('../../assets/images/logo-black.png')} style={styles.chatAppLogo} />
+        <Image
+          source={
+            isDarkMode
+              ? require("../../assets/images/logo-white.png")
+              : require("../../assets/images/logo-black.png")
+          }
+          style={styles.chatAppLogo}
+        />
         <Text style={styles.nodeLinkName}>NodeLink</Text>
-        <TouchableOpacity onPress={() => { toggleTheme(); triggerTapHapticFeedback(); }} style={styles.themeIconContainer}>
-          <Ionicons name={isDarkMode ? "moon" : "sunny"} size={24} color={isDarkMode ? "#FFF" : "#000"} />
+        <TouchableOpacity
+          onPress={() => {
+            toggleTheme();
+            triggerTapHapticFeedback();
+          }}
+          style={styles.themeIconContainer}
+        >
+          <Ionicons
+            name={isDarkMode ? "moon" : "sunny"}
+            size={24}
+            color={isDarkMode ? "#FFF" : "#000"}
+          />
         </TouchableOpacity>
       </View>
 
@@ -221,7 +280,9 @@ const Chats = () => {
         renderItem={({ item }) => {
           const currentProfile = profileData[item.id];
           const name = currentProfile?.name || item.name;
-          const avatar = currentProfile?.avatar ? { uri: currentProfile.avatar } : item.avatar;
+          const avatar = currentProfile?.avatar
+            ? { uri: currentProfile.avatar }
+            : item.avatar;
 
           return (
             <ChatItem
@@ -231,7 +292,9 @@ const Chats = () => {
               swipeRefs={swipeRefs}
               onSwipe={handleSwipe}
               onPin={() => togglePinChat(item.id)}
-              onDelete={() => handleDeleteChat(item.id, name, () => deleteChat(item.id))}
+              onDelete={() =>
+                handleDeleteChat(item.id, name, () => deleteChat(item.id))
+              }
               isPinned={pinnedChats.includes(item.id)}
               onPress={handleChatPress}
             />
@@ -245,17 +308,32 @@ const Chats = () => {
                 placeholder="Search..."
                 style={styles.searchInput}
                 value={searchQuery}
-                onChangeText={(text) => { setSearchQuery(text); setSearchError(""); }}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  setSearchError("");
+                }}
                 onSubmitEditing={() => handleSearch(searchQuery)}
                 returnKeyType="search"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearButton}>
+                <TouchableOpacity
+                  onPress={() => setSearchQuery("")}
+                  style={styles.clearButton}
+                >
                   <Ionicons name="close-circle" size={20} color="#888" />
                 </TouchableOpacity>
               )}
             </View>
-            {searchError ? <Text style={[styles.errorText, { color: isDarkMode ? '#ff6b6b' : '#ff0000' }]}>{searchError}</Text> : null}
+            {searchError ? (
+              <Text
+                style={[
+                  styles.errorText,
+                  { color: isDarkMode ? "#ff6b6b" : "#ff0000" },
+                ]}
+              >
+                {searchError}
+              </Text>
+            ) : null}
           </View>
         }
         refreshControl={
@@ -332,34 +410,34 @@ const createStyles = (isDarkMode: boolean) =>
     },
     avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 12 },
     chatContent: {
-      flex: 1, 
+      flex: 1,
       flexShrink: 1,
-      flexGrow: 1,  
-      justifyContent: 'center',
+      flexGrow: 1,
+      justifyContent: "center",
     },
     chatName: {
       fontWeight: "bold",
       fontSize: 18,
-      fontFamily:  "SF-Pro-Text-Medium",
-      bottom: 5, 
-      color: isDarkMode ? "#fff" : "#000"
+      fontFamily: "SF-Pro-Text-Medium",
+      bottom: 5,
+      color: isDarkMode ? "#fff" : "#000",
     },
     chatMessage: {
       color: isDarkMode ? "#aaa" : "#777",
-      fontFamily:  "SF-Pro-Text-Regular",
+      fontFamily: "SF-Pro-Text-Regular",
       fontSize: 12,
-      bottom: 0, 
+      bottom: 0,
     },
-    chatTimeContainer: { 
+    chatTimeContainer: {
       alignItems: "flex-end",
-      marginLeft: 10, 
-      flexShrink: 0, 
+      marginLeft: 10,
+      flexShrink: 0,
     },
     chatTime: {
       color: isDarkMode ? "#aaa" : "#777",
       fontSize: 14,
       marginBottom: 30,
-      top: 5, 
+      top: 5,
     },
     rightActions: { flexDirection: "row", alignItems: "center" },
     actionButton: {
@@ -379,13 +457,13 @@ const createStyles = (isDarkMode: boolean) =>
       fontSize: 12,
       fontWeight: "bold",
       marginTop: -5,
-      bottom: -10
+      bottom: -10,
     },
     errorText: {
       marginLeft: 35,
       marginTop: 5,
       fontSize: 14,
-      fontFamily:  "SF-Pro-Text-Regular",
+      fontFamily: "SF-Pro-Text-Regular",
     },
   });
 

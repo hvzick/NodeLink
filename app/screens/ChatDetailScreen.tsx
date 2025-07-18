@@ -29,8 +29,8 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import { Video, ResizeMode } from "expo-av";
 import handleAttachment from "../../utils/ChatDetailUtils/InsertAttachment";
-import { Message } from "../../backend/Local database/MessageStructure";
-import { fetchMessagesByConversation } from "../../backend/Local database/MessageIndex";
+import { Message } from "../../backend/Local database/SQLite/MessageStructure";
+import { fetchMessagesByConversation } from "../../backend/Local database/SQLite/MessageIndex";
 import MessageBubble from "../../utils/ChatDetailUtils/MessageBubble";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { EventBus, useChat } from "../../utils/ChatUtils/ChatContext";
@@ -47,7 +47,7 @@ import MessageLongPressMenu, {
 import { formatDateHeader } from "../../utils/GlobalUtils/FormatDate";
 import { RootStackParamList } from "../App";
 
-import { ensureDatabaseInitialized } from "../../backend/Local database/InitialiseDatabase";
+import { ensureDatabaseInitialized } from "../../backend/Local database/SQLite/InitialiseDatabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../../backend/Supabase/Supabase";
 import {
@@ -58,7 +58,7 @@ import {
   playSendTone,
   initConversationTones,
 } from "../../utils/NotificationsSettings/ConversationTones";
-import { deleteMessage } from "../../backend/Local database/DeleteMessage";
+import { deleteMessage } from "../../backend/Local database/SQLite/DeleteMessage";
 import MessageInfoWindow from "../../utils/ChatDetailUtils/MessageInfoWindow";
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, "ChatDetail">;
@@ -420,13 +420,13 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     initConversationTones();
   }, []);
 
-const repliedMessages = useMemo(() => {
-  const map: Record<string, Message> = {};
-  messages.forEach((msg) => {
-    map[msg.id] = msg;
-  });
-  return map;
-}, [messages]);
+  const repliedMessages = useMemo(() => {
+    const map: Record<string, Message> = {};
+    messages.forEach((msg) => {
+      map[msg.id] = msg;
+    });
+    return map;
+  }, [messages]);
 
   const renderItem = ({ item }: { item: any }) => {
     if (item.type === "date") {
@@ -568,8 +568,13 @@ const repliedMessages = useMemo(() => {
             <View style={styles.replyContainer}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.replyingToUser}>
-                  Replying to {replyMessage.sender === "Me" ? "Yourself" : name}
+                  Replying to{" "}
+                  {replyMessage.sender?.toLowerCase() ===
+                  userAddress?.toLowerCase()
+                    ? "You"
+                    : name}
                 </Text>
+
                 <Text style={styles.replyPreviewText} numberOfLines={1}>
                   {replyMessage.text ||
                     (replyMessage.imageUrl ? "Image" : "Video")}

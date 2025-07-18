@@ -26,12 +26,17 @@ import { handleCopyAddress } from "../../utils/MyProfileUtils/CopyAddress";
 import { handleCopyUsername } from "../../utils/MyProfileUtils/CopyUsername";
 import { RootStackParamList } from "../App";
 import { useChat } from "../../utils/ChatUtils/ChatContext";
-import { loadUserData } from "../../utils/ProfileUtils/LoadUserData";
 import { handleConnect } from "../../utils/ProfileUtils/HandleConnect";
 import { generateSharedSecurityCode } from "../../backend/Encryption/SecurityCodeGen";
 import { copyToClipboard } from "../../utils/GlobalUtils/CopyToClipboard";
 import { handleSendMessage } from "../../utils/ProfileUtils/HandleGoToChat";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../../backend/Supabase/Supabase";
+import {
+  getUserDataFromSession,
+  loadUserDataFromStorage,
+  storeUserDataInStorage,
+} from "../../backend/Local database/AsyncStorage/Utilities/UtilityIndex";
 
 export default function UserProfile() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -67,10 +72,73 @@ export default function UserProfile() {
     fetchMyKey();
   }, []);
 
+  // Enhanced user data loading with new storage functions
   useEffect(() => {
-    if (walletAddress) {
-      loadUserData(walletAddress, setUserData, setIsProfileLoading);
-    }
+    const loadUserProfile = async () => {
+      if (!walletAddress) return;
+
+      setIsProfileLoading(true);
+
+      try {
+        console.log("🔍 Loading user profile for:", walletAddress);
+
+        // 1. Try to get from session cache first (fastest)
+        const sessionData = getUserDataFromSession(walletAddress);
+        if (sessionData) {
+          setUserData(sessionData);
+          setIsProfileLoading(false);
+          console.log("⚡ Loaded user data from session cache");
+          return;
+        }
+
+        // 2. Try to get from AsyncStorage (medium speed)
+        const storageData = await loadUserDataFromStorage(walletAddress);
+        if (storageData) {
+          setUserData(storageData);
+          setIsProfileLoading(false);
+          console.log("✅ Loaded user data from AsyncStorage");
+          return;
+        }
+
+        // 3. Fetch from Supabase (slowest but most up-to-date)
+        console.log("🔄 Fetching user data from Supabase...");
+        const { data: userProfile, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("wallet_address", walletAddress)
+          .single();
+
+        if (error) {
+          console.error("❌ Error fetching user profile:", error);
+          setIsProfileLoading(false);
+          return;
+        }
+
+        if (userProfile) {
+          // Map Supabase data to UserData interface
+          const mappedUserData: UserData = {
+            walletAddress: userProfile.wallet_address,
+            username: userProfile.username,
+            name: userProfile.name,
+            avatar: userProfile.avatar,
+            bio: userProfile.bio,
+            created_at: userProfile.created_at,
+            publicKey: userProfile.public_key,
+          };
+
+          // Store in both AsyncStorage and session cache
+          await storeUserDataInStorage(mappedUserData);
+          setUserData(mappedUserData);
+          console.log("✅ User data fetched from Supabase and cached");
+        }
+      } catch (error) {
+        console.error("❌ Error loading user profile:", error);
+      } finally {
+        setIsProfileLoading(false);
+      }
+    };
+
+    loadUserProfile();
   }, [walletAddress]);
 
   useEffect(() => {
@@ -88,9 +156,8 @@ export default function UserProfile() {
     }
   }, [userData, chatList, myPublicKey]);
 
-  // --- NEW: A self-contained handler function inside the component ---
+  // Enhanced connect handler
   const connectToUser = async () => {
-    // 1. Check if user data (containing the address) is loaded.
     if (!userData?.walletAddress) {
       console.error("Cannot connect: User data is not available.");
       return;
@@ -98,16 +165,23 @@ export default function UserProfile() {
 
     setIsConnecting(true);
 
-    // 2. Call the imported utility, passing the wallet address.
+    console.log("🤝 Initiating connection with", userData.walletAddress);
+
     const success = await handleConnect(userData.walletAddress);
 
     setIsConnecting(false);
 
-    // 3. Update the UI state based on the result.
     if (success) {
       setIsConnected(true);
+      // Update the cached user data to reflect the connection
+      const updatedUserData = { ...userData };
+      try {
+        await storeUserDataInStorage(updatedUserData);
+        console.log("✅ Updated cached user data after connection");
+      } catch (error) {
+        console.error("❌ Error updating cached user data:", error);
+      }
     }
-    // The handleConnect utility now shows its own alert on failure.
   };
 
   const handleSendMessageWrapper = () =>
@@ -124,6 +198,37 @@ export default function UserProfile() {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: "center" }]}>
         <ActivityIndicator size="large" color={isDarkMode ? "#fff" : "#000"} />
+        <Text style={[styles.infoText, { textAlign: "center", marginTop: 10 }]}>
+          Loading profile...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state if user data couldn't be loaded
+  if (!userData) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: "center" }]}>
+        <Ionicons
+          name="alert-circle-outline"
+          size={64}
+          color={isDarkMode ? "#fff" : "#000"}
+        />
+        <Text style={[styles.infoText, { textAlign: "center", marginTop: 10 }]}>
+          Unable to load user profile
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.sideBySideButton,
+            styles.connectButtonDefault,
+            { marginTop: 20 },
+          ]}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={[styles.buttonText, styles.connectButtonTextDefault]}>
+            Go Back
+          </Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -233,11 +338,7 @@ export default function UserProfile() {
         <View style={styles.separator} />
         <View style={styles.infoRow}>
           <Text style={styles.label}>Public Key</Text>
-          <Text
-            style={styles.infoText}
-            selectable
-            numberOfLines={2}
-          >
+          <Text style={styles.infoText} selectable numberOfLines={2}>
             {userData?.publicKey || "Loading..."}
           </Text>
         </View>
@@ -295,7 +396,6 @@ export default function UserProfile() {
             isButtonPressed && !isConnected && styles.connectButtonPressed,
             (!userData || isConnecting) && styles.buttonDisabled,
           ]}
-          // --- Call the new component-level handler ---
           onPress={connectToUser}
           onPressIn={() => setIsButtonPressed(true)}
           onPressOut={() => setIsButtonPressed(false)}
@@ -345,6 +445,7 @@ export default function UserProfile() {
     </SafeAreaView>
   );
 }
+
 const getStyles = (isDarkMode: boolean) =>
   StyleSheet.create({
     container: {
@@ -487,8 +588,8 @@ const getStyles = (isDarkMode: boolean) =>
       fontSize: 24,
       fontWeight: "800",
       fontFamily: Platform.select({
-        ios: "Courier", // Built-in on iOS
-        android: "monospace", // Built-in on Android
+        ios: "Courier",
+        android: "monospace",
       }),
       color: isDarkMode ? "#00FFAA" : "#007AFF",
       letterSpacing: 2,

@@ -10,7 +10,7 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Message } from "../../backend/Local database/MessageStructure";
+import { Message } from "../../backend/Local database/SQLite/MessageStructure";
 import { formatTimeForUser } from "../GlobalUtils/FormatDate";
 // Try to use expo-blur for a blurred background
 let BlurView: any = null;

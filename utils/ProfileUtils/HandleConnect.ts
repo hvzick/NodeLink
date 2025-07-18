@@ -1,58 +1,53 @@
-// utils/ProfileUtils/HandleConnect.ts
-
-import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { deriveSharedKeyWithUser } from '../../backend/Encryption/SharedKey';
-
-// In-memory session key cache: This Map stores the shared keys during the app's runtime.
-const sessionKeys = new Map<string, string>();
+// utils\ProfileUtils\HandleConnect.ts
+import { Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { deriveSharedKeyWithUser } from "../../backend/Encryption/SharedKey";
+import { SessionKeyStore } from "../../backend/Local database/KeyStorage/SessionKeyStore";
 
 /**
- * Establishes a secure session by retrieving or deriving a shared key.
- * @param recipientAddress The wallet address of the user to connect with.
- * @returns True if connection and key derivation succeeded.
+ * Establishes a secure session by retrieving or deriving a shared key
+ * with another user, and storing it in memory and persistent storage.
+ *
+ * @param recipientAddress Wallet address of the recipient
+ * @returns true if the shared key was successfully retrieved or derived
  */
-export async function handleConnect(recipientAddress: string): Promise<boolean> {
+export async function handleConnect(
+  recipientAddress: string
+): Promise<boolean> {
   console.log(`🤝 Initiating connection with ${recipientAddress}...`);
 
   const storageKey = `shared_key_${recipientAddress}`;
 
   try {
-    // 1. Try to load from AsyncStorage (persistent storage)
+    // Step 1: Try loading the shared key from AsyncStorage (persistent)
     let sharedKey = await AsyncStorage.getItem(storageKey);
+    console.log(`Shared Key with ${recipientAddress} =`, sharedKey);
 
-    console.log('Shared Key with ', recipientAddress, ' = ', sharedKey);
-
-    if (sharedKey) {
-      console.log(`📦 Loaded shared key from AsyncStorage: ${sharedKey}`);
-    } else {
-      // 2. If not found in AsyncStorage, derive it
+    // Step 2: If not found, derive a new shared key
+    if (!sharedKey) {
+      console.log(
+        `Shared Key not found for ${recipientAddress}, deriving a new one...`
+      );
       sharedKey = await deriveSharedKeyWithUser(recipientAddress);
-      if (!sharedKey) throw new Error("Key derivation failed.");
+      if (!sharedKey) throw new Error("Key derivation failed");
 
-      // IMPORTANT: If the key was newly derived, save it to AsyncStorage for persistence
       await AsyncStorage.setItem(storageKey, sharedKey);
-      console.log(`💾 Saved newly derived shared key to AsyncStorage: ${sharedKey}`);
+      console.log(`💾 Saved newly derived shared key to AsyncStorage.`);
+    } else {
+      console.log(`📦 Loaded shared key from AsyncStorage.`);
     }
 
-    // 3. Cache it in memory: This ensures the key is quickly accessible for the current session.
-    sessionKeys.set(recipientAddress, sharedKey);
-    console.log(`✅ Shared key stored in memory for ${recipientAddress}`);
-    return true;
+    // Step 3: Save to shared session store
+    SessionKeyStore.set(recipientAddress, sharedKey);
+    console.log(`✅ Shared key cached in memory.`);
 
+    return true;
   } catch (err) {
     console.error(`❌ Connection failed with ${recipientAddress}:`, err);
-    Alert.alert('Connection Failed', 'Could not establish a secure session. Please try again.');
+    Alert.alert(
+      "Connection Failed",
+      "Could not establish a secure session. The user's public key might be missing."
+    );
     return false;
   }
-}
-
-/**
- * Retrieve the shared key string for a specific recipient.
- * This function retrieves the key from the in-memory cache.
- * @param recipientAddress The wallet address of the user.
- * @returns The shared key (hex string) or undefined.
- */
-export function getSharedKeyForUser(recipientAddress: string): string | undefined {
-  return sessionKeys.get(recipientAddress);
 }
