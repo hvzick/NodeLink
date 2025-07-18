@@ -10,11 +10,14 @@ export interface Message {
   fileSize?: string;
   videoUrl?: string;
   audioUrl?: string;
-  replyTo?: Message | null;
+  replyTo?: string | null;
   status?: string;
   encrypted?: boolean;
   decrypted?: boolean;
   encryptedContent?: string;
   iv?: string;
   createdAt?: number;
+  receivedAt?: number | null;
+  encryptionVersion?: string;
+  readAt?: number | null;
 }

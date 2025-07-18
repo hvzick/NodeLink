@@ -420,6 +420,14 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     initConversationTones();
   }, []);
 
+const repliedMessages = useMemo(() => {
+  const map: Record<string, Message> = {};
+  messages.forEach((msg) => {
+    map[msg.id] = msg;
+  });
+  return map;
+}, [messages]);
+
   const renderItem = ({ item }: { item: any }) => {
     if (item.type === "date") {
       return (
@@ -433,6 +441,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       <View style={styles.messageBubble}>
         <MessageBubble
           message={item}
+          chatRecipientName={name}
+          repliedMessages={repliedMessages}
           onImagePress={(uri) => handlerDependencies.setSelectedImage(uri)}
           onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
           onQuotedPress={handleQuotedPressWrapper}

@@ -2,6 +2,29 @@
 
 import { gun } from "../GunState";
 
+interface SendMessageArgs {
+  id: string;
+  text: string;
+  receiver: string;
+  sender: string;
+  encrypted?: boolean;
+  encryptedContent?: string;
+  iv?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  fileName?: string;
+  fileSize?: string;
+  audioUrl?: string;
+  replyTo?: any | null;
+  status?: string;
+  createdAt?: number;
+  timestamp?: string;
+  decrypted?: boolean;
+  receivedAt?: number | null;
+  encryptionVersion?: string;
+  readAt?: number | null;
+}
+
 export async function sendMessage({
   id,
   text,
@@ -10,35 +33,43 @@ export async function sendMessage({
   encrypted = true,
   encryptedContent,
   iv,
-}: {
-  id: string; // ✅ Add this
-  text: string;
-  receiver: string;
-  sender: string;
-  encrypted?: boolean;
-  encryptedContent?: string;
-  iv?: string;
-}): Promise<void> {
-  const timestamp = Date.now();
-
-  const conversationId = `convo_${receiver}`;
+  imageUrl = '',
+  videoUrl = '',
+  fileName = '',
+  fileSize = '',
+  audioUrl = '',
+  replyTo = null,
+  status = 'delivered',
+  createdAt,
+  timestamp,
+  decrypted = false,
+  receivedAt = null,
+  encryptionVersion = "AES-256-GCM",
+  readAt = null,
+}: SendMessageArgs): Promise<void> {
+  const now = Date.now();
 
   const message = {
-    id, // use passed id
+    id,
     sender,
     receiver,
     text: encrypted ? '' : text,
-    timestamp: timestamp.toString(),
-    createdAt: timestamp,
+    timestamp: timestamp || new Date(now).toISOString(),
+    createdAt: createdAt || now,
     encrypted,
     encryptedContent: encryptedContent || '',
     iv: iv || '',
-    imageUrl: '',
-    videoUrl: '',
-    audioUrl: '',
-    status: 'delivered',
-    decrypted: false,
-    conversationId,
+    imageUrl,
+    videoUrl,
+    fileName,
+    fileSize,
+    audioUrl,
+    replyTo,
+    status,
+    decrypted,
+    receivedAt,
+    encryptionVersion,
+    readAt,
   };
 
   console.log('📨 Message content to send:', message);
@@ -46,8 +77,7 @@ export async function sendMessage({
 
   try {
     const chatRef = gun.get(`nodelink/${receiver}`);
-    chatRef.get(id).put(message); // safer insert
-    // console.log('✅ Message sent to GunDB.');
+    chatRef.get(id).put(message);
   } catch (error) {
     console.error('❌ Failed to send message to GunDB:', error);
     throw error;

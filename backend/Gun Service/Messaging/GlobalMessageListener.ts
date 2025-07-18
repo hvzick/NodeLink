@@ -24,9 +24,6 @@ const GlobalMessageListener = () => {
       }
 
       cleanup = await listenForMessages(async (msg: Message) => {
-        // console.log('📥 Received via listener:', msg);
-
-        // 💬 Safety guards
         if (!msg.id || !msg.sender) {
           console.warn('⚠️ Invalid message, missing id or sender. Skipping.');
           return;
@@ -34,11 +31,13 @@ const GlobalMessageListener = () => {
 
         msg.conversationId = msg.conversationId || `convo_${msg.sender}`;
         msg.createdAt = msg.createdAt || (msg.timestamp ? parseInt(msg.timestamp, 10) : Date.now());
+        msg.receivedAt = Date.now();
+        // Important: Always ensure these two fields are set
+        msg.encryptionVersion = msg.encryptionVersion || 'AES-256-GCM';
+        msg.readAt = typeof msg.readAt === 'number' ? msg.readAt : null;
 
-        // 🧩 Attempt to decrypt message
         let sharedKey = await AsyncStorage.getItem(`shared_key_${msg.sender}`);
         if (!sharedKey) {
-          // Try to derive the shared key if not present
           sharedKey = await deriveSharedKeyWithUser(msg.sender);
           if (sharedKey) {
             await AsyncStorage.setItem(`shared_key_${msg.sender}`, sharedKey);
@@ -61,20 +60,17 @@ const GlobalMessageListener = () => {
           msg.decrypted = true;
           console.log('✅ Decrypted message:', decryptedText);
         } catch (error) {
-          msg.text = '[Unable to decrypt]';
+          msg.text = '[Unable to decrypt, Keys might have changed in transit]';
           msg.decrypted = false;
           console.warn('❌ Failed to decrypt:', error);
         }
 
-        // 💾 Save to local DB
         try {
           await insertMessage(msg);
-          // console.log(`✅ Message ${msg.id} inserted locally.`);
         } catch (err) {
           console.warn('❌ DB insert failed:', err);
         }
 
-        // 🗑️ Remove from Gun
         try {
           gun.get(`nodelink/${myWalletAddress}`).get(msg.id).put(null);
           console.log(`🗑️ Auto-deleted message ${msg.id} from GunDB.`);
@@ -82,10 +78,8 @@ const GlobalMessageListener = () => {
           console.warn('❌ Auto-delete failed:', err);
         }
 
-        // 📣 Emit to chat detail screen
         EventBus.emit('new-message', msg);
 
-        // 🧑 Fetch profile & update preview
         const profile = await fetchAndCacheUserProfile(msg.conversationId);
         if (!profile) {
           console.warn(`⚠️ No profile found for ${msg.sender}`);
@@ -113,7 +107,7 @@ const GlobalMessageListener = () => {
     return () => {
       if (cleanup) cleanup();
     };
-  }, []);
+  }, [addOrUpdateChat]);
 
   return null;
 };

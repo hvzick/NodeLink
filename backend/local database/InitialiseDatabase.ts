@@ -45,7 +45,10 @@ export const initializeDatabase = async (): Promise<void> => {
         decrypted INTEGER,
         encryptedContent TEXT,
         iv TEXT,
-        createdAt INTEGER
+        createdAt INTEGER,
+        receivedAt INTEGER,
+        encryptionVersion TEXT,
+        readAt INTEGER
       );
     `);
 

@@ -22,20 +22,3 @@ export function encryptMessage(
   const encrypted = cipher.encrypt(plaintextBytes);
   return bytesToHex(encrypted);
 }
-
-/**
- * Decrypt a message using AES-256-GCM with external IV.
- */
-export function decryptMessage(
-  encryptedHex: string,
-  keyHex: string,
-  ivHex: string
-): string {
-  const key = hexToBytes(keyHex);
-  const iv = hexToBytes(ivHex);
-  const encryptedBytes = hexToBytes(encryptedHex);
-
-  const cipher = gcm(key, iv);
-  const decryptedBytes = cipher.decrypt(encryptedBytes);
-  return bytesToUtf8(decryptedBytes);
-}

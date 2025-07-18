@@ -173,6 +173,7 @@ const Chats = () => {
       });
       setFilteredChats(filtered);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, chatList]); // Removed profileData from dependency array to prevent potential loops
 
   const handleSearch = async (query: string) => {

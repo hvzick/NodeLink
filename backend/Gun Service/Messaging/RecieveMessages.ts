@@ -18,9 +18,9 @@ export async function listenForMessages(
 
   console.log(`📡 Listening for messages at: ${listenPath}`);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handler = chatRef.map().on((data: any, key: string) => {
     if (!data || typeof data !== 'object') {
-      // console.warn(`⚠️ Skipped invalid data for key ${key}:`, data);
       return;
     }
 
@@ -40,15 +40,17 @@ export async function listenForMessages(
       audioUrl: data.audioUrl || '',
       fileName: data.fileName || '',
       fileSize: data.fileSize || '',
-      replyTo: data.replyTo || undefined,
+      replyTo: data.replyTo || null,
 
-      // 🔐 Encrypted message fields
       encrypted: data.encrypted,
-      decrypted: false, // Will be updated after decryption
+      decrypted: false,
       encryptedContent: data.encryptedContent || '',
       iv: data.iv || '',
 
-      status: 'delivered',
+      status: data.status || 'delivered',
+      receivedAt: null, // Will be set in listener/handler on device receive
+      encryptionVersion: data.encryptionVersion || "AES-256-GCM",
+      readAt: typeof data.readAt === "number" ? data.readAt : null,
     };
 
     console.log('📥 Message received from GUN:', message);

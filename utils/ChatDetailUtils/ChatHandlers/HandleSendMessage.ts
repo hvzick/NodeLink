@@ -45,7 +45,6 @@ export const handleSendMessage = async (
     return;
   }
 
-  // Timestamp & ID
   const createdAt = Date.now();
   const id = createdAt.toString();
   const timestamp = new Date(createdAt).toISOString();
@@ -55,7 +54,6 @@ export const handleSendMessage = async (
   console.log('🆔 Message ID:', id);
   console.log('📡 Conversation ID:', conversationId);
 
-  // Encrypt message
   const ivBytes = randomBytes(12); // 96-bit IV for AES-GCM
   const ivHex = bytesToHex(ivBytes);
   console.log('🔐 IV:', ivHex);
@@ -87,18 +85,19 @@ export const handleSendMessage = async (
     encrypted: !!plainText,
     decrypted: !!plainText,
     status: 'sending',
-    ...(attachment && {
-      imageUrl: attachment.imageUrl,
-      videoUrl: attachment.videoUrl,
-      fileName: attachment.fileName,
-      fileSize: attachment.fileSize,
-    }),
-    ...(replyMessage && { replyTo: replyMessage }),
+    imageUrl: attachment?.imageUrl ?? '',
+    videoUrl: attachment?.videoUrl ?? '',
+    fileName: attachment?.fileName ?? '',
+    fileSize: attachment?.fileSize ?? '',
+    audioUrl: attachment?.audioUrl ?? '',
+    replyTo: replyMessage?.id || null,
+    receivedAt: null,
+    encryptionVersion: "AES-256-GCM",
+    readAt: null,
   };
 
   console.log('📨 Prepared Message:', tempMsg);
 
-  // Optimistic UI update
   setMessages(prev =>
     [...prev, tempMsg].sort((a, b) => (a.createdAt || parseInt(a.id, 10)) - (b.createdAt || parseInt(b.id, 10)))
   );
@@ -118,6 +117,19 @@ export const handleSendMessage = async (
       receiver: receiverAddress,
       encryptedContent: encryptedText,
       iv: ivHex,
+      imageUrl: attachment?.imageUrl ?? '',
+      videoUrl: attachment?.videoUrl ?? '',
+      fileName: attachment?.fileName ?? '',
+      fileSize: attachment?.fileSize ?? '',
+      audioUrl: attachment?.audioUrl ?? '',
+      replyTo: replyMessage?.id || null,      // <-- ONLY THE ID
+      status: 'sending',
+      createdAt,
+      timestamp,
+      decrypted: false,
+      receivedAt: null,
+      encryptionVersion: "AES-256-GCM",
+      readAt: null,
     });
     console.log('✅ Sent to GunDB');
 
@@ -129,7 +141,6 @@ export const handleSendMessage = async (
     return;
   }
 
-  // Chat preview
   const previewText = plainText || (tempMsg.imageUrl ? 'Image' : tempMsg.videoUrl ? 'Video' : 'Attachment');
   formatTimeForUser(createdAt).then((formattedTime) => {
     const chatPreview: ChatItemType = {

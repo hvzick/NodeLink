@@ -16,13 +16,13 @@ export const insertMessage = async (message: Message): Promise<any> => {
       return;
     }
 
-    // 💾 Insert the new message
+    // 💾 Insert the new message (now with receivedAt)
     const result = await db.runAsync(
       `INSERT OR IGNORE INTO messages (
         id, conversationId, sender, receiver, text, timestamp, imageUrl,
         fileName, fileSize, videoUrl, audioUrl, replyTo,
-        status, encrypted, decrypted, encryptedContent, iv, createdAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        status, encrypted, decrypted, encryptedContent, iv, createdAt, receivedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       [
         message.id || null,
         message.conversationId || null,
@@ -41,7 +41,10 @@ export const insertMessage = async (message: Message): Promise<any> => {
         message.decrypted ? 1 : 0,
         message.encryptedContent || null,
         message.iv || null,
-        message.createdAt || Date.now()
+        message.createdAt || Date.now(),
+        message.receivedAt || null,
+        message.encryptionVersion || null,
+        message.readAt || null
       ]
     );
 

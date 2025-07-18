@@ -16,6 +16,8 @@ import { formatTimeForUser } from "../GlobalUtils/FormatDate";
 
 export type MessageBubbleProps = {
   message: Message;
+  repliedMessages?: Record<string, Message>;
+  chatRecipientName: string;
   onImagePress: (uri: string) => void;
   onVideoPress: (uri: string) => void;
   onQuotedPress: (quoted: Message) => void;
@@ -31,6 +33,8 @@ export type MessageBubbleProps = {
 const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
   ({
     message,
+    repliedMessages,
+    chatRecipientName,
     onImagePress,
     onVideoPress,
     onQuotedPress,
@@ -92,6 +96,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
       return <View style={{ height: measuredHeight || 50 }} />;
     }
 
+    // Quoted message lookup
+    const quotedMsg =
+      typeof message.replyTo === "string"
+        ? repliedMessages?.[message.replyTo]
+        : undefined;
+
+    // Only uses chatRecipientName as the display name (for 1-to-1 chats)
+    const getReplyName = (sender: string) => {
+      if (!walletAddress || !sender) return sender;
+      return sender.toLowerCase() === walletAddress.toLowerCase()
+        ? "You"
+        : chatRecipientName;
+    };
+
     return (
       <View onLayout={(e) => setMeasuredHeight(e.nativeEvent.layout.height)}>
         <Animated.View style={{ transform: [{ scale }] }}>
@@ -103,20 +121,36 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
               highlighted && styles.highlighted,
             ]}
           >
-            {/* Reply preview */}
-            {message.replyTo && typeof message.replyTo === "object" && (
+            {/* Reply preview (if quotedMsg found in map) */}
+            {message.replyTo && (
               <Pressable
-                onPress={() => onQuotedPress(message.replyTo!)}
+                onPress={quotedMsg ? () => onQuotedPress(quotedMsg) : undefined}
                 style={styles.contentWrapper}
+                disabled={!quotedMsg}
               >
                 <View style={styles.replyPreview}>
-                  <Text style={styles.replyLabel}>
-                    Replying to {message.replyTo.sender}
-                  </Text>
-                  <Text numberOfLines={1} style={styles.replyText}>
-                    {message.replyTo.text ||
-                      (message.replyTo.imageUrl ? "Image" : "Video")}
-                  </Text>
+                  {quotedMsg ? (
+                    <>
+                      <Text style={styles.replyLabel}>
+                        Replying to {getReplyName(quotedMsg.sender)}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.replyText}>
+                        {quotedMsg.text ||
+                          (quotedMsg.imageUrl
+                            ? "Image"
+                            : quotedMsg.videoUrl
+                            ? "Video"
+                            : "[No Preview]")}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.replyLabel}>Replied to message</Text>
+                      <Text numberOfLines={1} style={styles.replyText}>
+                        {message.replyTo}
+                      </Text>
+                    </>
+                  )}
                 </View>
               </Pressable>
             )}
@@ -202,6 +236,7 @@ const getStyles = (theme: "light" | "dark") =>
       alignSelf: "flex-start",
       backgroundColor: theme === "dark" ? "#3A3A3C" : "#E5E5EA",
       borderTopLeftRadius: 0,
+      marginVertical: 10,
     },
     bubbleRight: {
       alignSelf: "flex-end",
@@ -260,17 +295,20 @@ const getStyles = (theme: "light" | "dark") =>
         theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
       borderRadius: 8,
       borderLeftWidth: 3,
-      borderLeftColor: "#007AFF",
+      borderLeftColor: "#FFFFFf",
       padding: 8,
       marginBottom: 5,
     },
     replyLabel: {
       fontSize: 13,
       fontWeight: "600",
-      color: "#007AFF",
+      color: "#000000",
       marginBottom: 2,
     },
-    replyText: { fontSize: 14, color: theme === "dark" ? "#B0B0B0" : "#555" },
+    replyText: {
+      fontSize: 14,
+      color: "#FFFFFF",
+    },
     highlighted: { backgroundColor: theme === "dark" ? "#5A4A02" : "#FFF3B2" },
     contentWrapper: {},
   });
