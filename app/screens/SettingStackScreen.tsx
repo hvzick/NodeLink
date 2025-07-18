@@ -6,7 +6,7 @@ import MyProfile from "./MyProfile";
 import NotificationsScreen from "./Notifications";
 import AuthScreen from "./Authentication";
 import HapticFeedback from "./HapticFeedback";
-import PrivacyPolicyScreen from "./Privacyolicy";
+import PrivacyPolicyScreen from "./PrivacyPolicy";
 import SecurityScreen from "./Security";
 
 export type SettingsStackParamList = {
