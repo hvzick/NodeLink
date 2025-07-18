@@ -8,10 +8,12 @@ import {
   Animated,
   Dimensions,
   TouchableWithoutFeedback,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Message } from "../../backend/Local database/SQLite/MessageStructure";
 import { formatTimeForUser } from "../GlobalUtils/FormatDate";
+
 // Try to use expo-blur for a blurred background
 let BlurView: any = null;
 try {
@@ -30,40 +32,35 @@ const MessageInfoWindow: React.FC<MessageInfoWindowProps> = ({
   initialPosition,
 }) => {
   const { width, height } = Dimensions.get("window");
-  // Center the window by default
-  const defaultPosition = React.useMemo(
-    () =>
-      initialPosition || {
-        x: Math.round(width / 2 - 160),
-        y: Math.round(height / 2 - 120),
-      },
-    [initialPosition, width, height]
+
+  // Fixed center position
+  const windowWidth = 320;
+  const windowHeight = Math.min(height * 0.8, 500); // Max 80% of screen height or 500px
+  const centerPosition = React.useMemo(
+    () => ({
+      x: Math.round((width - windowWidth) / 2),
+      y: Math.round((height - windowHeight) / 2),
+    }),
+    [width, height, windowWidth, windowHeight]
   );
 
-  // Only set the position on mount or when message changes
+  // Use fixed center position instead of draggable
   const infoWindowPosition = useRef<Animated.ValueXY | null>(null);
   if (!infoWindowPosition.current) {
-    infoWindowPosition.current = new Animated.ValueXY(defaultPosition);
+    infoWindowPosition.current = new Animated.ValueXY(centerPosition);
   }
+
   useEffect(() => {
     if (message) {
-      infoWindowPosition.current?.setValue(defaultPosition);
+      infoWindowPosition.current?.setValue(centerPosition);
     }
-  }, [message, defaultPosition]);
+  }, [message, centerPosition]);
 
+  // Remove pan responder since we want fixed positioning
   const infoWindowPanResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: Animated.event(
-        [
-          null,
-          {
-            dx: infoWindowPosition.current!.x,
-            dy: infoWindowPosition.current!.y,
-          },
-        ],
-        { useNativeDriver: false }
-      ),
+      onStartShouldSetPanResponder: () => false, // Disable dragging
+      onPanResponderMove: () => {},
       onPanResponderRelease: () => {},
     })
   ).current;
@@ -87,7 +84,11 @@ const MessageInfoWindow: React.FC<MessageInfoWindowProps> = ({
       <Animated.View
         style={[
           styles.infoWindow,
-          { transform: infoWindowPosition.current!.getTranslateTransform() },
+          {
+            width: windowWidth,
+            height: windowHeight,
+            transform: infoWindowPosition.current!.getTranslateTransform(),
+          },
         ]}
         {...infoWindowPanResponder.panHandlers}
       >
@@ -97,44 +98,111 @@ const MessageInfoWindow: React.FC<MessageInfoWindowProps> = ({
             <Ionicons name="close-circle" size={22} color="#888" />
           </TouchableOpacity>
         </View>
-        <View style={styles.infoContent}>
-          {Object.entries(message).map(([key, value]) => {
-            if (value === null || value === undefined || value === "")
-              return null;
-            if (key === "createdAt") {
-              if (typeof value === "number" || value instanceof Date) {
-                const dateObj = value instanceof Date ? value : new Date(value);
+
+        {/* Scrollable content area */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
+          bounces={true}
+        >
+          <View style={styles.infoContent}>
+            {Object.entries(message).map(([key, value]) => {
+              // Skip null, undefined, or empty values
+              if (value === null || value === undefined || value === "") {
+                return null;
+              }
+
+              // Special handling for createdAt
+              if (key === "createdAt") {
+                if (typeof value === "number" || value instanceof Date) {
+                  const dateObj =
+                    value instanceof Date ? value : new Date(value);
+                  return (
+                    <React.Fragment key={key}>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Sent Date:</Text>
+                        <Text selectable style={styles.infoValue}>
+                          {dateObj.toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Sent Time:</Text>
+                        <Text selectable style={styles.infoValue}>
+                          {formatTimeForUser(value)}
+                        </Text>
+                      </View>
+                    </React.Fragment>
+                  );
+                }
+                return null;
+              }
+
+              // Special handling for receivedAt
+              if (key === "receivedAt") {
+                if (typeof value === "number") {
+                  const dateObj = new Date(value);
+                  return (
+                    <React.Fragment key={key}>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Received Date:</Text>
+                        <Text selectable style={styles.infoValue}>
+                          {dateObj.toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Received Time:</Text>
+                        <Text selectable style={styles.infoValue}>
+                          {formatTimeForUser(value)}
+                        </Text>
+                      </View>
+                    </React.Fragment>
+                  );
+                }
+                return null;
+              }
+
+              // Special handling for readAt
+              if (key === "readAt" && typeof value === "number") {
+                const dateObj = new Date(value);
                 return (
                   <React.Fragment key={key}>
-                    <Text selectable style={styles.infoLabel}>
-                      Sent Date:{" "}
-                      <Text style={styles.infoValue}>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Read Date:</Text>
+                      <Text selectable style={styles.infoValue}>
                         {dateObj.toLocaleDateString()}
                       </Text>
-                    </Text>
-                    <Text selectable style={styles.infoLabel}>
-                      Sent Time:{" "}
-                      <Text style={styles.infoValue}>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Read Time:</Text>
+                      <Text selectable style={styles.infoValue}>
                         {formatTimeForUser(value)}
                       </Text>
-                    </Text>
+                    </View>
                   </React.Fragment>
                 );
               }
-              return null;
-            }
-            return (
-              <Text key={key} selectable style={styles.infoLabel}>
-                {key}:{" "}
-                <Text style={styles.infoValue}>
-                  {typeof value === "object"
-                    ? JSON.stringify(value)
-                    : String(value)}
-                </Text>
-              </Text>
-            );
-          })}
-        </View>
+
+              // Format key names for better readability
+              const formatKey = (key: string) => {
+                return key
+                  .replace(/([A-Z])/g, " $1")
+                  .replace(/^./, (str) => str.toUpperCase());
+              };
+
+              return (
+                <View key={key} style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>{formatKey(key)}:</Text>
+                  <Text selectable style={styles.infoValue}>
+                    {typeof value === "object"
+                      ? JSON.stringify(value, null, 2)
+                      : String(value)}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </ScrollView>
       </Animated.View>
     </View>
   );
@@ -143,45 +211,60 @@ const MessageInfoWindow: React.FC<MessageInfoWindowProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     zIndex: 9,
   },
   infoWindow: {
     position: "absolute",
-    width: 320,
-    minHeight: 180,
     zIndex: 10,
     backgroundColor: "#fff",
     borderRadius: 12,
-    padding: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 10,
   },
   infoHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
   infoTitle: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 18,
     color: "#222",
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 16,
+  },
   infoContent: {
-    marginTop: 4,
+    padding: 16,
+  },
+  infoRow: {
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   infoLabel: {
-    fontSize: 13,
-    color: "#444",
-    marginBottom: 2,
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "600",
+    marginBottom: 4,
   },
   infoValue: {
+    fontSize: 14,
     color: "#000",
-    fontWeight: "500",
+    fontWeight: "400",
+    lineHeight: 18,
   },
 });
 

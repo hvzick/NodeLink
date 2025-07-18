@@ -338,7 +338,7 @@ export default function UserProfile() {
         <View style={styles.separator} />
         <View style={styles.infoRow}>
           <Text style={styles.label}>Public Key</Text>
-          <Text style={styles.infoText} selectable numberOfLines={2}>
+          <Text style={styles.infoText}>
             {userData?.publicKey || "Loading..."}
           </Text>
         </View>

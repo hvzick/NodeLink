@@ -15,7 +15,7 @@ export async function loadUserDataFromStorage(
     if (raw) {
       const userData = JSON.parse(raw);
       if (userData.walletAddress === walletAddress) {
-        setSessionUserData(userData); // Update shared state
+        setSessionUserData(userData);
         console.log("✅ UserData loaded from AsyncStorage into session.");
         return userData;
       } else {

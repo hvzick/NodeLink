@@ -17,6 +17,8 @@ import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedb
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { handleUserData } from "../../backend/Supabase/HandleUserData";
 import { handleAndPublishKeys } from "../../backend/Encryption/HandleKeys";
+import { loadChatProfiles } from "../../utils/ChatUtils/HandleRefresh";
+import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
 
 const Tab = createBottomTabNavigator();
 
@@ -125,6 +127,46 @@ export default function BottomTabs() {
         console.error("❌ Key generation error:", err);
       }
     })();
+  }, []);
+
+  // 3️⃣ Preload profiles for common conversations (optional warmup)
+  useEffect(() => {
+    const preloadCommonProfiles = async () => {
+      try {
+        console.log("🔄 Preloading common chat profiles...");
+
+        const sampleConversationIds: any[] = [
+          // Add any common conversation IDs you want to preload
+          // "convo_0x1234567890...",
+        ];
+
+        if (sampleConversationIds.length > 0) {
+          const chatItems: ChatItemType[] = sampleConversationIds.map((id) => ({
+            id: id,
+            name: "Loading...",
+            message: "",
+            time: "",
+            avatar: null,
+          }));
+
+          const profiles = await loadChatProfiles(chatItems);
+          console.log(
+            `✅ Preloaded ${Object.keys(profiles).length} common profiles`
+          );
+        } else {
+          console.log("ℹ️ No common profiles to preload");
+        }
+      } catch (error) {
+        console.error("❌ Failed to preload profiles:", error);
+      }
+    };
+
+    // Preload after a delay to ensure other systems are ready
+    const timer = setTimeout(() => {
+      preloadCommonProfiles();
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (

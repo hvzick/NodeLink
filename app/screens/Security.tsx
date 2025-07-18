@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
-  FlatList,
   Pressable,
   ScrollView,
 } from "react-native";
@@ -140,7 +139,7 @@ const SecurityScreen: React.FC = () => {
   const styles = getStyles(isDarkMode);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.headerContainer}>
         <TouchableWithoutFeedback onPress={() => navigation.goBack()}>
           <View style={styles.backButton}>
@@ -389,12 +388,12 @@ const getStyles = (isDarkMode: boolean) =>
     },
     sharedSecretsContainer: {
       flex: 1,
-      marginBottom: 24,
+      marginBottom: 15,
     },
     scrollContainer: {
       maxHeight: 300,
       backgroundColor: isDarkMode ? "#222" : "#fff",
-      borderRadius: 8,
+      borderRadius: 15,
       padding: 8,
     },
     sharedItem: {

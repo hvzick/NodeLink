@@ -3,13 +3,11 @@ import { Message } from "../../Local database/SQLite/MessageStructure";
 import { insertMessage } from "../../Local database/SQLite/InsertMessage";
 import { useChat, EventBus } from "../../../utils/ChatUtils/ChatContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { loadChatProfiles } from "../../../utils/ChatUtils/HandleRefresh";
-import { listenForMessages } from "./RecieveMessages";
 import { gun } from "../GunState";
 import { decryptMessage } from "../../../backend/Encryption/Decrypt";
 import { deriveSharedKeyWithUser } from "../../../backend/Encryption/SharedKey";
 import { formatTimeForUser } from "../../../utils/GlobalUtils/FormatDate";
-import { ChatItemType } from "../../../utils/ChatUtils/ChatItemsTypes";
+import { listenForMessages } from "./RecieveMessages";
 
 const GlobalMessageListener = () => {
   const { addOrUpdateChat } = useChat();
@@ -25,21 +23,76 @@ const GlobalMessageListener = () => {
       }
 
       cleanup = await listenForMessages(async (msg: Message) => {
-        if (!msg.id || !msg.sender) {
-          console.warn("⚠️ Invalid message, missing id or sender. Skipping.");
+        // Enhanced validation with detailed logging
+        console.log(
+          "📥 Message received from GUN:",
+          JSON.stringify(msg, null, 2)
+        );
+        console.log("🔍 Message  ID:", msg.id, "Sender:", msg.sender);
+        console.log(
+          "🔍 ID type:",
+          typeof msg.id,
+          "Sender type:",
+          typeof msg.sender
+        );
+
+        // Improved validation to handle various edge cases
+        if (
+          !msg.id ||
+          !msg.sender ||
+          typeof msg.id !== "string" ||
+          typeof msg.sender !== "string" ||
+          msg.id.trim() === "" ||
+          msg.sender.trim() === ""
+        ) {
           return;
         }
 
+        // Ensure required fields are properly set
         msg.conversationId = msg.conversationId || `convo_${msg.sender}`;
-        msg.createdAt =
-          msg.createdAt ||
-          (msg.timestamp ? parseInt(msg.timestamp, 10) : Date.now());
-        msg.receivedAt = Date.now();
+
+        // FIX: Properly handle timestamp conversion
+        if (!msg.createdAt || msg.createdAt < 1000000000000) {
+          if (msg.timestamp) {
+            if (typeof msg.timestamp === "string") {
+              msg.createdAt = new Date(msg.timestamp).getTime();
+            } else if (typeof msg.timestamp === "number") {
+              msg.createdAt = msg.timestamp;
+            } else {
+              msg.createdAt = Date.now();
+            }
+          } else {
+            msg.createdAt = Date.now();
+          }
+        }
+
+        // Set current time as receivedAt timestamp
+        const currentTime = Date.now();
+        msg.receivedAt = currentTime;
+        console.log(
+          "⏰ Message received at:",
+          new Date(currentTime).toISOString()
+        );
+
+        // Change status to "received"
+        msg.status = "received";
+
         msg.encryptionVersion = msg.encryptionVersion || "AES-256-GCM";
         msg.readAt = typeof msg.readAt === "number" ? msg.readAt : null;
 
+        console.log("🔧 Message timing:", {
+          createdAt: msg.createdAt,
+          createdAtReadable: new Date(msg.createdAt).toISOString(),
+          receivedAt: msg.receivedAt,
+          receivedAtReadable: new Date(msg.receivedAt).toISOString(),
+          timeDifference: `${(msg.receivedAt - msg.createdAt) / 1000}s`,
+          status: msg.status,
+        });
+
+        // Handle shared key derivation
         let sharedKey = await AsyncStorage.getItem(`shared_key_${msg.sender}`);
         if (!sharedKey) {
+          console.log("🔑 No shared key found, deriving new one...");
           sharedKey = await deriveSharedKeyWithUser(msg.sender);
           if (sharedKey) {
             await AsyncStorage.setItem(`shared_key_${msg.sender}`, sharedKey);
@@ -47,11 +100,11 @@ const GlobalMessageListener = () => {
           } else {
             console.warn("❌ Could not derive shared key for", msg.sender);
           }
+        } else {
+          console.log("🔑 Using existing shared key:", sharedKey);
         }
-        console.log("🔑 Shared key:", sharedKey);
-        console.log("🔐 IV:", msg.iv);
-        console.log("🔐 Encrypted Content:", msg.encryptedContent);
 
+        // Handle message decryption
         try {
           if (!msg.encryptedContent || !msg.iv || !sharedKey) {
             throw new Error("Missing encrypted fields");
@@ -71,12 +124,19 @@ const GlobalMessageListener = () => {
           console.warn("❌ Failed to decrypt:", error);
         }
 
+        // Insert message into database
         try {
+          console.log("💾 Inserting message into database...");
           await insertMessage(msg);
+          console.log(
+            "✅ Message inserted successfully with status:",
+            msg.status
+          );
         } catch (err) {
           console.warn("❌ DB insert failed:", err);
         }
 
+        // Auto-delete message from GunDB
         try {
           gun.get(`nodelink/${myWalletAddress}`).get(msg.id).put(null);
           console.log(`🗑️ Auto-deleted message ${msg.id} from GunDB.`);
@@ -84,33 +144,24 @@ const GlobalMessageListener = () => {
           console.warn("❌ Auto-delete failed:", err);
         }
 
+        // Emit new message event
         EventBus.emit("new-message", msg);
 
-        // FIX: call loadChatProfiles with [{ id: ... }]
-        const profiles = await loadChatProfiles([
-          { id: msg.conversationId } as ChatItemType,
-        ]);
-        const profile = profiles[msg.conversationId];
-
-        if (!profile) {
-          console.warn(`⚠️ No profile found for ${msg.sender}`);
-          return;
-        }
-
+        // Update chat UI with basic info (profile loading now handled in App.tsx)
         const preview =
           msg.text ||
           (msg.imageUrl ? "Image" : msg.videoUrl ? "Video" : "Attachment");
 
         formatTimeForUser(msg.createdAt).then((formattedTime) => {
+          // console.log("📱 Updating chat UI...");
           addOrUpdateChat({
             id: msg.conversationId,
-            name: profile.name,
-            avatar: profile.avatar
-              ? { uri: profile.avatar }
-              : require("../../../assets/images/default-user-avatar.jpg"),
+            name: `User ${msg.sender.slice(0, 6)}...`, // Default name until profile loads
+            avatar: require("../../../assets/images/default-user-avatar.jpg"),
             message: preview,
             time: formattedTime,
           });
+          // console.log("✅ Chat UI updated successfully");
         });
       });
     };

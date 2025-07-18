@@ -71,8 +71,6 @@ export default function MyProfile() {
   const [isBioValid, setIsBioValid] = useState(true);
   const [usernameTaken, setUsernameTaken] = useState(false);
   const [publicKey, setPublicKey] = useState<string | null>(null);
-  const [privateKey, setPrivateKey] = useState<string | null>(null);
-  const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -200,10 +198,8 @@ export default function MyProfile() {
         if (stored) {
           const parsed = JSON.parse(stored);
           setPublicKey(parsed.publicKey);
-          setPrivateKey(parsed.privateKey);
         } else {
           setPublicKey(null);
-          setPrivateKey(null);
         }
       })();
     }
@@ -665,25 +661,6 @@ export default function MyProfile() {
               <Text style={styles.infoText} selectable>
                 {publicKey || "Loading..."}
               </Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Private Key</Text>
-              <TouchableOpacity
-                onPress={() => setShowPrivateKey((v) => !v)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.infoText} selectable={showPrivateKey}>
-                  {privateKey
-                    ? showPrivateKey
-                      ? privateKey
-                      : "•".repeat(privateKey.length)
-                    : "Loading..."}
-                </Text>
-                <Text style={{ color: "#007AFF", fontSize: 12, marginTop: 2 }}>
-                  {showPrivateKey ? "Hide" : "Show"}
-                </Text>
-              </TouchableOpacity>
             </View>
 
             <View style={styles.separator} />

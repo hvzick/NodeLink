@@ -55,7 +55,7 @@ export async function listenForMessages(
       readAt: typeof data.readAt === "number" ? data.readAt : null,
     };
 
-    console.log("📥 Message received from GUN:", message);
+    // console.log("📥 Message received from GUN:", message);
     onMessageReceived(message);
   });
 

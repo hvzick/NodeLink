@@ -24,13 +24,9 @@ import {
   loadNotificationEnabled,
 } from "../../utils/NotificationsSettings/EnableNotification";
 import { useMuteSettings } from "../../utils/NotificationsSettings/MuteNotifications";
-import {
-  QuietRange,
-  useQuietHours,
-} from "../../utils/NotificationsSettings/UseQuietHours";
+import { useQuietHours } from "../../utils/NotificationsSettings/UseQuietHours";
 import { useNavigation } from "@react-navigation/native";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
-import { testForegroundNotification } from "./t";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type QuietField = "start" | "end";
@@ -357,16 +353,6 @@ export default function NotificationsScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* Test Notification */}
-      <View style={styles.testContainer}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={testForegroundNotification}
-        >
-          <Text style={styles.buttonText}>Send Test Notification</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
