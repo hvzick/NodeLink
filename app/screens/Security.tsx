@@ -107,7 +107,6 @@ const SecurityScreen: React.FC = () => {
           setCompressedPublicKey,
           setLoading
         );
-        console.log("compressed pk = ", compressedPublicKey);
         await loadSharedSecrets();
         // Don't set state if unmounted
         if (isActive) setLoading(false);

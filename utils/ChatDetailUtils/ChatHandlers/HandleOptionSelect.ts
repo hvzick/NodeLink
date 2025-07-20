@@ -1,17 +1,18 @@
-// utils/ChatDetailUtils/handleOptionSelect.ts
+// utils/ChatDetailUtils/ChatHandlers/handleOptionSelect.ts
 
 import { Alert } from "react-native";
 import { Message } from "../../../backend/Local database/SQLite/MessageStructure";
 import { ChatDetailHandlerDependencies } from "./HandleDependencies";
-import { MenuOption } from "./HandleMessageLongPressMenu"; // Import MenuOption type
-import { copyToClipboard } from "../../GlobalUtils/CopyToClipboard"; // This utility needs to exist
-import { handleDeleteMessage } from "./HandleDeleteMessage"; // Import the specific delete handler
-import { closeLongPressMenu } from "./HandleCloseLongPressMenu"; // Import the specific close menu handler
+import { MenuOption } from "./HandleMessageLongPressMenu";
+import { copyToClipboard } from "../../GlobalUtils/CopyToClipboard";
+import { handleDeleteMessage } from "./HandleDeleteMessage";
+import { closeLongPressMenu } from "./HandleCloseLongPressMenu";
+import { handleSelectMessage } from "./HandleSelectMessage";
 
 export const handleOptionSelect = async (
   dependencies: ChatDetailHandlerDependencies,
   option: MenuOption,
-  selectedMessageForMenu: Message // Pass the selected message explicitly
+  selectedMessageForMenu: Message
 ) => {
   const { setReplyMessage } = dependencies;
 
@@ -40,9 +41,9 @@ export const handleOptionSelect = async (
         Alert.alert("Info", "Nothing to copy from this message.");
       }
       break;
-    case "Forward":
-      console.log("Forwarding message:", selectedMessageForMenu);
+    case "Select":
+      handleSelectMessage(dependencies, selectedMessageForMenu.id);
       break;
   }
-  closeLongPressMenu(dependencies); // Call the specific close menu handler
+  closeLongPressMenu(dependencies);
 };

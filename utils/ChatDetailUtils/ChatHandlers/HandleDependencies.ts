@@ -9,10 +9,8 @@ export interface ChatDetailHandlerDependencies {
   conversationId: string;
   name: string;
   avatar: any;
-
-  userAddress: string; // ✅ Added
-  receiverAddress: string; // ✅ Added
-
+  userAddress: string;
+  receiverAddress: string;
   addOrUpdateChat: (chatItem: ChatItemType) => void;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -32,5 +30,9 @@ export interface ChatDetailHandlerDependencies {
   setMenuPosition: React.Dispatch<
     React.SetStateAction<{ top: number; left: number; right?: number }>
   >;
-  flatListRef: React.RefObject<FlatList<any> | null>; // Allows null
+  flatListRef: React.RefObject<FlatList<any> | null>;
+
+  // Selection mode dependencies
+  setIsSelectionMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setSelectedMessages: React.Dispatch<React.SetStateAction<Set<string>>>;
 }

@@ -1,13 +1,19 @@
 // utils/ChatDetailUtils/MessageLongPressMenu.tsx
 
 import React from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native"; // Import Alert and Clipboard
+import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Message } from "../../../backend/Local database/SQLite/MessageStructure"; // Ensure this path is correct and Message has imageUrl/videoUrl
+import { Message } from "../../../backend/Local database/SQLite/MessageStructure";
 import { copyToClipboard } from "../../GlobalUtils/CopyToClipboard";
 
-// Defines the options that can be selected from the menu
-export type MenuOption = "Info" | "Reply" | "Copy" | "Delete" | "Delete Chat";
+// Updated MenuOption type to include "Select"
+export type MenuOption =
+  | "Info"
+  | "Reply"
+  | "Copy"
+  | "Delete"
+  | "Delete Chat"
+  | "Select";
 
 interface MessageLongPressMenuProps {
   isVisible: boolean;
@@ -16,7 +22,7 @@ interface MessageLongPressMenuProps {
   menuPosition: { top: number; left: number; right?: number };
   isSender: boolean;
   message: Message;
-  onDeleteChat: () => void; // New prop
+  onDeleteChat: () => void;
 }
 
 const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
@@ -53,6 +59,9 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   }
   // --- END MODIFIED COPY LOGIC ---
 
+  // Add 'Select' option for message selection mode
+  menuOptions.push({ name: "Select", icon: "checkmark-circle-outline" });
+
   // Always show 'Delete Chat' at the bottom
   menuOptions.push({ name: "Delete Chat", icon: "trash-bin-outline" });
 
@@ -87,7 +96,11 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
           {menuOptions.map((option) => (
             <TouchableOpacity
               key={option.name}
-              style={styles.optionButton}
+              style={[
+                styles.optionButton,
+                // Add visual distinction for the Select option
+                option.name === "Select" && styles.selectOption,
+              ]}
               onPress={() => {
                 if (option.name === "Copy") {
                   handleCopy(); // Handle copy action internally
@@ -99,8 +112,20 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
                 }
               }}
             >
-              <Text style={styles.optionText}>{option.name}</Text>
-              <Ionicons name={option.icon} size={22} color="#333" />
+              <Text
+                style={[
+                  styles.optionText,
+                  // Style the Select option text
+                  option.name === "Select" && styles.selectOptionText,
+                ]}
+              >
+                {option.name}
+              </Text>
+              <Ionicons
+                name={option.icon}
+                size={22}
+                color={option.name === "Select" ? "#007AFF" : "#333"}
+              />
             </TouchableOpacity>
           ))}
         </View>
@@ -136,6 +161,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
     marginRight: 15,
+  },
+  // New styles for the Select option
+  selectOption: {
+    backgroundColor: "#F8F9FF", // Light blue background
+  },
+  selectOptionText: {
+    color: "#007AFF", // Blue text color
+    fontWeight: "500",
   },
 });
 

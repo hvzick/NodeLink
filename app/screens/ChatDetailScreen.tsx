@@ -42,6 +42,15 @@ import { handleLongPress } from "../../utils/ChatDetailUtils/ChatHandlers/Handle
 import { handleOptionSelect } from "../../utils/ChatDetailUtils/ChatHandlers/HandleOptionSelect";
 import { closeLongPressMenu } from "../../utils/ChatDetailUtils/ChatHandlers/HandleCloseLongPressMenu";
 import { handleQuotedPress } from "../../utils/ChatDetailUtils/ChatHandlers/HandleQuotedPress";
+// Import selection handlers
+import {
+  toggleMessageSelection,
+  exitSelectionMode,
+} from "../../utils/ChatDetailUtils/ChatHandlers/HandleSelectMessage";
+import {
+  handleBulkDelete,
+  handleSelectAll,
+} from "../../backend/Local database/SQLite/DeleteMultipleMessages";
 import MessageLongPressMenu, {
   MenuOption,
 } from "../../utils/ChatDetailUtils/ChatHandlers/HandleMessageLongPressMenu";
@@ -94,10 +103,16 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const receiverAddress = conversationId.replace("convo_", "");
   const [userAddress, setUserAddress] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<Message | null>(null);
+
+  // Selection mode state
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(
+    new Set()
+  );
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+
   const infoWindowPosition = useRef(
     new Animated.ValueXY({ x: 20, y: 80 })
   ).current;
-
   const flatListRef = useRef<FlatList>(null);
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
@@ -123,8 +138,10 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       setSelectedMessageForMenu,
       setMenuPosition,
       flatListRef,
-      userAddress: userAddress ?? "", // Ensures it's always a string
+      userAddress: userAddress ?? "",
       receiverAddress,
+      setIsSelectionMode,
+      setSelectedMessages,
     }),
     [
       conversationId,
@@ -132,24 +149,33 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       avatar,
       addOrUpdateChat,
       messages,
-      setMessages,
       newMessage,
-      setNewMessage,
       attachment,
-      setAttachment,
       replyMessage,
-      setReplyMessage,
-      setSelectedImage,
-      setSelectedVideo,
-      setHighlightedMessageId,
-      setMenuVisible,
-      setSelectedMessageForMenu,
-      setMenuPosition,
-      flatListRef,
-      userAddress, // ✅ Add this
-      receiverAddress, // ✅ Add this
+      userAddress,
+      receiverAddress,
     ]
   );
+
+  // Selection handlers using imported functions
+  const toggleMessageSelectionWrapper = useCallback(
+    (messageId: string) => {
+      toggleMessageSelection(handlerDependencies, messageId);
+    },
+    [handlerDependencies]
+  );
+
+  const exitSelectionModeWrapper = useCallback(() => {
+    exitSelectionMode(handlerDependencies);
+  }, [handlerDependencies]);
+
+  const deleteSelectedMessagesWrapper = useCallback(async () => {
+    await handleBulkDelete(handlerDependencies, selectedMessages);
+  }, [handlerDependencies, selectedMessages]);
+
+  const handleSelectAllWrapper = useCallback(() => {
+    handleSelectAll(handlerDependencies, messages, selectedMessages);
+  }, [handlerDependencies, messages, selectedMessages]);
 
   // Mark messages as read when screen is focused
   useEffect(() => {
@@ -158,45 +184,30 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     const markAsRead = async () => {
       try {
         await markMessagesAsRead(conversationId);
-        console.log(`✅ Messages marked as read for: ${conversationId}`);
       } catch (error) {
         console.error("❌ Failed to mark messages as read:", error);
       }
     };
 
-    // Mark as read when screen opens
     markAsRead();
 
-    // Listen for new messages while focused on this chat
     const handleNewMessage = (message: any) => {
       if (message.conversationId === conversationId && isFocused) {
-        // Small delay to ensure message is inserted into database
-        setTimeout(() => {
-          markAsRead();
-        }, 100);
+        setTimeout(markAsRead, 100);
       }
     };
 
     EventBus.on("new-message", handleNewMessage);
-
-    return () => {
-      EventBus.off("new-message", handleNewMessage);
-    };
+    return () => EventBus.off("new-message", handleNewMessage);
   }, [conversationId, isFocused]);
 
-  // Optional: Mark as read when scrolling to bottom
   const onEndReached = useCallback(async () => {
     try {
       await markMessagesAsRead(conversationId);
-      console.log("✅ Messages marked as read - reached bottom");
     } catch (error) {
       console.error("❌ Failed to mark messages as read:", error);
     }
   }, [conversationId]);
-
-  const handleReply = useCallback((message: Message) => {
-    setReplyMessage(message);
-  }, []);
 
   const cancelReply = useCallback(() => {
     setReplyMessage(null);
@@ -205,9 +216,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const modalPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 20;
-      },
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dy) > 20,
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 80 || gestureState.dy < -80) {
           setSelectedImage(null);
@@ -229,7 +239,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   useEffect(() => {
     const loadMessages = async () => {
       setIsLoading(true);
-      await ensureDatabaseInitialized(); // <-- always await this first!
+      await ensureDatabaseInitialized();
       const fetched = await fetchMessagesByConversation(conversationId);
       setMessages(
         fetched.sort(
@@ -238,9 +248,10 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             (b.createdAt || parseInt(b.id, 10))
         )
       );
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100);
+      setTimeout(
+        () => flatListRef.current?.scrollToEnd({ animated: false }),
+        100
+      );
       setIsLoading(false);
     };
     loadMessages();
@@ -250,23 +261,19 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     const fetchUserAddress = async () => {
       const address = await AsyncStorage.getItem("walletAddress");
       setUserAddress(address);
-      // Compare old and current private key
       if (address) {
         const raw = await AsyncStorage.getItem(`crypto_key_pair_${address}`);
         const old = await AsyncStorage.getItem(`old_private_key_${address}`);
         if (raw) {
           const keyPair = JSON.parse(raw);
           if (old && old !== keyPair.privateKey) {
-            // Private key changed, re-derive shared secret
             const newSharedKey = await deriveSharedKeyWithUser(receiverAddress);
             if (newSharedKey) {
               await AsyncStorage.setItem(
                 `shared_key_${receiverAddress}`,
                 newSharedKey
               );
-              console.log("🔑 Re-derived shared key after private key change");
             }
-            // Optionally, remove the old key after use
             await AsyncStorage.removeItem(`old_private_key_${address}`);
           }
         }
@@ -276,17 +283,14 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [receiverAddress]);
 
   useEffect(() => {
-    // Compare local and Supabase public keys for the receiver
     const checkAndSyncPublicKey = async () => {
       try {
-        // 1. Load local user profile for receiver
         const localProfileRaw = await AsyncStorage.getItem(
           `user_profile_${receiverAddress}`
         );
         let localPublicKey = null;
         if (localProfileRaw) {
           const localProfile = JSON.parse(localProfileRaw);
-          // Use the correct property and compress it
           if (localProfile.public_key) {
             localPublicKey = getCompressedPublicKey(localProfile.public_key);
           } else if (localProfile.publicKey) {
@@ -294,26 +298,16 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           }
         }
 
-        // 2. Fetch current public key from Supabase
         const { data, error } = await supabase
           .from("profiles")
           .select("public_key")
           .eq("wallet_address", receiverAddress)
           .single();
-        if (error || !data?.public_key) {
-          console.warn("Could not fetch public key from Supabase:", error);
-          return;
-        }
-        // Compress the Supabase public key for comparison
+        if (error || !data?.public_key) return;
+
         const supabasePublicKey = getCompressedPublicKey(data.public_key);
 
-        // 3. Compare
-        // console.log("local = ", localPublicKey, " supa = ", supabasePublicKey);
         if (localPublicKey !== supabasePublicKey) {
-          console.warn(
-            "Public key mismatch detected. Reloading user data and re-deriving shared key."
-          );
-          // Reload user data and update local cache
           const { data: userData, error: userError } = await supabase
             .from("profiles")
             .select("*")
@@ -325,16 +319,11 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               JSON.stringify(userData)
             );
           }
-          // Re-derive and store the shared key
           const newSharedKey = await deriveSharedKeyWithUser(receiverAddress);
           if (newSharedKey) {
             await AsyncStorage.setItem(
               `shared_key_${receiverAddress}`,
               newSharedKey
-            );
-            console.log(
-              "🔑 Re-derived and stored new shared key for",
-              receiverAddress
             );
           }
         }
@@ -351,17 +340,10 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [infoMessage, infoWindowPosition]);
 
-  // --- NEW: Function to handle tapping on the user's profile in the header ---
   const handleProfilePress = () => {
-    // The conversationId is expected to be in the format "convo_WALLET_ADDRESS"
     const walletAddress = conversationId.replace("convo_", "");
     if (walletAddress) {
       navigation.navigate("UserProfile", { walletAddress });
-    } else {
-      console.warn(
-        "Could not determine wallet address from conversationId:",
-        conversationId
-      );
     }
   };
 
@@ -391,6 +373,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     await playSendTone();
     handleSendMessage(handlerDependencies);
   };
+
   const handleQuotedPressWrapper = (quoted: Message) =>
     handleQuotedPress(
       handlerDependencies,
@@ -398,21 +381,17 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       dataWithSeparators,
       isMessage
     );
+
   const handleLongPressWrapper = (
     msg: Message,
     layout: { x: number; y: number; width: number; height: number }
   ) => handleLongPress(handlerDependencies, msg, layout);
+
   const closeLongPressMenuWrapper = () =>
     closeLongPressMenu(handlerDependencies);
 
   const handleOptionSelectWrapper = async (option: MenuOption) => {
     if (!selectedMessageForMenu) return;
-
-    if (option === "Reply") {
-      handleReply(selectedMessageForMenu);
-      closeLongPressMenuWrapper();
-      return;
-    }
 
     if (option === "Info") {
       setInfoMessage(selectedMessageForMenu);
@@ -427,9 +406,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
 
-  const clearAttachmentPreview = () => {
-    setAttachment(null);
-  };
+  const clearAttachmentPreview = () => setAttachment(null);
 
   useEffect(() => {
     const handleNewMessage = (newMsg: Message) => {
@@ -444,24 +421,21 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               (a.createdAt || parseInt(a.id, 10)) -
               (b.createdAt || parseInt(b.id, 10))
           );
+          // Only scroll if a new message was actually added
+          setTimeout(
+            () => flatListRef.current?.scrollToEnd({ animated: true }),
+            50
+          );
           return updated;
         });
-
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 50);
       }
     };
 
     EventBus.on("new-message", handleNewMessage);
-
-    return () => {
-      EventBus.off("new-message", handleNewMessage);
-    };
+    return () => EventBus.off("new-message", handleNewMessage);
   }, [receiverAddress]);
 
   useEffect(() => {
-    // Initialize conversation tones on mount
     initConversationTones();
   }, []);
 
@@ -482,55 +456,116 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       );
     }
     if (!isMessage(item)) return null;
+
+    const isSelected = selectedMessages.has(item.id);
+
     return (
       <View style={styles.messageBubble}>
-        <MessageBubble
-          message={item}
-          chatRecipientName={name}
-          repliedMessages={repliedMessages}
-          onImagePress={(uri) => handlerDependencies.setSelectedImage(uri)}
-          onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
-          onQuotedPress={handleQuotedPressWrapper}
-          onLongPress={handleLongPressWrapper}
-          highlighted={
-            item.id === highlightedMessageId || item.id === replyMessage?.id
-          }
-          isMenuVisibleForThisMessage={
-            menuVisible && selectedMessageForMenu?.id === item.id
-          }
-        />
+        {/* Selection indicator */}
+        {isSelectionMode && (
+          <TouchableOpacity
+            style={styles.selectionIndicator}
+            onPress={() => toggleMessageSelectionWrapper(item.id)}
+          >
+            <View
+              style={[
+                styles.selectionCircle,
+                isSelected && styles.selectedCircle,
+              ]}
+            >
+              {isSelected && (
+                <Ionicons name="checkmark" size={16} color="white" />
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          onPress={() => {
+            if (isSelectionMode) {
+              toggleMessageSelectionWrapper(item.id);
+            }
+          }}
+          style={[
+            styles.messageContainer,
+            isSelectionMode && styles.selectionModeMessage,
+            isSelected && styles.selectedMessage,
+          ]}
+          activeOpacity={isSelectionMode ? 0.7 : 1}
+        >
+          <MessageBubble
+            message={item}
+            chatRecipientName={name}
+            repliedMessages={repliedMessages}
+            onImagePress={(uri) => handlerDependencies.setSelectedImage(uri)}
+            onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
+            onQuotedPress={handleQuotedPressWrapper}
+            onLongPress={isSelectionMode ? () => {} : handleLongPressWrapper}
+            highlighted={
+              item.id === highlightedMessageId || item.id === replyMessage?.id
+            }
+            isMenuVisibleForThisMessage={
+              menuVisible && selectedMessageForMenu?.id === item.id
+            }
+          />
+        </TouchableOpacity>
       </View>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Top Bar */}
+      {/* Header */}
       <View style={styles.headerContainer}>
-        {/* --- MODIFICATION: The user avatar and name are now tappable --- */}
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={24} color="#007AFF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileTapArea}
-            onPress={handleProfilePress}
-          >
-            <Image
-              source={avatar || { uri: "https://via.placeholder.com/40" }}
-              style={styles.detailAvatar}
-            />
-            <Text style={styles.detailUserName} onPress={handleProfilePress}>
-              {name}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity style={styles.callButton}>
-          <Ionicons name="call-outline" size={24} color="#000" />
-        </TouchableOpacity>
+        {isSelectionMode ? (
+          <>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={exitSelectionModeWrapper}
+              >
+                <Ionicons name="close" size={24} color="#007AFF" />
+              </TouchableOpacity>
+              <Text style={styles.selectionCount}>
+                {selectedMessages.size} selected
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.selectAllButton}
+              onPress={handleSelectAllWrapper}
+            >
+              <Text style={styles.selectAllText}>
+                {selectedMessages.size === messages.length
+                  ? "Deselect All"
+                  : "Select All"}
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Ionicons name="chevron-back" size={24} color="#007AFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.profileTapArea}
+                onPress={handleProfilePress}
+              >
+                <Image
+                  source={avatar || { uri: "https://via.placeholder.com/40" }}
+                  style={styles.detailAvatar}
+                />
+                <Text style={styles.detailUserName}>{name}</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.callButton}>
+              <Ionicons name="call-outline" size={24} color="#000" />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* Long Press Menu */}
@@ -550,7 +585,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             );
             closeLongPressMenuWrapper();
 
-            // Fetch latest message and update chat preview
             const updatedMessages = await fetchMessagesByConversation(
               conversationId
             );
@@ -602,7 +636,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.flatListContent}
-              extraData={replyMessage}
+              extraData={[replyMessage, selectedMessages, isSelectionMode]}
               onContentSizeChange={() =>
                 flatListRef.current?.scrollToEnd({ animated: false })
               }
@@ -611,7 +645,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             />
           )}
 
-          {replyMessage && (
+          {/* Reply Container */}
+          {replyMessage && !isSelectionMode && (
             <View style={styles.replyContainer}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.replyingToUser}>
@@ -621,7 +656,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                     ? "You"
                     : name}
                 </Text>
-
                 <Text style={styles.replyPreviewText} numberOfLines={1}>
                   {replyMessage.text ||
                     (replyMessage.imageUrl ? "Image" : "Video")}
@@ -633,7 +667,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           )}
 
-          {attachment && (
+          {/* Attachment Preview */}
+          {attachment && !isSelectionMode && (
             <View style={styles.previewContainer}>
               {attachment.imageUrl && (
                 <Image
@@ -658,6 +693,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           )}
 
+          {/* Full Screen Media Modal */}
           {(selectedImage || selectedVideo) && (
             <Modal visible transparent animationType="fade">
               <View
@@ -667,8 +703,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 <TouchableOpacity
                   style={styles.modalClose}
                   onPress={() => {
-                    handlerDependencies.setSelectedImage(null);
-                    handlerDependencies.setSelectedVideo(null);
+                    setSelectedImage(null);
+                    setSelectedVideo(null);
                   }}
                 >
                   <Ionicons name="close-circle" size={32} color="white" />
@@ -693,44 +729,68 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </Modal>
           )}
 
-          <View style={styles.bottomBar}>
-            <TouchableOpacity
-              style={styles.iconContainer}
-              onPress={async () => {
-                const att = await handleAttachment();
-                if (att) {
-                  const safeAttachment: Partial<Message> = {
-                    imageUrl: att.imageUrl,
-                    videoUrl: att.videoUrl,
-                  };
-                  handlerDependencies.setAttachment(safeAttachment);
-                }
-              }}
-            >
-              <Ionicons name="attach" size={24} color="#666" />
-            </TouchableOpacity>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Type a message"
-                placeholderTextColor="#999"
-                value={newMessage}
-                onChangeText={setNewMessage}
-              />
+          {/* Bottom Bar */}
+          {isSelectionMode ? (
+            <View style={styles.selectionBottomBar}>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={deleteSelectedMessagesWrapper}
+                disabled={selectedMessages.size === 0}
+              >
+                <Ionicons
+                  name="trash"
+                  size={24}
+                  color={selectedMessages.size > 0 ? "#FF3B30" : "#999"}
+                />
+                <Text
+                  style={[
+                    styles.deleteButtonText,
+                    { color: selectedMessages.size > 0 ? "#FF3B30" : "#999" },
+                  ]}
+                >
+                  Delete ({selectedMessages.size})
+                </Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.iconContainer}
-              onPress={() => console.log("Mic pressed")}
-            >
-              <Ionicons name="mic" size={24} color="#666" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconContainer}
-              onPress={handleSendMessageWrapper}
-            >
-              <Ionicons name="send" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+          ) : (
+            <View style={styles.bottomBar}>
+              <TouchableOpacity
+                style={styles.iconContainer}
+                onPress={async () => {
+                  const att = await handleAttachment();
+                  if (att) {
+                    handlerDependencies.setAttachment({
+                      imageUrl: att.imageUrl,
+                      videoUrl: att.videoUrl,
+                    });
+                  }
+                }}
+              >
+                <Ionicons name="attach" size={24} color="#666" />
+              </TouchableOpacity>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Type a message"
+                  placeholderTextColor="#999"
+                  value={newMessage}
+                  onChangeText={setNewMessage}
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.iconContainer}
+                onPress={() => console.log("Mic pressed")}
+              >
+                <Ionicons name="mic" size={24} color="#666" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.iconContainer}
+                onPress={handleSendMessageWrapper}
+              >
+                <Ionicons name="send" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+          )}
         </ImageBackground>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -753,38 +813,43 @@ const getStyles = (theme: "light" | "dark") =>
       borderBottomWidth: 1,
       borderBottomColor: theme === "dark" ? "#444" : "#ccc",
     },
-    headerLeft: { flexDirection: "row", alignItems: "center" },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
     profileTapArea: {
       flexDirection: "row",
       alignItems: "center",
     },
-    backButton: { paddingRight: 10 }, // Adjusted padding for better spacing
-    chatsText: {
-      color: theme === "dark" ? "#FFF" : "#037EE5",
-      fontSize: 15,
-      marginRight: 10,
-      left: -5,
-      fontFamily: "SF-Pro-Text-Regular",
+    backButton: {
+      paddingRight: 10,
     },
-    detailAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8 },
+    detailAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      marginRight: 8,
+    },
     detailUserName: {
       fontSize: 20,
       color: theme === "dark" ? "#FFF" : "#000",
       left: 5,
       fontFamily: "SF-Pro-Text-Medium",
     },
-    headerRight: { alignItems: "flex-end", top: -5 },
-    callButton: { padding: 5, marginRight: 10 },
-    encryptedText: {
-      textAlign: "center",
-      color: theme === "dark" ? "#AAA" : "#999",
-      marginVertical: 10,
-      fontSize: 13,
-      fontFamily: "SF-Pro-Text-Regular",
-      backgroundColor: "transparent",
+    callButton: {
+      padding: 5,
+      marginRight: 10,
     },
-    chatBackground: { flex: 1, width: "100%", height: "100%" },
-    flatListContent: { paddingHorizontal: 10, paddingVertical: 5 },
+    chatBackground: {
+      flex: 1,
+      width: "100%",
+      height: "100%",
+    },
+    flatListContent: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
     replyingToUser: {
       fontWeight: "bold",
       color: "#007AFF",
@@ -812,7 +877,6 @@ const getStyles = (theme: "light" | "dark") =>
       borderRadius: 8,
       marginBottom: 8,
     },
-    previewText: { fontSize: 14, color: theme === "dark" ? "#FFF" : "#333" },
     bottomBar: {
       flexDirection: "row",
       alignItems: "center",
@@ -822,7 +886,9 @@ const getStyles = (theme: "light" | "dark") =>
       borderTopWidth: 1,
       borderTopColor: theme === "dark" ? "#444" : "#ccc",
     },
-    iconContainer: { paddingHorizontal: 8 },
+    iconContainer: {
+      paddingHorizontal: 8,
+    },
     inputWrapper: {
       flex: 1,
       backgroundColor: theme === "dark" ? "#333" : "#fff",
@@ -845,12 +911,10 @@ const getStyles = (theme: "light" | "dark") =>
     fullScreenImage: {
       width: "90%",
       height: "70%",
-      resizeMode: "contain",
     },
     fullScreenVideo: {
       width: "90%",
       height: "70%",
-      resizeMode: "contain",
     },
     modalClose: {
       position: "absolute",
@@ -870,46 +934,77 @@ const getStyles = (theme: "light" | "dark") =>
       fontWeight: "bold",
       color: theme === "dark" ? "#fff" : "#000",
     },
-    infoWindow: {
+    messageBubble: {
+      marginVertical: 2,
+    },
+    selectionIndicator: {
       position: "absolute",
-      left: 20,
-      right: 20,
-      top: 80,
+      left: 10,
+      top: "50%",
+      transform: [{ translateY: -12 }],
       zIndex: 10,
-      backgroundColor: theme === "dark" ? "#222" : "#fff",
+    },
+    selectionCircle: {
+      width: 24,
+      height: 24,
       borderRadius: 12,
-      padding: 16,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      elevation: 8,
-    },
-    infoHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
+      borderWidth: 2,
+      borderColor: "#007AFF",
+      backgroundColor: "transparent",
+      justifyContent: "center",
       alignItems: "center",
-      marginBottom: 8,
     },
-    infoTitle: {
-      fontWeight: "bold",
+    selectedCircle: {
+      backgroundColor: "#007AFF",
+      borderColor: "#007AFF",
+    },
+    messageContainer: {
+      marginLeft: 0,
+    },
+    selectionModeMessage: {
+      marginLeft: 40,
+    },
+    selectedMessage: {
+      backgroundColor:
+        theme === "dark" ? "rgba(0, 122, 255, 0.1)" : "rgba(0, 122, 255, 0.05)",
+      borderRadius: 8,
+      padding: 4,
+    },
+    selectionCount: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: theme === "dark" ? "#FFF" : "#000",
+      marginLeft: 10,
+    },
+    selectAllButton: {
+      padding: 8,
+    },
+    selectAllText: {
+      color: "#007AFF",
       fontSize: 16,
-      color: theme === "dark" ? "#fff" : "#222",
-    },
-    infoContent: {
-      marginTop: 4,
-    },
-    infoLabel: {
-      fontSize: 13,
-      color: theme === "dark" ? "#aaa" : "#444",
-      marginBottom: 2,
-    },
-    infoValue: {
-      color: theme === "dark" ? "#fff" : "#000",
       fontWeight: "500",
     },
-    messageBubble: {
-      marginVertical: 2, // Adjust this value for more or less space
+    selectionBottomBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme === "dark" ? "#222" : "#EDEDED",
+      paddingHorizontal: 20,
+      paddingVertical: 15,
+      borderTopWidth: 1,
+      borderTopColor: theme === "dark" ? "#444" : "#ccc",
+    },
+    deleteButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 12,
+      borderRadius: 8,
+      backgroundColor: theme === "dark" ? "#333" : "#F8F8F8",
+    },
+    deleteButtonText: {
+      fontSize: 16,
+      fontWeight: "500",
+      marginLeft: 8,
     },
   });
 

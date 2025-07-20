@@ -49,7 +49,6 @@ export const insertMessage = async (message: Message): Promise<any> => {
         message.receivedAt || null,
         message.encryptionVersion || null,
         message.readAt || null,
-        // Signature fields
         message.signature || null,
         message.signatureNonce || null,
         message.signatureTimestamp || null,

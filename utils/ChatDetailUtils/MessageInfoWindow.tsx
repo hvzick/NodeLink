@@ -17,6 +17,7 @@ import { formatTimeForUser } from "../GlobalUtils/FormatDate";
 // Try to use expo-blur for a blurred background
 let BlurView: any = null;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   BlurView = require("expo-blur").BlurView;
 } catch {}
 
