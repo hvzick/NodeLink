@@ -539,10 +539,10 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <>
             <View style={styles.headerLeft}>
               <TouchableOpacity
-                style={styles.backButton}
+                style={styles.cancelButton}
                 onPress={exitSelectionModeWrapper}
               >
-                <Ionicons name="close" size={24} color="#007AFF" />
+                <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <Text style={styles.selectionCount}>
                 {selectedMessages.size} selected
@@ -925,6 +925,15 @@ const getStyles = (theme: "light" | "dark") =>
     fullScreenImage: {
       width: "90%",
       height: "70%",
+    },
+    cancelButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    cancelText: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: "#ff0000ff",
     },
     fullScreenVideo: {
       width: "90%",

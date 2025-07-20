@@ -44,7 +44,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
     isMenuVisibleForThisMessage = false,
   }) => {
     const { currentTheme } = useThemeToggle();
-    const styles = getStyles(currentTheme);
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [formattedTime, setFormattedTime] = useState("");
     const bubbleRef = useRef<View>(null);
@@ -64,6 +63,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
       !!walletAddress &&
       message.sender?.toLowerCase() === walletAddress.toLowerCase();
 
+    const styles = getStyles(currentTheme, isMe);
     const scale = useRef(new Animated.Value(1)).current;
     const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
 
@@ -118,7 +118,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
             style={[
               styles.bubbleContainer,
               isMe ? styles.bubbleRight : styles.bubbleLeft,
-              highlighted && styles.highlighted,
+              highlighted &&
+                (isMe ? styles.highlightedRight : styles.highlightedLeft),
             ]}
           >
             {/* Reply preview (if quotedMsg found in map) */}
@@ -253,7 +254,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
   }
 );
 
-const getStyles = (theme: "light" | "dark") =>
+const getStyles = (theme: "light" | "dark", isMe: boolean) =>
   StyleSheet.create({
     bubbleContainer: {
       maxWidth: "80%",
@@ -364,7 +365,39 @@ const getStyles = (theme: "light" | "dark") =>
       color: "rgba(255,255,255,0.9)",
     },
 
-    highlighted: { backgroundColor: theme === "dark" ? "#5A4A02" : "#FFF3B2" },
+    // Highlight styles for your own messages (right side)
+    highlightedRight: {
+      borderWidth: 2,
+      borderColor: theme === "dark" ? "#FFFFFF" : "#000000",
+      backgroundColor: theme === "dark" ? "#1A5FFF" : "#0066CC", // Darker blue for your messages
+      shadowColor: "#FFFFFF",
+      shadowOffset: {
+        width: 0,
+        height: 0,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+
+    // Highlight styles for receiver's messages (left side)
+    highlightedLeft: {
+      borderWidth: 2,
+      borderColor: theme === "dark" ? "#0A84FF" : "#007AFF",
+      backgroundColor:
+        theme === "dark"
+          ? "rgba(58, 58, 60, 0.8)" // Slightly lighter than normal for dark theme
+          : "rgba(229, 229, 234, 0.8)", // Slightly darker than normal for light theme
+      shadowColor: theme === "dark" ? "#0A84FF" : "#007AFF",
+      shadowOffset: {
+        width: 0,
+        height: 0,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+
     contentWrapper: {},
   });
 
