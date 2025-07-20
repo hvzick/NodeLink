@@ -1,7 +1,7 @@
 // utils\ProfileUtils\HandleConnect.ts
 import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { deriveSharedKeyWithUser } from "../../backend/Encryption/SharedKey";
+import { deriveSharedKeyWithUser } from "../../backend/E2E-Encryption/SharedKey";
 import { SessionKeyStore } from "../../backend/Local database/AsyncStorage/KeyStorage/SessionKeyStore";
 
 /**

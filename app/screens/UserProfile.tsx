@@ -27,7 +27,7 @@ import { handleCopyUsername } from "../../utils/MyProfileUtils/CopyUsername";
 import { RootStackParamList } from "../App";
 import { useChat } from "../../utils/ChatUtils/ChatContext";
 import { handleConnect } from "../../utils/ProfileUtils/HandleConnect";
-import { generateSharedSecurityCode } from "../../backend/Encryption/SecurityCodeGen";
+import { generateSharedSecurityCode } from "../../backend/E2E-Encryption/SecurityCodeGen";
 import { copyToClipboard } from "../../utils/GlobalUtils/CopyToClipboard";
 import { handleSendMessage } from "../../utils/ProfileUtils/HandleGoToChat";
 import AsyncStorage from "@react-native-async-storage/async-storage";

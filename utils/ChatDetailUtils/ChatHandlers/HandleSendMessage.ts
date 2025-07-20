@@ -8,10 +8,11 @@ import { triggerTapHapticFeedback } from "../../GlobalUtils/TapHapticFeedback";
 import { ChatItemType } from "../../ChatUtils/ChatItemsTypes";
 import { ChatDetailHandlerDependencies } from "./HandleDependencies";
 import { sendMessage } from "../../../backend/Gun Service/Messaging/SendMessage";
-import { encryptMessage } from "../../../backend/Encryption/Encrypt";
+import { encryptMessage } from "../../../backend/E2E-Encryption/Encrypt";
 import { randomBytes } from "@noble/hashes/utils";
 import { bytesToHex } from "@noble/ciphers/utils";
 import { formatTimeForUser } from "../../GlobalUtils/FormatDate";
+import { MessageSigner } from "../../../backend/E2E-Encryption/SignMessages";
 
 export const handleSendMessage = async (
   dependencies: ChatDetailHandlerDependencies
@@ -61,10 +62,34 @@ export const handleSendMessage = async (
   console.log("🆔 Message ID:", id);
   console.log("📡 Conversation ID:", conversationId);
 
-  const ivBytes = randomBytes(12); // 96-bit IV for AES-GCM
+  const ivBytes = randomBytes(12);
   const ivHex = bytesToHex(ivBytes);
   console.log("🔐 IV:", ivHex);
 
+  // Sign the message before encryption
+  let signedMessage;
+  let messageHash = "";
+  try {
+    if (plainText) {
+      console.log("✍️ Signing message:", plainText);
+      signedMessage = await MessageSigner.signMessage(
+        plainText,
+        id,
+        userAddress,
+        receiverAddress
+      );
+      messageHash = MessageSigner.generateMessageHash(plainText);
+      console.log("✅ Message signed successfully");
+      console.log("🔏 Signature:", signedMessage.signature);
+      console.log("🧮 Message hash:", messageHash);
+    }
+  } catch (error) {
+    console.error("❌ Message signing error:", error);
+    Alert.alert("Signing Error", "Failed to sign the message.");
+    return;
+  }
+
+  // Encrypt the message
   let encryptedText = "";
   try {
     if (plainText) {
@@ -101,9 +126,15 @@ export const handleSendMessage = async (
     receivedAt: null,
     encryptionVersion: "AES-256-GCM",
     readAt: null,
+    // Add signature fields
+    signature: signedMessage?.signature || "",
+    signatureNonce: signedMessage?.nonce || "",
+    signatureTimestamp: signedMessage?.timestamp || createdAt,
+    messageHash,
+    signatureVerified: true, // We just signed it, so it's verified
   };
 
-  console.log("📨 Prepared Message:", tempMsg);
+  // console.log("📨 Prepared Message:", tempMsg);
 
   setMessages((prev) =>
     [...prev, tempMsg].sort(
@@ -122,7 +153,7 @@ export const handleSendMessage = async (
     console.log("📤 Sending to GunDB...");
     await sendMessage({
       id,
-      text: "", // blank if encrypted
+      text: "",
       encrypted: true,
       sender: userAddress,
       receiver: receiverAddress,
@@ -133,7 +164,7 @@ export const handleSendMessage = async (
       fileName: attachment?.fileName ?? "",
       fileSize: attachment?.fileSize ?? "",
       audioUrl: attachment?.audioUrl ?? "",
-      replyTo: replyMessage?.id || null, // <-- ONLY THE ID
+      replyTo: replyMessage?.id || null,
       status: "sending",
       createdAt,
       timestamp,
@@ -141,6 +172,11 @@ export const handleSendMessage = async (
       receivedAt: null,
       encryptionVersion: "AES-256-GCM",
       readAt: null,
+      // Include signature data
+      signature: signedMessage?.signature || "",
+      signatureNonce: signedMessage?.nonce || "",
+      signatureTimestamp: signedMessage?.timestamp || createdAt,
+      messageHash,
     });
     console.log("✅ Sent to GunDB");
 

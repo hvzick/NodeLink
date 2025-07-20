@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { base64 } from '@scure/base';
 import { p256 } from '@noble/curves/p256';
-import { supabase } from '../../backend/Supabase/Supabase';
+import { supabase } from '../Supabase/Supabase';
 import { generateAndStoreKeys } from './KeyGen';
 
 const toHex = (bytes: Uint8Array) =>

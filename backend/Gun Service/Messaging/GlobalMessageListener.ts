@@ -4,10 +4,11 @@ import { insertMessage } from "../../Local database/SQLite/InsertMessage";
 import { useChat, EventBus } from "../../../utils/ChatUtils/ChatContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { gun } from "../GunState";
-import { decryptMessage } from "../../../backend/Encryption/Decrypt";
-import { deriveSharedKeyWithUser } from "../../../backend/Encryption/SharedKey";
+import { decryptMessage } from "../../../backend/E2E-Encryption/Decrypt";
+import { deriveSharedKeyWithUser } from "../../../backend/E2E-Encryption/SharedKey";
 import { formatTimeForUser } from "../../../utils/GlobalUtils/FormatDate";
 import { listenForMessages } from "./RecieveMessages";
+import { MessageVerifier } from "../../../backend/E2E-Encryption/VerifyMessageSignature";
 
 const GlobalMessageListener = () => {
   const { addOrUpdateChat } = useChat();
@@ -28,7 +29,7 @@ const GlobalMessageListener = () => {
           "📥 Message received from GUN:",
           JSON.stringify(msg, null, 2)
         );
-        console.log("🔍 Message  ID:", msg.id, "Sender:", msg.sender);
+        console.log("🔍 Message ID:", msg.id, "Sender:", msg.sender);
         console.log(
           "🔍 ID type:",
           typeof msg.id,
@@ -124,13 +125,49 @@ const GlobalMessageListener = () => {
           console.warn("❌ Failed to decrypt:", error);
         }
 
-        // Insert message into database
+        // Verify message signature after decryption
+        let signatureVerified = false;
+        try {
+          if (msg.signature && msg.signatureNonce && msg.signatureTimestamp) {
+            console.log("🔍 Verifying message signature...");
+            
+            // Get detailed verification status (simplified version)
+            const verificationStatus = await MessageVerifier.getVerificationStatus(msg);
+            signatureVerified = verificationStatus.signatureValid && verificationStatus.integrityValid;
+            
+            console.log(`🔏 Signature verification: ${signatureVerified ? "✅ Valid" : "❌ Invalid"}`);
+            console.log(`🧮 Integrity check: ${verificationStatus.integrityValid ? "✅ Valid" : "❌ Invalid"}`);
+            console.log(`📝 Verification details: ${verificationStatus.details}`);
+
+            // Log signature verification results
+            if (!signatureVerified) {
+              console.warn("⚠️ Message signature verification failed - potential security issue");
+              // Optionally mark the message with a security warning
+              if (!verificationStatus.signatureValid) {
+                msg.text = `[⚠️ UNVERIFIED MESSAGE] ${msg.text}`;
+              }
+            }
+          } else {
+            console.log("ℹ️ Message received without signature data - treating as legacy message");
+            signatureVerified = false; // Legacy messages without signatures
+          }
+        } catch (error) {
+          console.error("❌ Signature verification error:", error);
+          signatureVerified = false;
+        }
+
+        // Update message with verification status
+        msg.signatureVerified = signatureVerified;
+
+        // Insert message into database with signature verification status
         try {
           console.log("💾 Inserting message into database...");
           await insertMessage(msg);
           console.log(
             "✅ Message inserted successfully with status:",
-            msg.status
+            msg.status,
+            "Signature verified:",
+            signatureVerified
           );
         } catch (err) {
           console.warn("❌ DB insert failed:", err);
@@ -144,8 +181,11 @@ const GlobalMessageListener = () => {
           console.warn("❌ Auto-delete failed:", err);
         }
 
-        // Emit new message event
-        EventBus.emit("new-message", msg);
+        // Emit new message event with signature verification status
+        EventBus.emit("new-message", { 
+          ...msg, 
+          signatureVerified 
+        });
 
         // Update chat UI with basic info (profile loading now handled in App.tsx)
         const preview =
@@ -153,15 +193,16 @@ const GlobalMessageListener = () => {
           (msg.imageUrl ? "Image" : msg.videoUrl ? "Video" : "Attachment");
 
         formatTimeForUser(msg.createdAt).then((formattedTime) => {
-          // console.log("📱 Updating chat UI...");
+          // Add security indicator to chat preview if signature verification failed
+          const securityIndicator = signatureVerified ? "" : "🔓 ";
+          
           addOrUpdateChat({
             id: msg.conversationId,
             name: `User ${msg.sender.slice(0, 6)}...`, // Default name until profile loads
             avatar: require("../../../assets/images/default-user-avatar.jpg"),
-            message: preview,
+            message: `${securityIndicator}${preview}`,
             time: formattedTime,
           });
-          // console.log("✅ Chat UI updated successfully");
         });
       });
     };

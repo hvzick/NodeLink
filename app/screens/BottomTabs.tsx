@@ -16,7 +16,7 @@ import SettingsStackScreen from "./SettingStackScreen";
 import { triggerTapHapticFeedback } from "../../utils/GlobalUtils/TapHapticFeedback";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { handleUserData } from "../../backend/Supabase/HandleUserData";
-import { handleAndPublishKeys } from "../../backend/Encryption/HandleKeys";
+import { handleAndPublishKeys } from "../../backend/E2E-Encryption/HandleKeys";
 import { loadChatProfiles } from "../../utils/ChatUtils/HandleRefresh";
 import { ChatItemType } from "../../utils/ChatUtils/ChatItemsTypes";
 

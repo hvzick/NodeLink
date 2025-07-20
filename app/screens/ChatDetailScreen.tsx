@@ -40,7 +40,7 @@ import { ChatDetailHandlerDependencies } from "../../utils/ChatDetailUtils/ChatH
 import { handleSendMessage } from "../../utils/ChatDetailUtils/ChatHandlers/HandleSendMessage";
 import { handleLongPress } from "../../utils/ChatDetailUtils/ChatHandlers/HandleLongPress";
 import { handleOptionSelect } from "../../utils/ChatDetailUtils/ChatHandlers/HandleOptionSelect";
-import { closeLongPressMenu } from "../../utils/ChatDetailUtils/ChatHandlers/CloseLongPressMenu";
+import { closeLongPressMenu } from "../../utils/ChatDetailUtils/ChatHandlers/HandleCloseLongPressMenu";
 import { handleQuotedPress } from "../../utils/ChatDetailUtils/ChatHandlers/HandleQuotedPress";
 import MessageLongPressMenu, {
   MenuOption,
@@ -54,7 +54,7 @@ import { supabase } from "../../backend/Supabase/Supabase";
 import {
   deriveSharedKeyWithUser,
   getCompressedPublicKey,
-} from "../../backend/Encryption/SharedKey";
+} from "../../backend/E2E-Encryption/SharedKey";
 import {
   playSendTone,
   initConversationTones,

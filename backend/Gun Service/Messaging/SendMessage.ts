@@ -23,6 +23,11 @@ interface SendMessageArgs {
   receivedAt?: number | null;
   encryptionVersion?: string;
   readAt?: number | null;
+  // Add signature-related properties
+  signature?: string;
+  signatureNonce?: string;
+  signatureTimestamp?: number;
+  messageHash?: string;
 }
 
 export async function sendMessage({
@@ -46,6 +51,11 @@ export async function sendMessage({
   receivedAt = null,
   encryptionVersion = "AES-256-GCM",
   readAt = null,
+  // Add signature parameters with default values
+  signature = '',
+  signatureNonce = '',
+  signatureTimestamp,
+  messageHash = '',
 }: SendMessageArgs): Promise<void> {
   const now = Date.now();
 
@@ -70,14 +80,21 @@ export async function sendMessage({
     receivedAt,
     encryptionVersion,
     readAt,
+    signature,
+    signatureNonce,
+    signatureTimestamp: signatureTimestamp || now,
+    messageHash,
   };
 
   console.log('📨 Message content to send:', message);
   console.log(`📡 Target path: nodelink/${receiver}`);
+  console.log('🔏 Message signature included:', !!signature);
+  console.log('🧮 Message hash included:', !!messageHash);
 
   try {
     const chatRef = gun.get(`nodelink/${receiver}`);
     chatRef.get(id).put(message);
+    console.log('✅ Message with signature sent to GunDB successfully');
   } catch (error) {
     console.error('❌ Failed to send message to GunDB:', error);
     throw error;

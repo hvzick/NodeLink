@@ -6,7 +6,7 @@ import { ChatDetailHandlerDependencies } from "./HandleDependencies";
 import { MenuOption } from "./HandleMessageLongPressMenu"; // Import MenuOption type
 import { copyToClipboard } from "../../GlobalUtils/CopyToClipboard"; // This utility needs to exist
 import { handleDeleteMessage } from "./HandleDeleteMessage"; // Import the specific delete handler
-import { closeLongPressMenu } from "./CloseLongPressMenu"; // Import the specific close menu handler
+import { closeLongPressMenu } from "./HandleCloseLongPressMenu"; // Import the specific close menu handler
 
 export const handleOptionSelect = async (
   dependencies: ChatDetailHandlerDependencies,

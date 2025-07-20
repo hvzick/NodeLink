@@ -53,9 +53,32 @@ export async function listenForMessages(
       receivedAt: null, // Will be set in listener/handler on device receive
       encryptionVersion: data.encryptionVersion || "AES-256-GCM",
       readAt: typeof data.readAt === "number" ? data.readAt : null,
+      
+      // Add signature fields from received data
+      signature: data.signature || "",
+      signatureNonce: data.signatureNonce || "",
+      signatureTimestamp: typeof data.signatureTimestamp === "number" ? data.signatureTimestamp : timestamp,
+      messageHash: data.messageHash || "",
+      signatureVerified: false, // Will be verified separately
     };
 
-    // console.log("📥 Message received from GUN:", message);
+    // Log signature data if present
+    if (data.signature) {
+      console.log("🔏 Message received with signature data");
+      console.log(`📝 Signature: ${data.signature.substring(0, 20)}...`);
+      console.log(`🎯 Signature nonce: ${data.signatureNonce}`);
+      console.log(`🧮 Message hash: ${data.messageHash}`);
+    } else {
+      console.log("ℹ️ Message received without signature data");
+    }
+
+    console.log("📥 Message received from GUN:", {
+      id: message.id,
+      sender: message.sender,
+      hasSignature: !!message.signature,
+      encrypted: message.encrypted
+    });
+    
     onMessageReceived(message);
   });
 

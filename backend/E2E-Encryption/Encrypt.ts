@@ -1,6 +1,6 @@
 // utils/encryption.ts
-import { gcm } from '@noble/ciphers/aes';
-import { utf8ToBytes, bytesToUtf8, hexToBytes, bytesToHex } from '@noble/ciphers/utils';
+import { gcm } from "@noble/ciphers/aes";
+import { utf8ToBytes, hexToBytes, bytesToHex } from "@noble/ciphers/utils";
 
 /**
  * Encrypt a message using AES-GCM.
@@ -15,7 +15,7 @@ export function encryptMessage(
   ivHex: string
 ): string {
   const key = hexToBytes(keyHex); // 32 bytes for AES-256
-  const iv = hexToBytes(ivHex);   // 12 bytes recommended for GCM
+  const iv = hexToBytes(ivHex); // 12 bytes recommended for GCM
   const plaintextBytes = utf8ToBytes(plainText);
 
   const cipher = gcm(key, iv);
