@@ -1,29 +1,57 @@
 // utils/ChatDetailUtils/MessageLongPressMenu.tsx
 
-import React from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useRef, useEffect } from "react";
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+  Dimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Message } from "../../../backend/Local database/SQLite/MessageStructure";
 import { copyToClipboard } from "../../GlobalUtils/CopyToClipboard";
 
-// Updated MenuOption type to include "Select"
-export type MenuOption =
-  | "Info"
-  | "Reply"
-  | "Copy"
-  | "Delete"
-  | "Delete Chat"
-  | "Select";
+export type MenuOption = "Info" | "Reply" | "Copy" | "Delete" | "Select";
 
 interface MessageLongPressMenuProps {
   isVisible: boolean;
   onClose: () => void;
   onOptionSelect: (option: MenuOption) => void;
-  menuPosition: { top: number; left: number; right?: number };
+  menuPosition: { x: number; y: number; width: number; height: number };
   isSender: boolean;
   message: Message;
   onDeleteChat: () => void;
+  clearHighlight: () => void;
 }
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+
+const OPTION_HEIGHT = 48;
+const ARROW_SIZE = 10;
+const MENU_WIDTH = 180;
+const PADDING = 8;
+const MARGIN = 4;
+
+// Define colors for each option
+const getOptionColors = (optionName: MenuOption) => {
+  switch (optionName) {
+    case "Info":
+      return { color: "#8E8E93", bgColor: "#F2F2F7" };
+    case "Reply":
+      return { color: "#34C759", bgColor: "#F0FFF4" };
+    case "Copy":
+      return { color: "#FF9500", bgColor: "#FFF8F0" };
+    case "Select":
+      return { color: "#007AFF", bgColor: "#F0F8FF" };
+    case "Delete":
+      return { color: "#FF3B30", bgColor: "#FFF0F0" };
+    default:
+      return { color: "#007AFF", bgColor: "#F0F8FF" };
+  }
+};
 
 const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   isVisible,
@@ -33,8 +61,44 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   isSender,
   message,
   onDeleteChat,
+  clearHighlight,
 }) => {
-  // Dynamically build the list of options based on message content and sender
+  const fade = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.8)).current;
+  const blurOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isVisible) {
+      // Defer animations to avoid useInsertionEffect conflicts
+      requestAnimationFrame(() => {
+        Animated.parallel([
+          Animated.timing(fade, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scale, {
+            toValue: 1,
+            tension: 100,
+            friction: 8,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blurOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: false,
+          }),
+        ]).start();
+      });
+    } else {
+      // Reset values immediately when hiding
+      fade.setValue(0);
+      scale.setValue(0.8);
+      blurOpacity.setValue(0);
+    }
+  }, [isVisible]);
+
+  // Fix: Use proper Ionicons type instead of string
   const menuOptions: {
     name: MenuOption;
     icon: keyof typeof Ionicons.glyphMap;
@@ -43,98 +107,232 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
     { name: "Reply", icon: "arrow-undo" },
   ];
 
-  // --- MODIFIED COPY LOGIC ---
   let copyContent: string | undefined;
-  if (message.text) {
-    copyContent = message.text;
-  } else if (message.imageUrl) {
-    copyContent = message.imageUrl; // Copy the image URL
-  } else if (message.videoUrl) {
-    copyContent = message.videoUrl; // Copy the video URL
-  }
+  if (message.text) copyContent = message.text;
+  else if (message.imageUrl) copyContent = message.imageUrl;
+  else if (message.videoUrl) copyContent = message.videoUrl;
+  if (copyContent) menuOptions.push({ name: "Copy", icon: "copy-outline" });
 
-  // Only show 'Copy' if there is any content (text, image URL, or video URL) to copy
-  if (copyContent) {
-    menuOptions.push({ name: "Copy", icon: "copy-outline" });
-  }
-  // --- END MODIFIED COPY LOGIC ---
-
-  // Add 'Select' option for message selection mode
   menuOptions.push({ name: "Select", icon: "checkmark-circle-outline" });
+  menuOptions.push({ name: "Delete", icon: "trash-bin-outline" });
 
-  // Always show 'Delete Chat' at the bottom
-  menuOptions.push({ name: "Delete Chat", icon: "trash-bin-outline" });
+  const handleClose = () => {
+    // Avoid state updates during insertion effects
+    const closeAnimation = () => {
+      Animated.parallel([
+        Animated.timing(fade, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 0.8,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(blurOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: false,
+        }),
+      ]).start(() => {
+        // Defer state updates to next tick
+        setTimeout(() => {
+          onClose();
+          clearHighlight();
+        }, 0);
+      });
+    };
 
-  // Handle the 'Copy' action directly within this component
-  const handleCopy = () => {
-    if (copyContent) {
+    // Use requestAnimationFrame to avoid insertion effect conflicts
+    requestAnimationFrame(closeAnimation);
+  };
+
+  const handleOption = (opt: MenuOption) => {
+    // Handle immediate actions first
+    if (opt === "Copy" && copyContent) {
       copyToClipboard(copyContent);
     }
-    onClose(); // Close the menu after copying
+
+    // Defer state-dependent actions
+    requestAnimationFrame(() => {
+      if (opt === "Delete") {
+        onDeleteChat();
+      } else if (opt !== "Copy") {
+        onOptionSelect(opt);
+      }
+      handleClose();
+    });
   };
+
+  // compute menu height
+  const menuHeight = menuOptions.length * OPTION_HEIGHT + ARROW_SIZE;
+
+  // decide above or below
+  const spaceBelow = screenHeight - (menuPosition.y + menuPosition.height);
+  const showBelow = spaceBelow > menuHeight + MARGIN;
+
+  const top = showBelow
+    ? menuPosition.y + menuPosition.height + MARGIN
+    : menuPosition.y - menuHeight - MARGIN;
+  let left = isSender
+    ? menuPosition.x + menuPosition.width - MENU_WIDTH
+    : menuPosition.x;
+  left = Math.max(PADDING, Math.min(left, screenWidth - MENU_WIDTH - PADDING));
+
+  const arrowTop = showBelow ? -ARROW_SIZE : menuHeight - ARROW_SIZE;
+  const arrowLeft = menuPosition.x + menuPosition.width / 2 - left - ARROW_SIZE;
 
   return (
     <Modal
       visible={isVisible}
       transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      animationType="none"
+      onRequestClose={handleClose}
     >
-      <TouchableOpacity
-        style={styles.overlay}
-        onPress={onClose}
-        activeOpacity={1}
+      {/* Animated blur background */}
+      <Animated.View
+        style={[
+          styles.backdrop,
+          {
+            backgroundColor: blurOpacity.interpolate({
+              inputRange: [0, 1],
+              outputRange: ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.4)"],
+            }),
+          },
+        ]}
       >
-        <View
-          // Prevent menu from closing when tapping on the menu itself
-          onStartShouldSetResponder={() => true}
+        {/* Blur effect simulation */}
+        <Animated.View
           style={[
-            styles.menuContainer,
-            { top: menuPosition.top, left: menuPosition.left },
+            styles.blurOverlay,
+            {
+              opacity: blurOpacity,
+            },
           ]}
+        />
+
+        <TouchableOpacity
+          style={styles.touchableBackdrop}
+          onPress={handleClose}
+          activeOpacity={1}
         >
-          {menuOptions.map((option) => (
-            <TouchableOpacity
-              key={option.name}
+          <Animated.View
+            style={[
+              styles.menu,
+              { top, left, opacity: fade, transform: [{ scale }] },
+            ]}
+          >
+            <View
               style={[
-                styles.optionButton,
-                // Add visual distinction for the Select option
-                option.name === "Select" && styles.selectOption,
+                styles.arrow,
+                showBelow ? styles.arrowUp : styles.arrowDown,
+                { top: arrowTop, left: arrowLeft },
               ]}
-              onPress={() => {
-                if (option.name === "Copy") {
-                  handleCopy(); // Handle copy action internally
-                } else if (option.name === "Delete Chat") {
-                  onDeleteChat();
-                  onClose();
-                } else {
-                  onOptionSelect(option.name); // Delegate other actions to parent (ChatDetailScreen)
-                }
-              }}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  // Style the Select option text
-                  option.name === "Select" && styles.selectOptionText,
-                ]}
-              >
-                {option.name}
-              </Text>
-              <Ionicons
-                name={option.icon}
-                size={22}
-                color={option.name === "Select" ? "#007AFF" : "#333"}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </TouchableOpacity>
+            />
+            {menuOptions.map((opt, idx) => {
+              const { color, bgColor } = getOptionColors(opt.name);
+              return (
+                <TouchableOpacity
+                  key={opt.name}
+                  style={[
+                    styles.option,
+                    { backgroundColor: bgColor },
+                    idx < menuOptions.length - 1 && styles.separator,
+                  ]}
+                  onPress={() => handleOption(opt.name)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={opt.icon}
+                    size={20}
+                    color={color}
+                    style={styles.icon}
+                  />
+                  <Text
+                    style={[
+                      styles.text,
+                      { color },
+                      opt.name === "Delete" && styles.deleteText,
+                    ]}
+                  >
+                    {opt.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </Animated.View>
+        </TouchableOpacity>
+      </Animated.View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    position: "relative",
+  },
+  blurOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  touchableBackdrop: {
+    flex: 1,
+  },
+  menu: {
+    position: "absolute",
+    width: MENU_WIDTH,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    overflow: "hidden",
+    borderWidth: 0.5,
+    borderColor: "rgba(0, 0, 0, 0.1)",
+  },
+  arrow: {
+    position: "absolute",
+    width: 0,
+    height: 0,
+    borderLeftWidth: ARROW_SIZE,
+    borderRightWidth: ARROW_SIZE,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    zIndex: 1,
+  },
+  arrowUp: {
+    borderBottomWidth: ARROW_SIZE,
+    borderBottomColor: "#fff",
+  },
+  arrowDown: {
+    borderTopWidth: ARROW_SIZE,
+    borderTopColor: "#fff",
+  },
+  option: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: OPTION_HEIGHT,
+    paddingHorizontal: 12,
+  },
+  separator: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: "rgba(0, 0, 0, 0.1)",
+  },
+  icon: {
+    marginRight: 12,
+  },
+  text: {
+    fontSize: 16,
+    flex: 1,
+    fontWeight: "500",
+  },
+  deleteText: {
+    fontWeight: "600",
+  },
   overlay: {
     flex: 1,
   },
@@ -147,7 +345,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    overflow: "hidden", // Ensures the border radius is respected by children
+    overflow: "hidden",
   },
   optionButton: {
     flexDirection: "row",
@@ -155,19 +353,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 15,
-    width: 160, // Fixed width for consistency
+    width: 160,
   },
   optionText: {
     fontSize: 16,
     color: "#333",
     marginRight: 15,
   },
-  // New styles for the Select option
   selectOption: {
-    backgroundColor: "#F8F9FF", // Light blue background
+    backgroundColor: "#F8F9FF",
   },
   selectOptionText: {
-    color: "#007AFF", // Blue text color
+    color: "#007AFF",
     fontWeight: "500",
   },
 });

@@ -48,6 +48,6 @@ export const handleLongPress = (
   }
 
   setSelectedMessageForMenu(msg);
-  setMenuPosition({ top: verticalTopPosition, left: horizontalLeftPosition });
+  setMenuPosition({ x: layout.x, y: layout.y, width: layout.width, height: layout.height });
   setMenuVisible(true);
 };

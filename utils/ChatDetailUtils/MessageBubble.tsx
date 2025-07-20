@@ -1,3 +1,5 @@
+// utils/ChatDetailUtils/MessageBubble.tsx
+
 import React, { useRef, useState, useEffect } from "react";
 import {
   View,
@@ -46,6 +48,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
     const { currentTheme } = useThemeToggle();
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [formattedTime, setFormattedTime] = useState("");
+    const [bubbleWidth, setBubbleWidth] = useState(0);
     const bubbleRef = useRef<View>(null);
 
     useEffect(() => {
@@ -112,9 +115,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
 
     return (
       <View onLayout={(e) => setMeasuredHeight(e.nativeEvent.layout.height)}>
-        <Animated.View style={{ transform: [{ scale }] }}>
+        <Animated.View
+          style={{
+            transform: [
+              { translateX: isMe ? bubbleWidth / 2 : -bubbleWidth / 2 },
+              { scale },
+              { translateX: isMe ? -bubbleWidth / 2 : bubbleWidth / 2 },
+            ],
+          }}
+        >
           <View
             ref={bubbleRef}
+            onLayout={(e) => setBubbleWidth(e.nativeEvent.layout.width)}
             style={[
               styles.bubbleContainer,
               isMe ? styles.bubbleRight : styles.bubbleLeft,

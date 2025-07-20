@@ -1,4 +1,5 @@
 // screens/ChatDetailScreen.tsx
+
 import React, {
   useState,
   useRef,
@@ -27,7 +28,6 @@ import { RouteProp, useIsFocused } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import { Video, ResizeMode } from "expo-av";
-// 🔥 Use the imported FlatList from @stream-io/flat-list-mvcp
 import { FlatList } from "@stream-io/flat-list-mvcp";
 import handleAttachment from "../../utils/ChatDetailUtils/InsertAttachment";
 import { Message } from "../../backend/Local database/SQLite/MessageStructure";
@@ -99,7 +99,12 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedMessageForMenu, setSelectedMessageForMenu] =
     useState<Message | null>(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [menuPosition, setMenuPosition] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
   const receiverAddress = conversationId.replace("convo_", "");
   const [userAddress, setUserAddress] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<Message | null>(null);
@@ -233,14 +238,13 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     })
   ).current;
 
-  // 🔥 Load messages sorted newest-first for inverted FlatList
+  // Load messages sorted newest-first for inverted FlatList
   useEffect(() => {
     const loadMessages = async () => {
       setIsLoading(true);
       await ensureDatabaseInitialized();
       const fetched = await fetchMessagesByConversation(conversationId);
 
-      // Sort newest-first (for inverted FlatList)
       const sortedMessages = fetched.sort(
         (a, b) =>
           (b.createdAt || parseInt(b.id, 10)) -
@@ -346,7 +350,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const isMessage = (item: any): item is Message =>
     item && "sender" in item && "id" in item;
 
-  // 🔥 Build date separators for newest-first (inverted) array
+  // Build date separators for newest-first (inverted) array
   const dataWithSeparators = useMemo(() => {
     const list: (Message | { type: "date"; date: string; id: string })[] = [];
 
@@ -354,7 +358,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       const msgDate = new Date(msg.createdAt || parseInt(msg.id, 10));
       const dateString = msgDate.toDateString();
 
-      // For inverted list, compare with next message (visually above)
       const nextDateString =
         index < messages.length - 1
           ? new Date(
@@ -393,13 +396,37 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       isMessage
     );
 
+  // Updated handleLongPressWrapper with fixes
   const handleLongPressWrapper = (
     msg: Message,
     layout: { x: number; y: number; width: number; height: number }
-  ) => handleLongPress(handlerDependencies, msg, layout);
+  ) => {
+    // Defer state updates to avoid insertion effect conflicts
+    requestAnimationFrame(() => {
+      setMenuPosition({
+        x: layout.x,
+        y: layout.y,
+        width: layout.width,
+        height: layout.height,
+      });
+      setSelectedMessageForMenu(msg);
+      setHighlightedMessageId(msg.id);
 
-  const closeLongPressMenuWrapper = () =>
-    closeLongPressMenu(handlerDependencies);
+      // Set menu visible last to ensure other states are ready
+      setTimeout(() => setMenuVisible(true), 0);
+    });
+  };
+
+  // Updated closeLongPressMenuWrapper with fixes
+  const closeLongPressMenuWrapper = () => {
+    // Close menu immediately, defer other cleanup
+    setMenuVisible(false);
+
+    requestAnimationFrame(() => {
+      setHighlightedMessageId(null);
+      setSelectedMessageForMenu(null);
+    });
+  };
 
   const handleOptionSelectWrapper = async (option: MenuOption) => {
     if (!selectedMessageForMenu) return;
@@ -419,13 +446,12 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const clearAttachmentPreview = () => setAttachment(null);
 
-  // 🔥 Handle new messages - prepend to newest-first array
+  // Handle new messages - prepend to newest-first array
   useEffect(() => {
     const handleNewMessage = (newMsg: Message) => {
       if (newMsg.conversationId === conversationId) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev;
-          // Prepend to maintain newest-first order
           return [newMsg, ...prev];
         });
       }
@@ -435,7 +461,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     return () => EventBus.off("new-message", handleNewMessage);
   }, [conversationId]);
 
-  // 🔥 Handle received messages
+  // Handle received messages
   useEffect(() => {
     const handleReceivedMessage = (newMsg: Message) => {
       const msgSender = newMsg.sender.toLowerCase();
@@ -443,7 +469,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       if (msgSender === myReceiver) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev;
-          // Prepend to maintain newest-first order
           return [newMsg, ...prev];
         });
       }
@@ -476,6 +501,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!isMessage(item)) return null;
 
     const isSelected = selectedMessages.has(item.id);
+    const isHighlighted =
+      item.id === highlightedMessageId || item.id === replyMessage?.id;
 
     return (
       <View style={styles.messageBubble}>
@@ -519,9 +546,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
             onQuotedPress={handleQuotedPressWrapper}
             onLongPress={isSelectionMode ? () => {} : handleLongPressWrapper}
-            highlighted={
-              item.id === highlightedMessageId || item.id === replyMessage?.id
-            }
+            highlighted={isHighlighted}
             isMenuVisibleForThisMessage={
               menuVisible && selectedMessageForMenu?.id === item.id
             }
@@ -595,6 +620,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           menuPosition={menuPosition}
           message={selectedMessageForMenu}
           isSender={selectedMessageForMenu.sender === "Me"}
+          clearHighlight={() => setHighlightedMessageId(null)}
           onDeleteChat={async () => {
             if (!selectedMessageForMenu) return;
             await deleteMessage(selectedMessageForMenu.id);
@@ -654,10 +680,14 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.flatListContent}
-              extraData={[replyMessage, selectedMessages, isSelectionMode]}
+              extraData={[
+                replyMessage,
+                selectedMessages,
+                isSelectionMode,
+                highlightedMessageId,
+              ]}
               onEndReached={onEndReached}
               onEndReachedThreshold={0.1}
-              // 🔥 WhatsApp/Instagram style: inverted with maintainVisibleContentPosition
               inverted
               maintainVisibleContentPosition={{
                 minIndexForVisible: 0,
@@ -758,17 +788,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 onPress={deleteSelectedMessagesWrapper}
                 disabled={selectedMessages.size === 0}
               >
-                <Ionicons
-                  name="trash"
-                  size={24}
-                  color={selectedMessages.size > 0 ? "#FF3B30" : "#999"}
-                />
-                <Text
-                  style={[
-                    styles.deleteButtonText,
-                    { color: selectedMessages.size > 0 ? "#FF3B30" : "#999" },
-                  ]}
-                >
+                <Ionicons name="trash" size={24} color="#FF3B30" />
+                <Text style={[styles.deleteButtonText, { color: "#FF3B30" }]}>
                   Delete ({selectedMessages.size})
                 </Text>
               </TouchableOpacity>

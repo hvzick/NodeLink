@@ -28,7 +28,7 @@ export interface ChatDetailHandlerDependencies {
     React.SetStateAction<Message | null>
   >;
   setMenuPosition: React.Dispatch<
-    React.SetStateAction<{ top: number; left: number; right?: number }>
+    React.SetStateAction<{ x: number; y: number; width: number; height: number }>
   >;
   flatListRef: React.RefObject<FlatList<any> | null>;
 
