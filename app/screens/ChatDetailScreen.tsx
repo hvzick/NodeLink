@@ -7,7 +7,6 @@ import React, {
   useCallback,
 } from "react";
 import {
-  FlatList,
   Image,
   ImageBackground,
   KeyboardAvoidingView,
@@ -28,6 +27,8 @@ import { RouteProp, useIsFocused } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import { Video, ResizeMode } from "expo-av";
+// 🔥 Use the imported FlatList from @stream-io/flat-list-mvcp
+import { FlatList } from "@stream-io/flat-list-mvcp";
 import handleAttachment from "../../utils/ChatDetailUtils/InsertAttachment";
 import { Message } from "../../backend/Local database/SQLite/MessageStructure";
 import { fetchMessagesByConversation } from "../../backend/Local database/SQLite/MessageIndex";
@@ -42,7 +43,6 @@ import { handleLongPress } from "../../utils/ChatDetailUtils/ChatHandlers/Handle
 import { handleOptionSelect } from "../../utils/ChatDetailUtils/ChatHandlers/HandleOptionSelect";
 import { closeLongPressMenu } from "../../utils/ChatDetailUtils/ChatHandlers/HandleCloseLongPressMenu";
 import { handleQuotedPress } from "../../utils/ChatDetailUtils/ChatHandlers/HandleQuotedPress";
-// Import selection handlers
 import {
   toggleMessageSelection,
   exitSelectionMode,
@@ -103,8 +103,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const receiverAddress = conversationId.replace("convo_", "");
   const [userAddress, setUserAddress] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<Message | null>(null);
-
-  // Selection mode state
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(
     new Set()
   );
@@ -113,7 +111,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const infoWindowPosition = useRef(
     new Animated.ValueXY({ x: 20, y: 80 })
   ).current;
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList<any>>(null);
   const { currentTheme } = useThemeToggle();
   const styles = getStyles(currentTheme);
 
@@ -157,7 +155,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     ]
   );
 
-  // Selection handlers using imported functions
   const toggleMessageSelectionWrapper = useCallback(
     (messageId: string) => {
       toggleMessageSelection(handlerDependencies, messageId);
@@ -236,22 +233,21 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     })
   ).current;
 
+  // 🔥 Load messages sorted newest-first for inverted FlatList
   useEffect(() => {
     const loadMessages = async () => {
       setIsLoading(true);
       await ensureDatabaseInitialized();
       const fetched = await fetchMessagesByConversation(conversationId);
-      setMessages(
-        fetched.sort(
-          (a, b) =>
-            (a.createdAt || parseInt(a.id, 10)) -
-            (b.createdAt || parseInt(b.id, 10))
-        )
+
+      // Sort newest-first (for inverted FlatList)
+      const sortedMessages = fetched.sort(
+        (a, b) =>
+          (b.createdAt || parseInt(b.id, 10)) -
+          (a.createdAt || parseInt(a.id, 10))
       );
-      setTimeout(
-        () => flatListRef.current?.scrollToEnd({ animated: false }),
-        100
-      );
+
+      setMessages(sortedMessages);
       setIsLoading(false);
     };
     loadMessages();
@@ -350,22 +346,37 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const isMessage = (item: any): item is Message =>
     item && "sender" in item && "id" in item;
 
+  // 🔥 Build date separators for newest-first (inverted) array
   const dataWithSeparators = useMemo(() => {
     const list: (Message | { type: "date"; date: string; id: string })[] = [];
-    let lastDate = "";
-    messages.forEach((msg) => {
+
+    messages.forEach((msg, index) => {
       const msgDate = new Date(msg.createdAt || parseInt(msg.id, 10));
       const dateString = msgDate.toDateString();
-      if (dateString !== lastDate) {
+
+      // For inverted list, compare with next message (visually above)
+      const nextDateString =
+        index < messages.length - 1
+          ? new Date(
+              messages[index + 1].createdAt ||
+                parseInt(messages[index + 1].id, 10)
+            ).toDateString()
+          : null;
+
+      const shouldAddDateSeparator =
+        index === messages.length - 1 || dateString !== nextDateString;
+
+      list.push(msg);
+
+      if (shouldAddDateSeparator) {
         list.push({
           type: "date",
           date: formatDateHeader(msgDate),
-          id: `sep-${dateString}`,
+          id: `sep-${dateString}-${index}`,
         });
-        lastDate = dateString;
       }
-      list.push(msg);
     });
+
     return list;
   }, [messages]);
 
@@ -408,36 +419,38 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const clearAttachmentPreview = () => setAttachment(null);
 
+  // 🔥 Handle new messages - prepend to newest-first array
   useEffect(() => {
     const handleNewMessage = (newMsg: Message) => {
-      const msgSender = newMsg.sender.toLowerCase();
-      const myReceiver = receiverAddress.toLowerCase();
-      if (msgSender === myReceiver) {
+      if (newMsg.conversationId === conversationId) {
         setMessages((prev) => {
-          const exists = prev.some((m) => m.id === newMsg.id);
-          if (exists) return prev;
-
-          const updated = [...prev, newMsg].sort(
-            (a, b) =>
-              (a.createdAt || parseInt(a.id, 10)) -
-              (b.createdAt || parseInt(b.id, 10))
-          );
-
-          // Only scroll if a NEW message was actually added (not just re-rendering)
-          if (!exists) {
-            setTimeout(
-              () => flatListRef.current?.scrollToEnd({ animated: true }),
-              50
-            );
-          }
-
-          return updated;
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          // Prepend to maintain newest-first order
+          return [newMsg, ...prev];
         });
       }
     };
 
     EventBus.on("new-message", handleNewMessage);
     return () => EventBus.off("new-message", handleNewMessage);
+  }, [conversationId]);
+
+  // 🔥 Handle received messages
+  useEffect(() => {
+    const handleReceivedMessage = (newMsg: Message) => {
+      const msgSender = newMsg.sender.toLowerCase();
+      const myReceiver = receiverAddress.toLowerCase();
+      if (msgSender === myReceiver) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          // Prepend to maintain newest-first order
+          return [newMsg, ...prev];
+        });
+      }
+    };
+
+    EventBus.on("new-message", handleReceivedMessage);
+    return () => EventBus.off("new-message", handleReceivedMessage);
   }, [receiverAddress]);
 
   useEffect(() => {
@@ -644,6 +657,12 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               extraData={[replyMessage, selectedMessages, isSelectionMode]}
               onEndReached={onEndReached}
               onEndReachedThreshold={0.1}
+              // 🔥 WhatsApp/Instagram style: inverted with maintainVisibleContentPosition
+              inverted
+              maintainVisibleContentPosition={{
+                minIndexForVisible: 0,
+                autoscrollToTopThreshold: 10,
+              }}
             />
           )}
 
@@ -799,6 +818,8 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
+export default ChatDetailScreen;
+
 const getStyles = (theme: "light" | "dark") =>
   StyleSheet.create({
     container: {
@@ -878,15 +899,6 @@ const getStyles = (theme: "light" | "dark") =>
       marginHorizontal: 10,
       borderRadius: 8,
       marginBottom: 8,
-    },
-    bottomBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: theme === "dark" ? "#222" : "#EDEDED",
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-      borderTopWidth: 1,
-      borderTopColor: theme === "dark" ? "#444" : "#ccc",
     },
     iconContainer: {
       paddingHorizontal: 8,
@@ -970,7 +982,6 @@ const getStyles = (theme: "light" | "dark") =>
       backgroundColor:
         theme === "dark" ? "rgba(0, 122, 255, 0.1)" : "rgba(0, 122, 255, 0.05)",
       borderRadius: 8,
-      padding: 4,
     },
     selectionCount: {
       fontSize: 18,
@@ -986,22 +997,35 @@ const getStyles = (theme: "light" | "dark") =>
       fontSize: 16,
       fontWeight: "500",
     },
+    bottomBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme === "dark" ? "#222" : "#EDEDED",
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme === "dark" ? "#444" : "#ccc",
+      height: 64,
+    },
     selectionBottomBar: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: theme === "dark" ? "#222" : "#EDEDED",
       paddingHorizontal: 20,
-      paddingVertical: 15,
+      paddingVertical: 8, // Match bottomBar's paddingVertical
       borderTopWidth: 1,
       borderTopColor: theme === "dark" ? "#444" : "#ccc",
+      height: 64, // Match the bottomBar height exactly
     },
     deleteButton: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 12,
+      paddingHorizontal: 16, // Adjusted for better fit within 64px height
+      paddingVertical: 8, // Reduced to fit within container
       borderRadius: 8,
       backgroundColor: theme === "dark" ? "#333" : "#F8F8F8",
+      minHeight: 40, // Ensures minimum touch target
     },
     deleteButtonText: {
       fontSize: 16,
@@ -1009,5 +1033,3 @@ const getStyles = (theme: "light" | "dark") =>
       marginLeft: 8,
     },
   });
-
-export default ChatDetailScreen;
