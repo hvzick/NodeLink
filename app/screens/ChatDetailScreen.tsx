@@ -416,16 +416,21 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         setMessages((prev) => {
           const exists = prev.some((m) => m.id === newMsg.id);
           if (exists) return prev;
+
           const updated = [...prev, newMsg].sort(
             (a, b) =>
               (a.createdAt || parseInt(a.id, 10)) -
               (b.createdAt || parseInt(b.id, 10))
           );
-          // Only scroll if a new message was actually added
-          setTimeout(
-            () => flatListRef.current?.scrollToEnd({ animated: true }),
-            50
-          );
+
+          // Only scroll if a NEW message was actually added (not just re-rendering)
+          if (!exists) {
+            setTimeout(
+              () => flatListRef.current?.scrollToEnd({ animated: true }),
+              50
+            );
+          }
+
           return updated;
         });
       }
@@ -637,9 +642,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.flatListContent}
               extraData={[replyMessage, selectedMessages, isSelectionMode]}
-              onContentSizeChange={() =>
-                flatListRef.current?.scrollToEnd({ animated: false })
-              }
               onEndReached={onEndReached}
               onEndReachedThreshold={0.1}
             />
