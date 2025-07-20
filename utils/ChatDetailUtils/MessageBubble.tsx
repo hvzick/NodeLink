@@ -1,14 +1,7 @@
 // utils/ChatDetailUtils/MessageBubble.tsx
 
 import React, { useRef, useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  Animated,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { triggerTapHapticFeedback } from "../GlobalUtils/TapHapticFeedback";
 import { Message } from "../../backend/Local database/SQLite/MessageStructure";
@@ -67,33 +60,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
       message.sender?.toLowerCase() === walletAddress.toLowerCase();
 
     const styles = getStyles(currentTheme, isMe);
-    const scale = useRef(new Animated.Value(1)).current;
     const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
 
     const handleLongPress = () => {
       triggerTapHapticFeedback();
-      Animated.timing(scale, {
-        toValue: 1.05,
-        duration: 100,
-        useNativeDriver: true,
-      }).start(() => {
-        bubbleRef.current?.measureInWindow(
-          (x: any, y: any, width: any, height: any) => {
-            onLongPress(message, { x, y, width, height });
-          }
-        );
-      });
+      bubbleRef.current?.measureInWindow(
+        (x: any, y: any, width: any, height: any) => {
+          onLongPress(message, { x, y, width, height });
+        }
+      );
     };
 
-    useEffect(() => {
-      if (!isMenuVisibleForThisMessage) {
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
-      }
-    }, [isMenuVisibleForThisMessage, scale]);
+    // No animation effect needed
 
     if (isHidden) {
       return <View style={{ height: measuredHeight || 50 }} />;
@@ -115,15 +93,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
 
     return (
       <View onLayout={(e) => setMeasuredHeight(e.nativeEvent.layout.height)}>
-        <Animated.View
-          style={{
-            transform: [
-              { translateX: isMe ? bubbleWidth / 2 : -bubbleWidth / 2 },
-              { scale },
-              { translateX: isMe ? -bubbleWidth / 2 : bubbleWidth / 2 },
-            ],
-          }}
-        >
+        <View>
           <View
             ref={bubbleRef}
             onLayout={(e) => setBubbleWidth(e.nativeEvent.layout.width)}
@@ -180,7 +150,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
                           isMe ? styles.replyLabelRight : styles.replyLabelLeft,
                         ]}
                       >
-                        Replied to message
+                        Replied to {chatRecipientName}
                       </Text>
                       <Text
                         numberOfLines={1}
@@ -189,7 +159,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
                           isMe ? styles.replyTextRight : styles.replyTextLeft,
                         ]}
                       >
-                        {message.replyTo}
+                        Deleted Message
                       </Text>
                     </>
                   )}
@@ -260,7 +230,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(
               </Pressable>
             )}
           </View>
-        </Animated.View>
+        </View>
       </View>
     );
   }

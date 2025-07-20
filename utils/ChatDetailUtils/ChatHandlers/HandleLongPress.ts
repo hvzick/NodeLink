@@ -15,18 +15,8 @@ export const handleLongPress = (
     setSelectedMessageForMenu,
     setMenuPosition,
   } = dependencies;
-  const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;
-  const menuWidth = 180;
   const estimatedMenuHeight = 200; // This value is crucial to verify
-
-  const horizontalLeftPosition = Math.max(
-    10,
-    Math.min(
-      screenWidth - menuWidth - 10,
-      msg.sender === "Me" ? layout.x + layout.width - menuWidth : layout.x
-    )
-  );
 
   let verticalTopPosition;
 

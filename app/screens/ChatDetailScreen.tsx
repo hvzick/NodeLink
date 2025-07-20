@@ -36,12 +36,11 @@ import MessageBubble from "../../utils/ChatDetailUtils/MessageBubble";
 import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { EventBus, useChat } from "../../utils/ChatUtils/ChatContext";
 import { markMessagesAsRead } from "../../backend/Local database/SQLite/MarkMessagesAsRead";
+import { BlurView } from "expo-blur";
 
 import { ChatDetailHandlerDependencies } from "../../utils/ChatDetailUtils/ChatHandlers/HandleDependencies";
 import { handleSendMessage } from "../../utils/ChatDetailUtils/ChatHandlers/HandleSendMessage";
-import { handleLongPress } from "../../utils/ChatDetailUtils/ChatHandlers/HandleLongPress";
 import { handleOptionSelect } from "../../utils/ChatDetailUtils/ChatHandlers/HandleOptionSelect";
-import { closeLongPressMenu } from "../../utils/ChatDetailUtils/ChatHandlers/HandleCloseLongPressMenu";
 import { handleQuotedPress } from "../../utils/ChatDetailUtils/ChatHandlers/HandleQuotedPress";
 import {
   toggleMessageSelection,
@@ -671,6 +670,13 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           source={{ uri: "https://via.placeholder.com/400" }}
           {...keyboardDismissPanResponder.panHandlers}
         >
+          {menuVisible && (
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              intensity={1000} // or any strength you like
+              tint={currentTheme === "dark" ? "dark" : "light"}
+            />
+          )}
           {isLoading ? (
             <ActivityIndicator size="large" color="#999" style={{ flex: 1 }} />
           ) : (

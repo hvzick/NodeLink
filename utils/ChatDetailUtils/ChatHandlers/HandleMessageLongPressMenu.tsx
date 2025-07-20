@@ -1,13 +1,12 @@
 // utils/ChatDetailUtils/MessageLongPressMenu.tsx
 
-import React, { useRef, useEffect } from "react";
+import React from "react";
 import {
   Modal,
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Animated,
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -63,40 +62,7 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   onDeleteChat,
   clearHighlight,
 }) => {
-  const fade = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.8)).current;
-  const blurOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (isVisible) {
-      // Defer animations to avoid useInsertionEffect conflicts
-      requestAnimationFrame(() => {
-        Animated.parallel([
-          Animated.timing(fade, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-          Animated.spring(scale, {
-            toValue: 1,
-            tension: 100,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-          Animated.timing(blurOpacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: false,
-          }),
-        ]).start();
-      });
-    } else {
-      // Reset values immediately when hiding
-      fade.setValue(0);
-      scale.setValue(0.8);
-      blurOpacity.setValue(0);
-    }
-  }, [isVisible]);
+  // Remove all animation logic
 
   // Fix: Use proper Ionicons type instead of string
   const menuOptions: {
@@ -117,35 +83,8 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
   menuOptions.push({ name: "Delete", icon: "trash-bin-outline" });
 
   const handleClose = () => {
-    // Avoid state updates during insertion effects
-    const closeAnimation = () => {
-      Animated.parallel([
-        Animated.timing(fade, {
-          toValue: 0,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scale, {
-          toValue: 0.8,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(blurOpacity, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: false,
-        }),
-      ]).start(() => {
-        // Defer state updates to next tick
-        setTimeout(() => {
-          onClose();
-          clearHighlight();
-        }, 0);
-      });
-    };
-
-    // Use requestAnimationFrame to avoid insertion effect conflicts
-    requestAnimationFrame(closeAnimation);
+    onClose();
+    clearHighlight();
   };
 
   const handleOption = (opt: MenuOption) => {
@@ -190,39 +129,14 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
       animationType="none"
       onRequestClose={handleClose}
     >
-      {/* Animated blur background */}
-      <Animated.View
-        style={[
-          styles.backdrop,
-          {
-            backgroundColor: blurOpacity.interpolate({
-              inputRange: [0, 1],
-              outputRange: ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.4)"],
-            }),
-          },
-        ]}
-      >
-        {/* Blur effect simulation */}
-        <Animated.View
-          style={[
-            styles.blurOverlay,
-            {
-              opacity: blurOpacity,
-            },
-          ]}
-        />
-
+      {/* Static backdrop */}
+      <View style={[styles.backdrop, { backgroundColor: "rgba(0,0,0,0.4)" }]}>
         <TouchableOpacity
           style={styles.touchableBackdrop}
           onPress={handleClose}
           activeOpacity={1}
         >
-          <Animated.View
-            style={[
-              styles.menu,
-              { top, left, opacity: fade, transform: [{ scale }] },
-            ]}
-          >
+          <View style={[styles.menu, { top, left }]}>
             <View
               style={[
                 styles.arrow,
@@ -261,9 +175,9 @@ const MessageLongPressMenu: React.FC<MessageLongPressMenuProps> = ({
                 </TouchableOpacity>
               );
             })}
-          </Animated.View>
+          </View>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     </Modal>
   );
 };
