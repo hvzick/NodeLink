@@ -480,7 +480,7 @@ const Chats = () => {
           <FlatList
             data={searchResults}
             keyExtractor={(item) => item.wallet_address || item.username}
-            renderItem={({ item }) => {
+            renderItem={({ item, index }) => {
               // Your existing renderItem logic
               const isUsernameSearch = searchQuery.startsWith("@");
               const isWalletSearch =
@@ -506,9 +506,15 @@ const Chats = () => {
                 secondaryText = `@${item.username}`;
               }
 
+              // Check if this is the last item
+              const isLastItem = index === searchResults.length - 1;
+
               return (
                 <TouchableOpacity
-                  style={styles.searchResultItem}
+                  style={[
+                    styles.searchResultItem,
+                    isLastItem && styles.searchResultItemLast, // Remove border for last item
+                  ]}
                   onPress={() => handleSearchResultPress(item)}
                   activeOpacity={0.7}
                 >
@@ -547,14 +553,24 @@ const Chats = () => {
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Image
-          source={
-            isDarkMode
-              ? require("../../assets/images/logo-white.png")
-              : require("../../assets/images/logo-black.png")
-          }
-          style={styles.chatAppLogo}
-        />
+        <TouchableOpacity
+          onPress={() => {
+            // Go back to base chats page
+            clearSearch();
+            triggerTapHapticFeedback();
+          }}
+          style={styles.logoTouchable}
+          activeOpacity={0.7}
+        >
+          <Image
+            source={
+              isDarkMode
+                ? require("../../assets/images/logo-white.png")
+                : require("../../assets/images/logo-black.png")
+            }
+            style={styles.chatAppLogo}
+          />
+        </TouchableOpacity>
         <Text style={styles.nodeLinkName}>NodeLink</Text>
         <TouchableOpacity
           onPress={() => {
@@ -660,12 +676,16 @@ const createStyles = (isDarkMode: boolean) =>
       marginBottom: 10,
       position: "relative",
     },
+    logoTouchable: {
+      position: "absolute",
+      left: 20,
+      padding: 5, // Add some padding for better touch area
+      borderRadius: 22, // Make it circular touch area
+    },
     chatAppLogo: {
       width: 40,
       height: 40,
       resizeMode: "contain",
-      position: "absolute",
-      left: 20,
     },
     nodeLinkName: {
       fontSize: 25,
@@ -707,7 +727,6 @@ const createStyles = (isDarkMode: boolean) =>
       marginHorizontal: 20,
       marginBottom: 10,
       borderRadius: 12,
-      maxHeight: 350, // Remove this line
       minHeight: 60, // Add minimum height
       shadowColor: "#000",
       shadowOffset: {
@@ -756,6 +775,9 @@ const createStyles = (isDarkMode: boolean) =>
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: isDarkMode ? "#3C3C3E" : "#E5E5E7",
     },
+    searchResultItemLast: {
+      borderBottomWidth: 0, // Remove border for last item
+    },
     searchResultAvatar: {
       width: 44,
       height: 44,
@@ -781,17 +803,26 @@ const createStyles = (isDarkMode: boolean) =>
       maxHeight: 280,
     },
     // Existing styles
+    // Update these two styles in your createStyles function:
     chatItem: {
       flexDirection: "row",
       alignItems: "center",
       padding: 12,
       paddingLeft: 15,
-      borderBottomWidth: 1,
+      borderBottomWidth: StyleSheet.hairlineWidth, // Changed from 1 to StyleSheet.hairlineWidth
       borderColor: isDarkMode ? "#333" : "#ddd",
       backgroundColor: isDarkMode ? "#121212" : "#fff",
-      minHeight: 80,
-      maxHeight: 80,
+      height: 80, // Changed from minHeight/maxHeight to fixed height
     },
+    rightActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      height: 80, // Match the chatItem height exactly
+      borderBottomWidth: StyleSheet.hairlineWidth, // Add matching border
+      borderColor: isDarkMode ? "#333" : "#ddd", // Add matching border color
+      backgroundColor: isDarkMode ? "#121212" : "#fff", // Add matching background
+    },
+
     avatarContainer: {
       position: "relative",
       marginRight: 12,
@@ -866,10 +897,6 @@ const createStyles = (isDarkMode: boolean) =>
     chatTimeUnread: {
       color: "#007AFF",
       fontWeight: "600",
-    },
-    rightActions: {
-      flexDirection: "row",
-      alignItems: "center",
     },
     actionButton: {
       width: 75,

@@ -164,7 +164,7 @@ export default function NotificationsScreen() {
   const styles = getStyles(isDarkMode);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.headerContainer}>
         <TouchableOpacity
