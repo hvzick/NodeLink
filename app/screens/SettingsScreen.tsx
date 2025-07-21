@@ -167,7 +167,7 @@ export default function SettingsScreen() {
   const profileImageSource =
     userData && userData.avatar !== "default"
       ? { uri: userData.avatar }
-      : require("../../assets/images/default-avatar.jpg");
+      : require("../../assets/images/default-user-avatar.jpg");
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
