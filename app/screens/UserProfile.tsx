@@ -12,6 +12,7 @@ import {
   Pressable,
   Platform,
   Animated,
+  ScrollView, // ← added
 } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -44,9 +45,9 @@ export default function UserProfile() {
   const { walletAddress } = route.params as { walletAddress: string };
 
   const { addOrUpdateChat, chatList } = useChat();
-
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
+
   const [copyWalletText, setCopyWalletText] = useState("");
   const [copyUsernameText, setCopyUsernameText] = useState("");
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -66,23 +67,20 @@ export default function UserProfile() {
 
   useEffect(() => {
     const fetchMyKey = async () => {
-      const key = await AsyncStorage.getItem("walletAddress"); // or "publicKey"
+      const key = await AsyncStorage.getItem("walletAddress");
       setMyPublicKey(key);
     };
     fetchMyKey();
   }, []);
 
-  // Enhanced user data loading with new storage functions
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!walletAddress) return;
-
       setIsProfileLoading(true);
 
       try {
         console.log("🔍 Loading user profile for:", walletAddress);
 
-        // 1. Try to get from session cache first (fastest)
         const sessionData = getUserDataFromSession(walletAddress);
         if (sessionData) {
           setUserData(sessionData);
@@ -91,7 +89,6 @@ export default function UserProfile() {
           return;
         }
 
-        // 2. Try to get from AsyncStorage (medium speed)
         const storageData = await loadUserDataFromStorage(walletAddress);
         if (storageData) {
           setUserData(storageData);
@@ -100,7 +97,6 @@ export default function UserProfile() {
           return;
         }
 
-        // 3. Fetch from Supabase (slowest but most up-to-date)
         console.log("🔄 Fetching user data from Supabase...");
         const { data: userProfile, error } = await supabase
           .from("profiles")
@@ -115,7 +111,6 @@ export default function UserProfile() {
         }
 
         if (userProfile) {
-          // Map Supabase data to UserData interface
           const mappedUserData: UserData = {
             walletAddress: userProfile.wallet_address,
             username: userProfile.username,
@@ -126,7 +121,6 @@ export default function UserProfile() {
             publicKey: userProfile.public_key,
           };
 
-          // Store in both AsyncStorage and session cache
           await storeUserDataInStorage(mappedUserData);
           setUserData(mappedUserData);
           console.log("✅ User data fetched from Supabase and cached");
@@ -156,24 +150,17 @@ export default function UserProfile() {
     }
   }, [userData, chatList, myPublicKey]);
 
-  // Enhanced connect handler
   const connectToUser = async () => {
     if (!userData?.walletAddress) {
       console.error("Cannot connect: User data is not available.");
       return;
     }
-
     setIsConnecting(true);
-
     console.log("🤝 Initiating connection with", userData.walletAddress);
-
     const success = await handleConnect(userData.walletAddress);
-
     setIsConnecting(false);
-
     if (success) {
       setIsConnected(true);
-      // Update the cached user data to reflect the connection
       const updatedUserData = { ...userData };
       try {
         await storeUserDataInStorage(updatedUserData);
@@ -193,7 +180,6 @@ export default function UserProfile() {
       navigation
     );
 
-  // Show a loading indicator while fetching profile data
   if (isProfileLoading) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: "center" }]}>
@@ -205,7 +191,6 @@ export default function UserProfile() {
     );
   }
 
-  // Show error state if user data couldn't be loaded
   if (!userData) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: "center" }]}>
@@ -253,193 +238,206 @@ export default function UserProfile() {
         </View>
       </View>
 
-      <TouchableOpacity onPress={() => setShowAvatarModal(true)}>
-        <Image
-          source={
-            userData?.avatar === "default" || !userData?.avatar
-              ? require("../../assets/images/default-user-avatar.jpg")
-              : { uri: userData?.avatar }
-          }
-          style={styles.avatar}
-        />
-      </TouchableOpacity>
-      <Modal
-        visible={showAvatarModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowAvatarModal(false)}
+      {/* ← Wrap everything below in a ScrollView */}
+      <ScrollView
+        style={{ flex: 1, width: "100%" }}
+        contentContainerStyle={{ alignItems: "center", paddingBottom: 40 }}
       >
-        <Pressable
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.85)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-          onPress={() => setShowAvatarModal(false)}
-        >
+        <TouchableOpacity onPress={() => setShowAvatarModal(true)}>
           <Image
             source={
               userData?.avatar === "default" || !userData?.avatar
                 ? require("../../assets/images/default-user-avatar.jpg")
                 : { uri: userData?.avatar }
             }
-            style={{
-              width: 320,
-              height: 320,
-              borderRadius: 160,
-              borderWidth: 4,
-              borderColor: "#fff",
-            }}
-            resizeMode="contain"
+            style={styles.avatar}
           />
-        </Pressable>
-      </Modal>
-      <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
+        </TouchableOpacity>
 
-      <View style={styles.infoBox}>
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Wallet Address</Text>
-          <TouchableOpacity
-            onPress={() => handleCopyAddress(userData, setCopyWalletText)}
-            onLongPress={() => handleOpenEtherscan(userData)}
+        <Modal
+          visible={showAvatarModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowAvatarModal(false)}
+        >
+          <Pressable
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.85)",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            onPress={() => setShowAvatarModal(false)}
           >
-            <Text style={styles.wallet}>
-              {userData?.walletAddress || "Loading..."}
-            </Text>
-          </TouchableOpacity>
-          {copyWalletText ? (
-            <Text style={styles.waCopyMessage}>{copyWalletText}</Text>
-          ) : null}
-        </View>
-        <View style={styles.separator} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Username</Text>
-          <TouchableOpacity
-            onPress={() => handleCopyUsername(userData, setCopyUsernameText)}
-          >
-            <Text style={styles.username}>
-              @{userData?.username || "loading..."}
-            </Text>
-          </TouchableOpacity>
-          {copyUsernameText ? (
-            <Text style={styles.uCopyMessage}>{copyUsernameText}</Text>
-          ) : null}
-        </View>
-        <View style={styles.separator} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Bio</Text>
-          <Text style={styles.infoText}>
-            {userData?.bio || "Im not being spied on!"}
-          </Text>
-        </View>
-        <View style={styles.separator} />
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Public Key</Text>
-          <Text style={styles.infoText}>
-            {userData?.publicKey || "Loading..."}
-          </Text>
-        </View>
-        <View style={styles.separator} />
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Joined</Text>
-          <Text style={styles.infoText}>
-            {userData?.created_at
-              ? format(new Date(userData.created_at), "MMMM d, yyyy")
-              : "N/A"}
-          </Text>
-        </View>
-        {isConnected && sharedSecurityCode && (
-          <View style={[styles.infoRow, styles.securityBox]}>
-            <Text style={styles.label}>Shared Security Code</Text>
-
-            <TouchableOpacity
-              onPress={() => {
-                copyToClipboard(sharedSecurityCode);
-                setCopied(true);
-                Animated.timing(fadeAnim, {
-                  toValue: 1,
-                  duration: 200,
-                  useNativeDriver: true,
-                }).start(() => {
-                  setTimeout(() => {
-                    Animated.timing(fadeAnim, {
-                      toValue: 0,
-                      duration: 300,
-                      useNativeDriver: true,
-                    }).start(() => setCopied(false));
-                  }, 1500);
-                });
+            <Image
+              source={
+                userData?.avatar === "default" || !userData?.avatar
+                  ? require("../../assets/images/default-user-avatar.jpg")
+                  : { uri: userData?.avatar }
+              }
+              style={{
+                width: 320,
+                height: 320,
+                borderRadius: 160,
+                borderWidth: 4,
+                borderColor: "#fff",
               }}
+              resizeMode="contain"
+            />
+          </Pressable>
+        </Modal>
+
+        <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
+
+        <View style={styles.infoBox}>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Wallet Address</Text>
+            <TouchableOpacity
+              onPress={() => handleCopyAddress(userData, setCopyWalletText)}
+              onLongPress={() => handleOpenEtherscan(userData)}
             >
-              <Text style={styles.securityCode}>{sharedSecurityCode}</Text>
+              <Text style={styles.wallet}>
+                {userData?.walletAddress || "Loading..."}
+              </Text>
             </TouchableOpacity>
-
-            {copied && (
-              <Animated.Text style={[styles.copiedText, { opacity: fadeAnim }]}>
-                ✅ Copied
-              </Animated.Text>
-            )}
+            {copyWalletText ? (
+              <Text style={styles.waCopyMessage}>{copyWalletText}</Text>
+            ) : null}
           </View>
-        )}
-      </View>
+          <View style={styles.separator} />
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[
-            styles.sideBySideButton,
-            isConnected
-              ? styles.connectButtonConnected
-              : styles.connectButtonDefault,
-            isButtonPressed && !isConnected && styles.connectButtonPressed,
-            (!userData || isConnecting) && styles.buttonDisabled,
-          ]}
-          onPress={connectToUser}
-          onPressIn={() => setIsButtonPressed(true)}
-          onPressOut={() => setIsButtonPressed(false)}
-          activeOpacity={0.8}
-          disabled={!userData || isConnecting || isConnected}
-        >
-          <Text
-            style={[
-              styles.buttonText,
-              isConnected
-                ? styles.connectButtonTextConnected
-                : styles.connectButtonTextDefault,
-            ]}
-          >
-            {isConnecting
-              ? "Connecting..."
-              : isConnected
-              ? "Connected"
-              : "Connect"}
-          </Text>
-        </TouchableOpacity>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Username</Text>
+            <TouchableOpacity
+              onPress={() => handleCopyUsername(userData, setCopyUsernameText)}
+            >
+              <Text style={styles.username}>
+                @{userData?.username || "loading..."}
+              </Text>
+            </TouchableOpacity>
+            {copyUsernameText ? (
+              <Text style={styles.uCopyMessage}>{copyUsernameText}</Text>
+            ) : null}
+          </View>
+          <View style={styles.separator} />
 
-        <TouchableOpacity
-          style={[
-            styles.sideBySideButton,
-            styles.sendMessageButton,
-            isConnected && styles.sendMessageButtonEnabled,
-            !isConnected && styles.buttonDisabled,
-          ]}
-          onPress={handleSendMessageWrapper}
-          disabled={!isConnected}
-        >
-          <Text
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Bio</Text>
+            <Text style={styles.infoText}>
+              {userData?.bio || "Im not being spied on!"}
+            </Text>
+          </View>
+          <View style={styles.separator} />
+
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Public Key</Text>
+            <Text style={styles.publicKey}>
+              {userData?.publicKey || "Loading..."}
+            </Text>
+          </View>
+          <View style={styles.separator} />
+
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Joined</Text>
+            <Text style={styles.infoText}>
+              {userData?.created_at
+                ? format(new Date(userData.created_at), "MMMM d, yyyy")
+                : "N/A"}
+            </Text>
+          </View>
+
+          {isConnected && sharedSecurityCode && (
+            <View style={[styles.infoRow, styles.securityBox]}>
+              <Text style={styles.label}>Shared Security Code</Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  copyToClipboard(sharedSecurityCode);
+                  setCopied(true);
+                  Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }).start(() => {
+                    setTimeout(() => {
+                      Animated.timing(fadeAnim, {
+                        toValue: 0,
+                        duration: 300,
+                        useNativeDriver: true,
+                      }).start(() => setCopied(false));
+                    }, 1500);
+                  });
+                }}
+              >
+                <Text style={styles.securityCode}>{sharedSecurityCode}</Text>
+              </TouchableOpacity>
+
+              {copied && (
+                <Animated.Text
+                  style={[styles.copiedText, { opacity: fadeAnim }]}
+                >
+                  ✅ Copied
+                </Animated.Text>
+              )}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
             style={[
-              styles.buttonText,
+              styles.sideBySideButton,
               isConnected
-                ? styles.sendMessageButtonTextEnabled
-                : styles.buttonTextDisabled,
+                ? styles.connectButtonConnected
+                : styles.connectButtonDefault,
+              isButtonPressed && !isConnected && styles.connectButtonPressed,
+              (!userData || isConnecting) && styles.buttonDisabled,
             ]}
+            onPress={connectToUser}
+            onPressIn={() => setIsButtonPressed(true)}
+            onPressOut={() => setIsButtonPressed(false)}
+            activeOpacity={0.8}
+            disabled={!userData || isConnecting || isConnected}
           >
-            Message
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={[
+                styles.buttonText,
+                isConnected
+                  ? styles.connectButtonTextConnected
+                  : styles.connectButtonTextDefault,
+              ]}
+            >
+              {isConnecting
+                ? "Connecting..."
+                : isConnected
+                ? "Connected"
+                : "Connect"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.sideBySideButton,
+              styles.sendMessageButton,
+              isConnected && styles.sendMessageButtonEnabled,
+              !isConnected && styles.buttonDisabled,
+            ]}
+            onPress={handleSendMessageWrapper}
+            disabled={!isConnected}
+          >
+            <Text
+              style={[
+                styles.buttonText,
+                isConnected
+                  ? styles.sendMessageButtonTextEnabled
+                  : styles.buttonDisabled,
+              ]}
+            >
+              Message
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
       <StatusBar style="auto" />
     </SafeAreaView>
@@ -487,10 +485,14 @@ const getStyles = (isDarkMode: boolean) =>
       color: isDarkMode ? "#fff" : "#333333",
     },
     avatar: {
-      top: 10,
+      marginTop: 14,
       width: 100,
       height: 100,
-      borderRadius: 50,
+      borderRadius: 60,
+      borderWidth: 2,
+      borderColor: isDarkMode ? "#444" : "#fff",
+      backgroundColor: "#ccc",
+      elevation: 4,
     },
     name: {
       top: 10,
@@ -513,6 +515,11 @@ const getStyles = (isDarkMode: boolean) =>
     wallet: { fontSize: 16, color: "#00A86B", flexWrap: "wrap" },
     username: { fontSize: 16, color: "#007AFF" },
     infoText: { fontSize: 16, color: isDarkMode ? "#fff" : "#333333" },
+    publicKey: {
+      fontSize: 16,
+      color: isDarkMode ? "#fff" : "#333333",
+      fontFamily: Platform.select({ ios: "Courier", android: "monospace" }),
+    },
     separator: { height: 1, backgroundColor: isDarkMode ? "#333" : "#EFEFEF" },
     waCopyMessage: {
       fontSize: 14,
@@ -574,7 +581,7 @@ const getStyles = (isDarkMode: boolean) =>
     buttonDisabled: {
       opacity: 0.5,
     },
-    buttonTextDisabled: {
+    sendMessageButtonTextDisabled: {
       color: isDarkMode ? "#555" : "#ccc",
     },
     securityBox: {
