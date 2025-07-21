@@ -12,7 +12,6 @@ import {
   Pressable,
   Platform,
   Animated,
-  ScrollView,
 } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -236,218 +235,212 @@ export default function UserProfile() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={{ alignItems: "center", paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.headerContainer}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={24}
-              color="#007AFF"
-              style={{ marginRight: 4 }}
-            />
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer} pointerEvents="none">
-            <Text style={styles.headerTitleText}>User Profile</Text>
-          </View>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={24}
+            color="#007AFF"
+            style={{ marginRight: 4 }}
+          />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer} pointerEvents="none">
+          <Text style={styles.headerTitleText}>User Profile</Text>
         </View>
+      </View>
 
-        <TouchableOpacity onPress={() => setShowAvatarModal(true)}>
+      <TouchableOpacity onPress={() => setShowAvatarModal(true)}>
+        <Image
+          source={
+            userData?.avatar === "default" || !userData?.avatar
+              ? require("../../assets/images/default-user-avatar.jpg")
+              : { uri: userData?.avatar }
+          }
+          style={styles.avatar}
+        />
+      </TouchableOpacity>
+      <Modal
+        visible={showAvatarModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAvatarModal(false)}
+      >
+        <Pressable
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.85)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          onPress={() => setShowAvatarModal(false)}
+        >
           <Image
             source={
               userData?.avatar === "default" || !userData?.avatar
                 ? require("../../assets/images/default-user-avatar.jpg")
                 : { uri: userData?.avatar }
             }
-            style={styles.avatar}
-          />
-        </TouchableOpacity>
-        <Modal
-          visible={showAvatarModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowAvatarModal(false)}
-        >
-          <Pressable
             style={{
-              flex: 1,
-              backgroundColor: "rgba(0,0,0,0.85)",
-              justifyContent: "center",
-              alignItems: "center",
+              width: 320,
+              height: 320,
+              borderRadius: 160,
+              borderWidth: 4,
+              borderColor: "#fff",
             }}
-            onPress={() => setShowAvatarModal(false)}
+            resizeMode="contain"
+          />
+        </Pressable>
+      </Modal>
+      <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
+
+      <View style={styles.infoBox}>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Wallet Address</Text>
+          <TouchableOpacity
+            onPress={() => handleCopyAddress(userData, setCopyWalletText)}
+            onLongPress={() => handleOpenEtherscan(userData)}
           >
-            <Image
-              source={
-                userData?.avatar === "default" || !userData?.avatar
-                  ? require("../../assets/images/default-user-avatar.jpg")
-                  : { uri: userData?.avatar }
-              }
-              style={{
-                width: 320,
-                height: 320,
-                borderRadius: 160,
-                borderWidth: 4,
-                borderColor: "#fff",
+            <Text style={styles.wallet}>
+              {userData?.walletAddress || "Loading..."}
+            </Text>
+          </TouchableOpacity>
+          {copyWalletText ? (
+            <Text style={styles.waCopyMessage}>{copyWalletText}</Text>
+          ) : null}
+        </View>
+        <View style={styles.separator} />
+
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Username</Text>
+          <TouchableOpacity
+            onPress={() => handleCopyUsername(userData, setCopyUsernameText)}
+          >
+            <Text style={styles.username}>
+              @{userData?.username || "loading..."}
+            </Text>
+          </TouchableOpacity>
+          {copyUsernameText ? (
+            <Text style={styles.uCopyMessage}>{copyUsernameText}</Text>
+          ) : null}
+        </View>
+        <View style={styles.separator} />
+
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Bio</Text>
+          <Text style={styles.infoText}>
+            {userData?.bio || "Im not being spied on!"}
+          </Text>
+        </View>
+        <View style={styles.separator} />
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Public Key</Text>
+          <Text style={styles.infoText}>
+            {userData?.publicKey || "Loading..."}
+          </Text>
+        </View>
+        <View style={styles.separator} />
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Joined</Text>
+          <Text style={styles.infoText}>
+            {userData?.created_at
+              ? format(new Date(userData.created_at), "MMMM d, yyyy")
+              : "N/A"}
+          </Text>
+        </View>
+        {isConnected && sharedSecurityCode && (
+          <View style={[styles.infoRow, styles.securityBox]}>
+            <Text style={styles.label}>Shared Security Code</Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                copyToClipboard(sharedSecurityCode);
+                setCopied(true);
+                Animated.timing(fadeAnim, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start(() => {
+                  setTimeout(() => {
+                    Animated.timing(fadeAnim, {
+                      toValue: 0,
+                      duration: 300,
+                      useNativeDriver: true,
+                    }).start(() => setCopied(false));
+                  }, 1500);
+                });
               }}
-              resizeMode="contain"
-            />
-          </Pressable>
-        </Modal>
-        <Text style={styles.name}>{userData?.name || "NodeLink User"}</Text>
-
-        <View style={styles.infoBox}>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Wallet Address</Text>
-            <TouchableOpacity
-              onPress={() => handleCopyAddress(userData, setCopyWalletText)}
-              onLongPress={() => handleOpenEtherscan(userData)}
             >
-              <Text style={styles.wallet}>
-                {userData?.walletAddress || "Loading..."}
-              </Text>
+              <Text style={styles.securityCode}>{sharedSecurityCode}</Text>
             </TouchableOpacity>
-            {copyWalletText ? (
-              <Text style={styles.waCopyMessage}>{copyWalletText}</Text>
-            ) : null}
-          </View>
-          <View style={styles.separator} />
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Username</Text>
-            <TouchableOpacity
-              onPress={() => handleCopyUsername(userData, setCopyUsernameText)}
-            >
-              <Text style={styles.username}>
-                @{userData?.username || "loading..."}
-              </Text>
-            </TouchableOpacity>
-            {copyUsernameText ? (
-              <Text style={styles.uCopyMessage}>{copyUsernameText}</Text>
-            ) : null}
+            {copied && (
+              <Animated.Text style={[styles.copiedText, { opacity: fadeAnim }]}>
+                ✅ Copied
+              </Animated.Text>
+            )}
           </View>
-          <View style={styles.separator} />
+        )}
+      </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Bio</Text>
-            <Text style={styles.infoText}>
-              {userData?.bio || "Im not being spied on!"}
-            </Text>
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Public Key</Text>
-            <Text style={styles.infoText}>
-              {userData?.publicKey || "Loading..."}
-            </Text>
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Joined</Text>
-            <Text style={styles.infoText}>
-              {userData?.created_at
-                ? format(new Date(userData.created_at), "MMMM d, yyyy")
-                : "N/A"}
-            </Text>
-          </View>
-          {isConnected && sharedSecurityCode && (
-            <View style={[styles.infoRow, styles.securityBox]}>
-              <Text style={styles.label}>Shared Security Code</Text>
-
-              <TouchableOpacity
-                onPress={() => {
-                  copyToClipboard(sharedSecurityCode);
-                  setCopied(true);
-                  Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 200,
-                    useNativeDriver: true,
-                  }).start(() => {
-                    setTimeout(() => {
-                      Animated.timing(fadeAnim, {
-                        toValue: 0,
-                        duration: 300,
-                        useNativeDriver: true,
-                      }).start(() => setCopied(false));
-                    }, 1500);
-                  });
-                }}
-              >
-                <Text style={styles.securityCode}>{sharedSecurityCode}</Text>
-              </TouchableOpacity>
-
-              {copied && (
-                <Animated.Text
-                  style={[styles.copiedText, { opacity: fadeAnim }]}
-                >
-                  ✅ Copied
-                </Animated.Text>
-              )}
-            </View>
-          )}
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[
+            styles.sideBySideButton,
+            isConnected
+              ? styles.connectButtonConnected
+              : styles.connectButtonDefault,
+            isButtonPressed && !isConnected && styles.connectButtonPressed,
+            (!userData || isConnecting) && styles.buttonDisabled,
+          ]}
+          onPress={connectToUser}
+          onPressIn={() => setIsButtonPressed(true)}
+          onPressOut={() => setIsButtonPressed(false)}
+          activeOpacity={0.8}
+          disabled={!userData || isConnecting || isConnected}
+        >
+          <Text
             style={[
-              styles.sideBySideButton,
+              styles.buttonText,
               isConnected
-                ? styles.connectButtonConnected
-                : styles.connectButtonDefault,
-              isButtonPressed && !isConnected && styles.connectButtonPressed,
-              (!userData || isConnecting) && styles.buttonDisabled,
+                ? styles.connectButtonTextConnected
+                : styles.connectButtonTextDefault,
             ]}
-            onPress={connectToUser}
-            onPressIn={() => setIsButtonPressed(true)}
-            onPressOut={() => setIsButtonPressed(false)}
-            activeOpacity={0.8}
-            disabled={!userData || isConnecting || isConnected}
           >
-            <Text
-              style={[
-                styles.buttonText,
-                isConnected
-                  ? styles.connectButtonTextConnected
-                  : styles.connectButtonTextDefault,
-              ]}
-            >
-              {isConnecting
-                ? "Connecting..."
-                : isConnected
-                ? "Connected"
-                : "Connect"}
-            </Text>
-          </TouchableOpacity>
+            {isConnecting
+              ? "Connecting..."
+              : isConnected
+              ? "Connected"
+              : "Connect"}
+          </Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
+        <TouchableOpacity
+          style={[
+            styles.sideBySideButton,
+            styles.sendMessageButton,
+            isConnected && styles.sendMessageButtonEnabled,
+            !isConnected && styles.buttonDisabled,
+          ]}
+          onPress={handleSendMessageWrapper}
+          disabled={!isConnected}
+        >
+          <Text
             style={[
-              styles.sideBySideButton,
-              styles.sendMessageButton,
-              isConnected && styles.sendMessageButtonEnabled,
-              !isConnected && styles.buttonDisabled,
+              styles.buttonText,
+              isConnected
+                ? styles.sendMessageButtonTextEnabled
+                : styles.buttonTextDisabled,
             ]}
-            onPress={handleSendMessageWrapper}
-            disabled={!isConnected}
           >
-            <Text
-              style={[
-                styles.buttonText,
-                isConnected
-                  ? styles.sendMessageButtonTextEnabled
-                  : styles.buttonTextDisabled,
-              ]}
-            >
-              Message
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            Message
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <StatusBar style="auto" />
     </SafeAreaView>
   );
