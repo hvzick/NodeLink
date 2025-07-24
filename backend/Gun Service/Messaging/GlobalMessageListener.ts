@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useRef } from "react";
 import { Message } from "../../Local database/SQLite/MessageStructure";
 import { insertMessage } from "../../Local database/SQLite/InsertMessage";
 import { useChat, EventBus } from "../../../utils/ChatUtils/ChatContext";
@@ -13,6 +14,9 @@ import { MessageVerifier } from "../../../backend/E2E-Encryption/VerifyMessageSi
 const GlobalMessageListener = () => {
   const { addOrUpdateChat } = useChat();
 
+  // Simple deduplication since RecieveMessages.ts now handles message completeness
+  const processedMessageIds = useRef(new Set<string>());
+
   useEffect(() => {
     let cleanup: (() => void) | null = null;
 
@@ -24,20 +28,9 @@ const GlobalMessageListener = () => {
       }
 
       cleanup = await listenForMessages(async (msg: Message) => {
-        // Enhanced validation with detailed logging
-        console.log(
-          "📥 Message received from GUN:",
-          JSON.stringify(msg, null, 2)
-        );
-        console.log("🔍 Message ID:", msg.id, "Sender:", msg.sender);
-        console.log(
-          "🔍 ID type:",
-          typeof msg.id,
-          "Sender type:",
-          typeof msg.sender
-        );
+        console.log("📥 Complete signed message received from RecieveMessages");
 
-        // Improved validation to handle various edge cases
+        // Basic validation (should always pass since RecieveMessages validates)
         if (
           !msg.id ||
           !msg.sender ||
@@ -46,49 +39,35 @@ const GlobalMessageListener = () => {
           msg.id.trim() === "" ||
           msg.sender.trim() === ""
         ) {
+          console.log("❌ Invalid message data, skipping");
           return;
         }
 
-        // Ensure required fields are properly set
-        msg.conversationId = msg.conversationId || `convo_${msg.sender}`;
-
-        // FIX: Properly handle timestamp conversion
-        if (!msg.createdAt || msg.createdAt < 1000000000000) {
-          if (msg.timestamp) {
-            if (typeof msg.timestamp === "string") {
-              msg.createdAt = new Date(msg.timestamp).getTime();
-            } else if (typeof msg.timestamp === "number") {
-              msg.createdAt = msg.timestamp;
-            } else {
-              msg.createdAt = Date.now();
-            }
-          } else {
-            msg.createdAt = Date.now();
-          }
+        // Simple deduplication check
+        if (processedMessageIds.current.has(msg.id)) {
+          console.log(`🔁 Message ${msg.id} already processed, skipping`);
+          return;
         }
 
-        // Set current time as receivedAt timestamp
-        const currentTime = Date.now();
-        msg.receivedAt = currentTime;
-        console.log(
-          "⏰ Message received at:",
-          new Date(currentTime).toISOString()
-        );
+        // Mark as processed immediately since we know it's complete
+        processedMessageIds.current.add(msg.id);
+        console.log(`🔄 Processing complete signed message ${msg.id}...`);
 
-        // Change status to "received"
+        // Ensure required fields are properly set
+        msg.conversationId = msg.conversationId || `convo_${msg.sender}`;
+        msg.receiver = msg.receiver || myWalletAddress;
+
+        // Handle timestamp fields
+        msg.timestamp = new Date(msg.createdAt || Date.now()).toISOString();
+        msg.receivedAt = Date.now();
         msg.status = "received";
-
         msg.encryptionVersion = msg.encryptionVersion || "AES-256-GCM";
         msg.readAt = typeof msg.readAt === "number" ? msg.readAt : null;
 
-        console.log("🔧 Message timing:", {
-          createdAt: msg.createdAt,
-          createdAtReadable: new Date(msg.createdAt).toISOString(),
-          receivedAt: msg.receivedAt,
-          receivedAtReadable: new Date(msg.receivedAt).toISOString(),
-          timeDifference: `${(msg.receivedAt - msg.createdAt) / 1000}s`,
-          status: msg.status,
-        });
+        console.log(
+          "⏰ Message received at:",
+          new Date(msg.receivedAt).toISOString()
+        );
 
         // Handle shared key derivation
         let sharedKey = await AsyncStorage.getItem(`shared_key_${msg.sender}`);
@@ -97,20 +76,15 @@ const GlobalMessageListener = () => {
           sharedKey = await deriveSharedKeyWithUser(msg.sender);
           if (sharedKey) {
             await AsyncStorage.setItem(`shared_key_${msg.sender}`, sharedKey);
-            console.log("🔑 Derived and stored new shared key:", sharedKey);
+            console.log("🔑 Derived and stored new shared key");
           } else {
             console.warn("❌ Could not derive shared key for", msg.sender);
+            return;
           }
-        } else {
-          console.log("🔑 Using existing shared key:", sharedKey);
         }
 
         // Handle message decryption
         try {
-          if (!msg.encryptedContent || !msg.iv || !sharedKey) {
-            throw new Error("Missing encrypted fields");
-          }
-
           const decryptedText = decryptMessage(
             msg.encryptedContent,
             sharedKey,
@@ -118,38 +92,40 @@ const GlobalMessageListener = () => {
           );
           msg.text = decryptedText;
           msg.decrypted = true;
+          msg.encrypted = true;
           console.log("✅ Decrypted message:", decryptedText);
         } catch (error) {
           msg.text = "[Unable to decrypt, Keys might have changed in transit]";
           msg.decrypted = false;
+          msg.encrypted = true;
           console.warn("❌ Failed to decrypt:", error);
         }
 
-        // Verify message signature after decryption
+        // Verify message signature (guaranteed to have signature data)
         let signatureVerified = false;
         try {
-          if (msg.signature && msg.signatureNonce && msg.signatureTimestamp) {
-            console.log("🔍 Verifying message signature...");
-            
-            // Get detailed verification status (simplified version)
-            const verificationStatus = await MessageVerifier.getVerificationStatus(msg);
-            signatureVerified = verificationStatus.signatureValid && verificationStatus.integrityValid;
-            
-            console.log(`🔏 Signature verification: ${signatureVerified ? "✅ Valid" : "❌ Invalid"}`);
-            console.log(`🧮 Integrity check: ${verificationStatus.integrityValid ? "✅ Valid" : "❌ Invalid"}`);
-            console.log(`📝 Verification details: ${verificationStatus.details}`);
+          console.log("🔍 Verifying message signature...");
 
-            // Log signature verification results
-            if (!signatureVerified) {
-              console.warn("⚠️ Message signature verification failed - potential security issue");
-              // Optionally mark the message with a security warning
-              if (!verificationStatus.signatureValid) {
-                msg.text = `[⚠️ UNVERIFIED MESSAGE] ${msg.text}`;
-              }
-            }
-          } else {
-            console.log("ℹ️ Message received without signature data - treating as legacy message");
-            signatureVerified = false; // Legacy messages without signatures
+          const verificationStatus =
+            await MessageVerifier.getVerificationStatus(msg);
+          signatureVerified =
+            verificationStatus.signatureValid &&
+            verificationStatus.integrityValid;
+
+          console.log(
+            `🔏 Signature verification: ${
+              signatureVerified ? "✅ Valid" : "❌ Invalid"
+            }`
+          );
+          console.log(
+            `🧮 Integrity check: ${
+              verificationStatus.integrityValid ? "✅ Valid" : "❌ Invalid"
+            }`
+          );
+
+          if (!signatureVerified) {
+            console.warn("⚠️ Message signature verification failed");
+            msg.text = `[⚠️ UNVERIFIED MESSAGE] ${msg.text}`;
           }
         } catch (error) {
           console.error("❌ Signature verification error:", error);
@@ -159,46 +135,54 @@ const GlobalMessageListener = () => {
         // Update message with verification status
         msg.signatureVerified = signatureVerified;
 
-        // Insert message into database with signature verification status
+        console.log("📋 Final message summary:", {
+          id: msg.id,
+          sender: msg.sender.slice(0, 10) + "...",
+          decrypted: msg.decrypted,
+          signatureVerified: msg.signatureVerified,
+          hasSignature: !!msg.signature,
+          hasNonce: !!msg.signatureNonce,
+        });
+
+        // Insert message into database
         try {
           console.log("💾 Inserting message into database...");
           await insertMessage(msg);
           console.log(
-            "✅ Message inserted successfully with status:",
-            msg.status,
-            "Signature verified:",
+            "✅ Message inserted successfully - Signature verified:",
             signatureVerified
           );
         } catch (err) {
           console.warn("❌ DB insert failed:", err);
+          processedMessageIds.current.delete(msg.id); // Allow retry
+          return;
         }
 
         // Auto-delete message from GunDB
         try {
           gun.get(`nodelink/${myWalletAddress}`).get(msg.id).put(null);
-          console.log(`🗑️ Auto-deleted message ${msg.id} from GunDB.`);
+          console.log(`🗑️ Auto-deleted message ${msg.id} from GunDB`);
         } catch (err) {
           console.warn("❌ Auto-delete failed:", err);
         }
 
-        // Emit new message event with signature verification status
-        EventBus.emit("new-message", { 
-          ...msg, 
-          signatureVerified 
+        // Emit new message event
+        EventBus.emit("new-message", {
+          ...msg,
+          signatureVerified,
         });
 
-        // Update chat UI with basic info (profile loading now handled in App.tsx)
+        // Update chat UI
         const preview =
           msg.text ||
           (msg.imageUrl ? "Image" : msg.videoUrl ? "Video" : "Attachment");
 
         formatTimeForUser(msg.createdAt).then((formattedTime) => {
-          // Add security indicator to chat preview if signature verification failed
           const securityIndicator = signatureVerified ? "" : "🔓 ";
-          
+
           addOrUpdateChat({
             id: msg.conversationId,
-            name: `User ${msg.sender.slice(0, 6)}...`, // Default name until profile loads
+            name: `User ${msg.sender.slice(0, 6)}...`,
             avatar: require("../../../assets/images/default-user-avatar.jpg"),
             message: `${securityIndicator}${preview}`,
             time: formattedTime,
@@ -210,6 +194,7 @@ const GlobalMessageListener = () => {
     startListener();
     return () => {
       if (cleanup) cleanup();
+      processedMessageIds.current.clear();
     };
   }, [addOrUpdateChat]);
 
