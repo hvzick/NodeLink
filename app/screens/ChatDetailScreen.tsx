@@ -1,5 +1,3 @@
-// screens/ChatDetailScreen.tsx
-
 import React, {
   useState,
   useRef,
@@ -37,7 +35,6 @@ import { useThemeToggle } from "../../utils/GlobalUtils/ThemeProvider";
 import { EventBus, useChat } from "../../utils/ChatUtils/ChatContext";
 import { markMessagesAsRead } from "../../backend/Local database/SQLite/MarkMessagesAsRead";
 import { BlurView } from "expo-blur";
-
 import { ChatDetailHandlerDependencies } from "../../utils/ChatDetailUtils/ChatHandlers/HandleDependencies";
 import { handleSendMessage } from "../../utils/ChatDetailUtils/ChatHandlers/HandleSendMessage";
 import { handleOptionSelect } from "../../utils/ChatDetailUtils/ChatHandlers/HandleOptionSelect";
@@ -55,7 +52,6 @@ import MessageLongPressMenu, {
 } from "../../utils/ChatDetailUtils/ChatHandlers/HandleMessageLongPressMenu";
 import { formatDateHeader } from "../../utils/GlobalUtils/FormatDate";
 import { RootStackParamList } from "../App";
-
 import { ensureDatabaseInitialized } from "../../backend/Local database/SQLite/InitialiseDatabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../../backend/Supabase/Supabase";
@@ -69,6 +65,125 @@ import {
 } from "../../utils/NotificationsSettings/ConversationTones";
 import { deleteMessage } from "../../backend/Local database/SQLite/DeleteMessage";
 import MessageInfoWindow from "../../utils/ChatDetailUtils/MessageInfoWindow";
+
+// Enhanced SwipeToQuoteWrapper component
+const SwipeToQuoteWrapper: React.FC<{
+  message: any;
+  onQuote: (message: any) => void;
+  children: React.ReactNode;
+  onSwipeStart?: () => void;
+  onSwipeEnd?: () => void;
+}> = ({ message, onQuote, children, onSwipeStart, onSwipeEnd }) => {
+  const translateX = React.useRef(new Animated.Value(0)).current;
+  const [swiping, setSwiping] = React.useState(false);
+
+  const velocityThreshold = 0.3;
+  const distanceThreshold = 40;
+  const maxTranslate = 80;
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        const isHorizontalSwipe =
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2;
+        const isRightSwipe = gestureState.dx > 0;
+        const hasMinimumDistance = Math.abs(gestureState.dx) > 10;
+
+        return isHorizontalSwipe && isRightSwipe && hasMinimumDistance;
+      },
+
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        const isHorizontalSwipe =
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 3;
+        const isRightSwipe = gestureState.dx > 0;
+        const hasSignificantDistance = gestureState.dx > 20;
+
+        return isHorizontalSwipe && isRightSwipe && hasSignificantDistance;
+      },
+
+      onPanResponderGrant: () => {
+        setSwiping(true);
+        onSwipeStart?.();
+        translateX.setOffset(0);
+        translateX.setValue(0);
+      },
+
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx > 0) {
+          const clampedValue = Math.min(gestureState.dx, maxTranslate);
+          translateX.setValue(clampedValue);
+        }
+      },
+
+      onPanResponderRelease: (_, gestureState) => {
+        setSwiping(false);
+        onSwipeEnd?.();
+
+        const swipeDistance = gestureState.dx;
+        const swipeVelocity = gestureState.vx;
+        const verticalMovement = Math.abs(gestureState.dy);
+
+        const isSuccessfulSwipe =
+          swipeDistance > distanceThreshold &&
+          swipeVelocity > velocityThreshold &&
+          verticalMovement < 60;
+
+        if (isSuccessfulSwipe) {
+          Animated.sequence([
+            Animated.timing(translateX, {
+              toValue: 70,
+              duration: 120,
+              useNativeDriver: true,
+            }),
+            Animated.timing(translateX, {
+              toValue: 0,
+              duration: 180,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            if (typeof onQuote === "function" && message) {
+              onQuote(message);
+            }
+          });
+        } else {
+          Animated.timing(translateX, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+
+      onPanResponderTerminate: () => {
+        setSwiping(false);
+        onSwipeEnd?.();
+        Animated.timing(translateX, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
+
+  return (
+    <Animated.View
+      style={[
+        {
+          transform: [{ translateX }],
+          elevation: swiping ? 2 : 0,
+          shadowOpacity: swiping ? 0.1 : 0,
+        },
+      ]}
+      {...panResponder.panHandlers}
+    >
+      {children}
+    </Animated.View>
+  );
+};
 
 type ChatDetailRouteProp = RouteProp<RootStackParamList, "ChatDetail">;
 type ChatDetailNavigationProp = StackNavigationProp<
@@ -111,6 +226,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     new Set()
   );
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [scrollEnabled, setScrollEnabled] = useState(true); // Added for swipe handling
 
   const infoWindowPosition = useRef(
     new Animated.ValueXY({ x: 20, y: 80 })
@@ -158,6 +274,15 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       receiverAddress,
     ]
   );
+
+  // Swipe handlers
+  const handleSwipeStart = useCallback(() => {
+    setScrollEnabled(false);
+  }, []);
+
+  const handleSwipeEnd = useCallback(() => {
+    setTimeout(() => setScrollEnabled(true), 100);
+  }, []);
 
   const toggleMessageSelectionWrapper = useCallback(
     (messageId: string) => {
@@ -504,54 +629,61 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       item.id === highlightedMessageId || item.id === replyMessage?.id;
 
     return (
-      <View style={styles.messageBubble}>
-        {/* Selection indicator */}
-        {isSelectionMode && (
-          <TouchableOpacity
-            style={styles.selectionIndicator}
-            onPress={() => toggleMessageSelectionWrapper(item.id)}
-          >
-            <View
-              style={[
-                styles.selectionCircle,
-                isSelected && styles.selectedCircle,
-              ]}
+      <SwipeToQuoteWrapper
+        message={item}
+        onQuote={setReplyMessage}
+        onSwipeStart={handleSwipeStart}
+        onSwipeEnd={handleSwipeEnd}
+      >
+        <View style={styles.messageBubble}>
+          {/* Selection indicator */}
+          {isSelectionMode && (
+            <TouchableOpacity
+              style={styles.selectionIndicator}
+              onPress={() => toggleMessageSelectionWrapper(item.id)}
             >
-              {isSelected && (
-                <Ionicons name="checkmark" size={16} color="white" />
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
+              <View
+                style={[
+                  styles.selectionCircle,
+                  isSelected && styles.selectedCircle,
+                ]}
+              >
+                {isSelected && (
+                  <Ionicons name="checkmark" size={16} color="white" />
+                )}
+              </View>
+            </TouchableOpacity>
+          )}
 
-        <TouchableOpacity
-          onPress={() => {
-            if (isSelectionMode) {
-              toggleMessageSelectionWrapper(item.id);
-            }
-          }}
-          style={[
-            styles.messageContainer,
-            isSelectionMode && styles.selectionModeMessage,
-            isSelected && styles.selectedMessage,
-          ]}
-          activeOpacity={isSelectionMode ? 0.7 : 1}
-        >
-          <MessageBubble
-            message={item}
-            chatRecipientName={name}
-            repliedMessages={repliedMessages}
-            onImagePress={(uri) => handlerDependencies.setSelectedImage(uri)}
-            onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
-            onQuotedPress={handleQuotedPressWrapper}
-            onLongPress={isSelectionMode ? () => {} : handleLongPressWrapper}
-            highlighted={isHighlighted}
-            isMenuVisibleForThisMessage={
-              menuVisible && selectedMessageForMenu?.id === item.id
-            }
-          />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => {
+              if (isSelectionMode) {
+                toggleMessageSelectionWrapper(item.id);
+              }
+            }}
+            style={[
+              styles.messageContainer,
+              isSelectionMode && styles.selectionModeMessage,
+              isSelected && styles.selectedMessage,
+            ]}
+            activeOpacity={isSelectionMode ? 0.7 : 1}
+          >
+            <MessageBubble
+              message={item}
+              chatRecipientName={name}
+              repliedMessages={repliedMessages}
+              onImagePress={(uri) => handlerDependencies.setSelectedImage(uri)}
+              onVideoPress={(uri) => handlerDependencies.setSelectedVideo(uri)}
+              onQuotedPress={handleQuotedPressWrapper}
+              onLongPress={isSelectionMode ? () => {} : handleLongPressWrapper}
+              highlighted={isHighlighted}
+              isMenuVisibleForThisMessage={
+                menuVisible && selectedMessageForMenu?.id === item.id
+              }
+            />
+          </TouchableOpacity>
+        </View>
+      </SwipeToQuoteWrapper>
     );
   };
 
@@ -673,7 +805,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           {menuVisible && (
             <BlurView
               style={StyleSheet.absoluteFill}
-              intensity={1000} // or any strength you like
+              intensity={1000}
               tint={currentTheme === "dark" ? "dark" : "light"}
             />
           )}
@@ -686,6 +818,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.flatListContent}
+              scrollEnabled={scrollEnabled}
               extraData={[
                 replyMessage,
                 selectedMessages,
@@ -1049,19 +1182,19 @@ const getStyles = (theme: "light" | "dark") =>
       justifyContent: "center",
       backgroundColor: theme === "dark" ? "#222" : "#EDEDED",
       paddingHorizontal: 20,
-      paddingVertical: 8, // Match bottomBar's paddingVertical
+      paddingVertical: 8,
       borderTopWidth: 1,
       borderTopColor: theme === "dark" ? "#444" : "#ccc",
-      height: 64, // Match the bottomBar height exactly
+      height: 64,
     },
     deleteButton: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 16, // Adjusted for better fit within 64px height
-      paddingVertical: 8, // Reduced to fit within container
+      paddingHorizontal: 16,
+      paddingVertical: 8,
       borderRadius: 8,
       backgroundColor: theme === "dark" ? "#333" : "#F8F8F8",
-      minHeight: 40, // Ensures minimum touch target
+      minHeight: 40,
     },
     deleteButtonText: {
       fontSize: 16,
