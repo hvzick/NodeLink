@@ -65,6 +65,9 @@ export default function UserProfile() {
   const [copied, setCopied] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  // --- publicKey display toggle state
+  const [showFullPubKey, setShowFullPubKey] = useState(false);
+
   useEffect(() => {
     const fetchMyKey = async () => {
       const key = await AsyncStorage.getItem("walletAddress");
@@ -218,6 +221,13 @@ export default function UserProfile() {
     );
   }
 
+  // --- Function to shorten public key
+  function shortenPublicKey(pk: string) {
+    if (!pk) return "";
+    if (pk.length <= 20) return pk;
+    return `${pk.slice(0, 8)}...${pk.slice(-6)}`;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
@@ -329,12 +339,25 @@ export default function UserProfile() {
           </View>
           <View style={styles.separator} />
 
+          {/* ----------- THIS SECTION IS CHANGED ------------- */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Public Key</Text>
-            <Text style={styles.publicKey}>
-              {userData?.publicKey || "Loading..."}
-            </Text>
+            <TouchableOpacity
+              activeOpacity={0.65}
+              onPress={() => setShowFullPubKey((prev) => !prev)}
+            >
+              <Text
+                style={styles.publicKey}
+                selectable
+                selectionColor="#007AFF"
+              >
+                {showFullPubKey
+                  ? userData?.publicKey || "Loading..."
+                  : shortenPublicKey(userData?.publicKey || "Loading...")}
+              </Text>
+            </TouchableOpacity>
           </View>
+          {/* ----------- END OF CHANGED SECTION ------------- */}
           <View style={styles.separator} />
 
           <View style={styles.infoRow}>
