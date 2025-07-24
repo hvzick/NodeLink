@@ -134,16 +134,6 @@ const GlobalMessageListener = () => {
 
         // Update message with verification status
         msg.signatureVerified = signatureVerified;
-
-        console.log("📋 Final message summary:", {
-          id: msg.id,
-          sender: msg.sender.slice(0, 10) + "...",
-          decrypted: msg.decrypted,
-          signatureVerified: msg.signatureVerified,
-          hasSignature: !!msg.signature,
-          hasNonce: !!msg.signatureNonce,
-        });
-
         // Insert message into database
         try {
           console.log("💾 Inserting message into database...");
