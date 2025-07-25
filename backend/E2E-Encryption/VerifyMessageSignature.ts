@@ -271,11 +271,11 @@ export class MessageVerifier {
    */
   static async verifyReceivedMessage(message: Message): Promise<boolean> {
     try {
-      console.log("🔍 === SIGNATURE VERIFICATION DEBUG ===");
-      console.log("📱 Platform:", Platform.OS);
-      console.log("🔍 Message ID:", message.id);
-      console.log("🔍 Sender:", message.sender);
-      console.log("🔍 Receiver:", message.receiver);
+      console.log("=== SIGNATURE VERIFICATION DEBUG ===");
+      console.log("Platform:", Platform.OS);
+      console.log("Message ID:", message.id);
+      console.log("Sender:", message.sender);
+      console.log("Receiver:", message.receiver);
 
       // Validate signature data
       if (
@@ -283,17 +283,17 @@ export class MessageVerifier {
         !message.signatureNonce ||
         !message.signatureTimestamp
       ) {
-        console.log("❌ Missing signature data:");
+        console.log("Missing signature data:");
         console.log("   - signature:", !!message.signature);
         console.log("   - signatureNonce:", !!message.signatureNonce);
         console.log("   - signatureTimestamp:", !!message.signatureTimestamp);
         return false;
       }
 
-      console.log("🔍 Signature length:", message.signature.length);
-      console.log("🔍 Signature preview:", message.signature);
-      console.log("🔍 Signature nonce:", message.signatureNonce);
-      console.log("🔍 Signature timestamp:", message.signatureTimestamp);
+      console.log("Signature length:", message.signature.length);
+      console.log("Signature preview:", message.signature);
+      console.log("Signature nonce:", message.signatureNonce);
+      console.log("Signature timestamp:", message.signatureTimestamp);
 
       if (message.signature.length !== 128) {
         console.error(
@@ -309,7 +309,7 @@ export class MessageVerifier {
         message.sender
       );
       if (!compressedKeyBase64) {
-        console.error("❌ Could not get compressed public key");
+        console.error("Could not get compressed public key");
         return false;
       }
 
@@ -325,13 +325,13 @@ export class MessageVerifier {
 
       const messageToVerify =
         MessageSigner.createSignaturePayload(signatureData);
-      console.log("🔍 Message payload to verify:", messageToVerify);
-      console.log("🔍 Message payload length:", messageToVerify.length);
+      console.log("Message payload to verify:", messageToVerify);
+      console.log("Message payload length:", messageToVerify.length);
 
       const messageHash = sha256(new TextEncoder().encode(messageToVerify));
-      console.log("🔍 Message hash length:", messageHash.length);
+      console.log("Message hash length:", messageHash.length);
       console.log(
-        "🔍 Message hash (hex):",
+        "Message hash (hex):",
         Array.from(messageHash)
           .map((b) => b.toString(16).padStart(2, "0"))
           .join("")
@@ -340,11 +340,11 @@ export class MessageVerifier {
       // Verify signature
       const compressedKeyBytes = base64.decode(compressedKeyBase64);
       console.log(
-        "🔍 Using compressed key bytes length:",
+        "Using compressed key bytes length:",
         compressedKeyBytes.length
       );
       console.log(
-        "🔍 Compressed key first byte:",
+        "Compressed key first byte:",
         "0x" + compressedKeyBytes[0]?.toString(16)
       );
 
@@ -355,17 +355,17 @@ export class MessageVerifier {
       );
 
       console.log(
-        `🔍 ECDSA verification result: ${isValid ? "✅ VALID" : "❌ INVALID"}`
+        `ECDSA verification result: ${isValid ? "VALID" : "INVALID"}`
       );
-      console.log("🔍 === END SIGNATURE VERIFICATION DEBUG ===");
+      console.log("=== END SIGNATURE VERIFICATION DEBUG ===");
 
       return isValid;
     } catch (error) {
-      console.error("❌ === SIGNATURE VERIFICATION ERROR ===");
-      console.error("📱 Platform:", Platform.OS);
-      console.error("❌ Verification error:", error);
-      console.error("❌ Error stack:", error);
-      console.error("❌ === END VERIFICATION ERROR ===");
+      console.error("=== SIGNATURE VERIFICATION ERROR ===");
+      console.error("Platform:", Platform.OS);
+      console.error("Verification error:", error);
+      console.error("Error stack:", error);
+      console.error("=== END VERIFICATION ERROR ===");
       return false;
     }
   }
@@ -379,9 +379,9 @@ export class MessageVerifier {
     const calculatedHash = MessageSigner.generateMessageHash(message.text);
     const isValid = calculatedHash === message.messageHash;
 
-    console.log(`🧮 Integrity check: ${isValid ? "✅ Valid" : "❌ Invalid"}`);
-    console.log("🧮 Expected hash:", message.messageHash);
-    console.log("🧮 Calculated hash:", calculatedHash);
+    console.log(`Integrity check: ${isValid ? "Valid" : "Invalid"}`);
+    console.log("Expected hash:", message.messageHash);
+    console.log("Calculated hash:", calculatedHash);
 
     return isValid;
   }
@@ -394,8 +394,8 @@ export class MessageVerifier {
     integrityValid: boolean;
     details: string;
   }> {
-    console.log("🔍 === VERIFICATION STATUS CHECK ===");
-    console.log("📱 Platform:", Platform.OS);
+    console.log("=== VERIFICATION STATUS CHECK ===");
+    console.log("Platform:", Platform.OS);
 
     const signatureValid = await this.verifyReceivedMessage(message);
     const integrityValid = this.verifyMessageIntegrity(message);
@@ -406,12 +406,12 @@ export class MessageVerifier {
     if (!signatureValid && !integrityValid)
       details = "Both signature and integrity invalid";
 
-    console.log("🔍 Final verification status:", {
+    console.log("Final verification status:", {
       signatureValid,
       integrityValid,
       details,
     });
-    console.log("🔍 === END VERIFICATION STATUS CHECK ===");
+    console.log("=== END VERIFICATION STATUS CHECK ===");
 
     return { signatureValid, integrityValid, details };
   }

@@ -54,7 +54,7 @@ export const refreshUserDataFromSupabase =
         console.log("✅ User data refreshed and stored successfully");
         return refreshedUserData;
       } else {
-        console.warn("⚠️ No user data found in Supabase");
+        console.log("⚠️ No user data found in Supabase");
         return null;
       }
     } catch (error) {
@@ -109,7 +109,7 @@ export const refreshSpecificUserData = async (
       console.log("✅ Specific user data refreshed successfully");
       return refreshedUserData;
     } else {
-      console.warn("⚠️ No user data found in Supabase for this wallet");
+      console.log("⚠️ No user data found in Supabase for this wallet");
       return null;
     }
   } catch (error) {

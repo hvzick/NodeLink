@@ -1,9 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getGunInstance } from './GunIndex';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getGunInstance } from "./GunIndex";
 
 /**
- * A simple function to send a plaintext (unencrypted) message via Gun.js.
- *
  * @param recipientAddress The wallet address of the recipient.
  * @param content The plaintext message content.
  * @returns A promise that resolves to true on success, false on failure.
@@ -18,7 +16,7 @@ export async function sendMessage(
       throw new Error("Gun.js is not connected.");
     }
 
-    const senderAddress = await AsyncStorage.getItem('walletAddress');
+    const senderAddress = await AsyncStorage.getItem("walletAddress");
     if (!senderAddress) {
       throw new Error("Sender address not found.");
     }
@@ -33,14 +31,19 @@ export async function sendMessage(
     };
 
     // 2. Send the payload over the Gun.js network
-    console.log(`🚀 Sending unencrypted message ${messageId} to ${recipientAddress}...`);
-    gun.get('messages').get(recipientAddress).get(messageId).put(networkMessage);
+    console.log(
+      `🚀 Sending unencrypted message ${messageId} to ${recipientAddress}...`
+    );
+    gun
+      .get("messages")
+      .get(recipientAddress)
+      .get(messageId)
+      .put(networkMessage);
 
-    console.log("✅ Unencrypted message sent successfully.");
+    console.log("Encrypted message sent successfully.");
     return true;
-
   } catch (error) {
-    console.error("❌ Failed to send unencrypted message:", error);
+    console.error("❌ Failed to send message:", error);
     return false;
   }
 }

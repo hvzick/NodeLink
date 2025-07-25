@@ -24,7 +24,7 @@ export async function loadUserDataFromStorage(
       }
     } else {
       setSessionUserData(null);
-      console.warn("⚠️ No user data found in AsyncStorage");
+      console.log("⚠️ No user data found in AsyncStorage");
       return null;
     }
   } catch (err) {

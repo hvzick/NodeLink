@@ -1,11 +1,13 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { base64 } from '@scure/base';
-import { p256 } from '@noble/curves/p256';
-import { supabase } from '../Supabase/Supabase';
-import { generateAndStoreKeys } from './KeyGen';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { base64 } from "@scure/base";
+import { p256 } from "@noble/curves/p256";
+import { supabase } from "../Supabase/Supabase";
+import { generateAndStoreKeys } from "./KeyGen";
 
 const toHex = (bytes: Uint8Array) =>
-  Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 
 /**
  * Load key pair from AsyncStorage.
@@ -36,7 +38,7 @@ export const isValidECDHKeyPair = (
 
     const derivedPublicKey = p256.getPublicKey(privateKeyBytes, false); // 🔓 Uncompressed
 
-    console.log("🔍 Stored public key (hex):", toHex(publicKeyBytes));
+    console.log("Stored public key (hex):", toHex(publicKeyBytes));
     console.log("🔍 Derived public key (hex):", toHex(derivedPublicKey));
 
     if (publicKeyBytes.length !== derivedPublicKey.length) return false;
@@ -64,7 +66,7 @@ export const handleAndPublishKeys = async (
     let keyPair = await loadKeyPairFromStorage(walletAddress);
 
     if (keyPair) {
-      console.log("🔑 Key pair found in local storage for:", walletAddress);
+      console.log("Key pair found in local storage for:", walletAddress);
     } else {
       console.log("🔐 No local keys found. Generating new key pair...");
       keyPair = await generateAndStoreKeys(walletAddress);
@@ -79,15 +81,13 @@ export const handleAndPublishKeys = async (
 
     console.log("✅ Valid public key to upload:", keyPair.publicKey);
 
-    const { error } = await supabase
-      .from('profiles')
-      .upsert(
-        {
-          wallet_address: walletAddress,
-          public_key: keyPair.publicKey,
-        },
-        { onConflict: 'wallet_address' }
-      );
+    const { error } = await supabase.from("profiles").upsert(
+      {
+        wallet_address: walletAddress,
+        public_key: keyPair.publicKey,
+      },
+      { onConflict: "wallet_address" }
+    );
 
     if (error) throw error;
 
@@ -119,15 +119,13 @@ export const fixKeyPair = async (walletAddress: string) => {
       JSON.stringify(keyPair)
     );
 
-    const { error } = await supabase
-      .from('profiles')
-      .upsert(
-        {
-          wallet_address: walletAddress,
-          public_key: publicKey,
-        },
-        { onConflict: 'wallet_address' }
-      );
+    const { error } = await supabase.from("profiles").upsert(
+      {
+        wallet_address: walletAddress,
+        public_key: publicKey,
+      },
+      { onConflict: "wallet_address" }
+    );
 
     if (error) throw error;
 
@@ -137,4 +135,4 @@ export const fixKeyPair = async (walletAddress: string) => {
   }
 };
 
-export { generateAndStoreKeys } from './KeyGen';
+export { generateAndStoreKeys } from "./KeyGen";

@@ -133,7 +133,7 @@ export default function BottomTabs() {
   useEffect(() => {
     const preloadCommonProfiles = async () => {
       try {
-        console.log("🔄 Preloading common chat profiles...");
+        console.log("Preloading common chat profiles...");
 
         const sampleConversationIds: any[] = [
           // Add any common conversation IDs you want to preload

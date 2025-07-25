@@ -357,7 +357,7 @@ const getStyles = (isDarkMode: boolean) =>
       paddingBottom: 20,
     },
     contentContainer: {
-      marginTop: 40,
+      marginTop: 20,
       paddingHorizontal: 20,
     },
     label: {
@@ -440,7 +440,6 @@ const getStyles = (isDarkMode: boolean) =>
       backgroundColor: isDarkMode ? "#333" : "#f9f9f9",
       padding: 12,
       borderRadius: 8,
-      marginBottom: 8,
     },
     sharedRow: {
       flexDirection: "row",

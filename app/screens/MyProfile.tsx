@@ -102,21 +102,21 @@ export default function MyProfile() {
   const loadUserData = useCallback(async () => {
     try {
       setIsLoading(true);
-      console.log("🔄 Starting user data load...");
+      console.log("Starting user data load...");
 
       const walletAddress = await AsyncStorage.getItem("walletAddress");
       if (!walletAddress) {
-        console.warn("⚠️ No wallet address found");
+        console.warn("No wallet address found");
         setIsLoading(false);
         return;
       }
 
-      console.log("📱 Wallet address found:", walletAddress);
+      console.log("Wallet address found:", walletAddress);
 
       // 1. Try to load from session cache first (fastest)
       const sessionData = getUserDataFromSession(walletAddress);
       if (sessionData) {
-        console.log("⚡ Loaded user data from session cache");
+        console.log("Loaded user data from session cache");
         setSessionData(sessionData);
         setUserData(sessionData);
         setIsLoading(false);
@@ -126,7 +126,7 @@ export default function MyProfile() {
       // 2. Try to load from AsyncStorage (medium speed)
       const storageData = await loadUserDataFromStorage(walletAddress);
       if (storageData) {
-        console.log("✅ Loaded user data from AsyncStorage");
+        console.log("Loaded user data from AsyncStorage");
         setUserData(storageData);
         setSessionData(storageData);
         setIsLoading(false);
@@ -134,7 +134,7 @@ export default function MyProfile() {
       }
 
       // 3. If no local data, try to fetch from Supabase
-      console.log("🔄 No local data found, fetching from Supabase...");
+      console.log("No local data found, fetching from Supabase...");
       const { data: userProfile, error } = await supabase
         .from("profiles")
         .select("*")
@@ -142,7 +142,7 @@ export default function MyProfile() {
         .single();
 
       if (error) {
-        console.error("❌ Error fetching from Supabase:", error);
+        console.error("Error fetching from Supabase:", error);
         setIsLoading(false);
         return;
       }
@@ -159,7 +159,7 @@ export default function MyProfile() {
           publicKey: userProfile.public_key,
         };
 
-        console.log("✅ Fetched user data from Supabase");
+        console.log("Fetched user data from Supabase");
 
         // Store in local storage for future use
         await storeUserDataInStorage(mappedUserData);
@@ -170,7 +170,7 @@ export default function MyProfile() {
 
       setIsLoading(false);
     } catch (err) {
-      console.error("❌ Error loading user data:", err);
+      console.error("Error loading user data:", err);
       setIsLoading(false);
     }
   }, []); // Remove userData dependency to prevent infinite loops
