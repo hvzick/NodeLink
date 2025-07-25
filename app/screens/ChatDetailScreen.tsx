@@ -735,9 +735,6 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Text style={styles.detailUserName}>{name}</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.callButton}>
-              <Ionicons name="call-outline" size={24} color="#000" />
-            </TouchableOpacity>
           </>
         )}
       </View>
