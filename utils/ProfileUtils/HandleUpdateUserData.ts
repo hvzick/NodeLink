@@ -43,7 +43,7 @@ export async function updateUserData(
     }
 
     // 2. Update both AsyncStorage and session using utility function
-    console.log("💾 Updating local storage...");
+    console.log("Updating local storage...");
     await storeUserDataInStorage(updatedData);
     console.log("✅ Local storage updated successfully");
 

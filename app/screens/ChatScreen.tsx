@@ -224,10 +224,10 @@ const Chats = () => {
   // Function to load unread counts from SQLite
   const loadUnreadCounts = useCallback(async () => {
     try {
-      console.log("📊 Loading unread message counts...");
+      console.log("Loading unread message counts...");
       const counts = await getUnreadMessageCounts();
       setUnreadCounts(counts);
-      console.log("✅ Unread counts loaded:", counts);
+      console.log("Unread counts loaded:", counts);
     } catch (error) {
       console.error("❌ Failed to load unread counts:", error);
     }
@@ -241,7 +241,7 @@ const Chats = () => {
   // Refresh unread counts when screen comes into focus (when returning from ChatDetail)
   useFocusEffect(
     useCallback(() => {
-      console.log("🔄 Chat screen focused, refreshing unread counts...");
+      console.log("Chat screen focused, refreshing unread counts...");
       loadUnreadCounts();
     }, [loadUnreadCounts])
   );
@@ -249,7 +249,7 @@ const Chats = () => {
   // Listen for new messages to update unread counts
   useEffect(() => {
     const handleNewMessage = () => {
-      console.log("🔔 New message received, updating unread counts...");
+      console.log("New message received, updating unread counts...");
       loadUnreadCounts();
     };
 
@@ -271,12 +271,12 @@ const Chats = () => {
 
       setIsSearching(true);
       try {
-        console.log(`🔍 Searching for: "${query}"`);
+        console.log(`Searching for: "${query}"`);
         const results = await liveSearchUsers(query.trim(), 8);
         setSearchResults(results);
         setShowSearchResults(true);
         setSearchError("");
-        console.log(`✅ Found ${results.length} users`);
+        console.log(`Found ${results.length} users`);
       } catch (error) {
         console.error("❌ Live search failed:", error);
         setSearchError("Search failed. Please try again.");
@@ -327,13 +327,12 @@ const Chats = () => {
   };
 
   const handleRefresh = useCallback(async () => {
-    console.log("🔄 Pull-to-refresh triggered");
+    console.log("Pull-to-refresh triggered");
     setRefreshing(true);
     try {
       const newProfileData = await loadChatProfiles(chatList);
       setProfileData((prevData) => ({ ...prevData, ...newProfileData }));
       await loadUnreadCounts(); // Refresh unread counts
-      console.log("✅ Pull-to-refresh completed");
     } catch (error) {
       console.error("❌ Pull-to-refresh failed:", error);
     } finally {
@@ -343,12 +342,12 @@ const Chats = () => {
 
   useEffect(() => {
     const performInitialFetch = async () => {
-      console.log("🔄 Performing initial profile fetch...");
+      console.log("-----Performing initial profile fetch...");
       try {
         const newProfileData = await loadChatProfiles(chatList);
         setProfileData((prevData) => ({ ...prevData, ...newProfileData }));
         setInitialFetchDone(true);
-        console.log("✅ Initial profile fetch completed");
+        console.log("Initial profile fetch completed");
       } catch (error) {
         console.error("❌ Initial profile fetch failed:", error);
         setInitialFetchDone(true);

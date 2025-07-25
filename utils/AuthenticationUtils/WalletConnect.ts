@@ -127,7 +127,7 @@ export const connectWallet = async (
 
         // Persist address
         await AsyncStorage.setItem("walletAddress", walletAddress);
-        console.log("💾 Wallet address stored in AsyncStorage");
+        console.log("Wallet address stored in AsyncStorage");
         setWalletAddress(walletAddress);
       }
 

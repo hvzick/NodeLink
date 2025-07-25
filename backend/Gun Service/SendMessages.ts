@@ -32,7 +32,7 @@ export async function sendMessage(
 
     // 2. Send the payload over the Gun.js network
     console.log(
-      `🚀 Sending unencrypted message ${messageId} to ${recipientAddress}...`
+      `Sending unencrypted message ${messageId} to ${recipientAddress}...`
     );
     gun
       .get("messages")

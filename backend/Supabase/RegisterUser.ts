@@ -37,9 +37,9 @@ export async function registerUser(userInfo: UserData): Promise<{
   isNew: boolean;
 }> {
   try {
-    console.log("🔍 Checking if user exists in Supabase...");
+    console.log("Checking if user exists in Supabase...");
 
-    // 🔍 Check if user exists
+    // Check if user exists
     const { data: existingUser, error: fetchError } = await supabase
       .from("profiles")
       .select("*")

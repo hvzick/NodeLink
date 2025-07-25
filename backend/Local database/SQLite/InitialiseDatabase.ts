@@ -58,7 +58,7 @@ export const initializeDatabase = async (): Promise<void> => {
       );
     `);
 
-    console.log("✅ Database initialized successfully with signature support.");
+    console.log("Database initialized successfully with signature support.");
 
     // Migrate existing database to add signature fields
     await addSignatureColumns(db);

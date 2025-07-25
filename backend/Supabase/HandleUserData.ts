@@ -8,7 +8,7 @@ import { storeUserDataInStorage } from "../Local database/AsyncStorage/UserDataS
 
 export async function handleUserData(): Promise<UserData | null> {
   try {
-    console.log("🔍 Checking Supabase user profile...");
+    console.log("Checking Supabase user profile...");
 
     const walletAddress = await AsyncStorage.getItem("walletAddress");
 
@@ -32,7 +32,7 @@ export async function handleUserData(): Promise<UserData | null> {
     let userData: UserData;
 
     if (existingUser) {
-      console.log("✅ User already exists in Supabase.");
+      console.log("User already exists in Supabase.");
 
       // Map the REAL user data from Supabase
       userData = {

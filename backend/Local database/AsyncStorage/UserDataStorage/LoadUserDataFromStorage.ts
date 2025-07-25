@@ -19,7 +19,7 @@ export async function loadUserDataFromStorage(
         console.log("✅ UserData loaded from AsyncStorage into session.");
         return userData;
       } else {
-        console.warn(`⚠️ Stored user data is for different wallet address.`);
+        console.warn(`Stored user data is for different wallet address.`);
         return null;
       }
     } else {

@@ -8,9 +8,11 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { refreshKeyData } from "../../utils/Security/HandleRefreshData";
@@ -25,8 +27,11 @@ interface SharedItem {
   sharedSecret: string;
 }
 
+// Add proper typing for navigation
+type SecurityScreenNavigationProp = StackNavigationProp<any>;
+
 const SecurityScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<SecurityScreenNavigationProp>();
   const { currentTheme } = useThemeToggle();
   const isDarkMode = currentTheme === "dark";
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -69,7 +74,7 @@ const SecurityScreen: React.FC = () => {
             }
           }
         } catch (e) {
-          console.warn(`Error parsing profile for ${sharedKey}`, e);
+          console.log(`Error parsing profile for ${sharedKey}`, e);
         }
 
         items.push({
@@ -82,7 +87,7 @@ const SecurityScreen: React.FC = () => {
       setSharedList(items);
       setVisibleSecrets(visibilityMap);
     } catch (e) {
-      console.warn("Failed to load shared secrets", e);
+      console.log("Failed to load shared secrets", e);
       setSharedList([]);
     }
   }, []);
@@ -141,12 +146,18 @@ const SecurityScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.headerContainer}>
-        <TouchableWithoutFeedback onPress={() => navigation.goBack()}>
-          <View style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color="#007AFF" />
-            <Text style={styles.backButtonText}>Back</Text>
-          </View>
-        </TouchableWithoutFeedback>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={24}
+            color="#007AFF"
+            style={{ marginRight: 4 }}
+          />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitleText}>Security</Text>
         </View>

@@ -28,7 +28,7 @@ const GlobalMessageListener = () => {
       }
 
       cleanup = await listenForMessages(async (msg: Message) => {
-        console.log("📥 Complete signed message received from RecieveMessages");
+        console.log("Complete signed message received from RecieveMessages");
 
         // Basic validation (should always pass since RecieveMessages validates)
         if (
@@ -45,13 +45,13 @@ const GlobalMessageListener = () => {
 
         // Simple deduplication check
         if (processedMessageIds.current.has(msg.id)) {
-          console.log(`🔁 Message ${msg.id} already processed, skipping`);
+          console.log(`Message ${msg.id} already processed, skipping`);
           return;
         }
 
         // Mark as processed immediately since we know it's complete
         processedMessageIds.current.add(msg.id);
-        console.log(`🔄 Processing complete signed message ${msg.id}...`);
+        console.log(`Processing complete signed message ${msg.id}...`);
 
         // Ensure required fields are properly set
         msg.conversationId = msg.conversationId || `convo_${msg.sender}`;
@@ -65,18 +65,18 @@ const GlobalMessageListener = () => {
         msg.readAt = typeof msg.readAt === "number" ? msg.readAt : null;
 
         console.log(
-          "⏰ Message received at:",
+          "Message received at:",
           new Date(msg.receivedAt).toISOString()
         );
 
         // Handle shared key derivation
         let sharedKey = await AsyncStorage.getItem(`shared_key_${msg.sender}`);
         if (!sharedKey) {
-          console.log("🔑 No shared key found, deriving new one...");
+          console.log("No shared key found, deriving new one...");
           sharedKey = await deriveSharedKeyWithUser(msg.sender);
           if (sharedKey) {
             await AsyncStorage.setItem(`shared_key_${msg.sender}`, sharedKey);
-            console.log("🔑 Derived and stored new shared key");
+            console.log("Derived and stored new shared key");
           } else {
             console.warn("❌ Could not derive shared key for", msg.sender);
             return;
@@ -104,7 +104,7 @@ const GlobalMessageListener = () => {
         // Verify message signature (guaranteed to have signature data)
         let signatureVerified = false;
         try {
-          console.log("🔍 Verifying message signature...");
+          console.log("Verifying message signature...");
 
           const verificationStatus =
             await MessageVerifier.getVerificationStatus(msg);
@@ -113,19 +113,17 @@ const GlobalMessageListener = () => {
             verificationStatus.integrityValid;
 
           console.log(
-            `🔏 Signature verification: ${
-              signatureVerified ? "✅ Valid" : "❌ Invalid"
-            }`
+            `Signature verification: ${signatureVerified ? "Valid" : "Invalid"}`
           );
           console.log(
-            `🧮 Integrity check: ${
-              verificationStatus.integrityValid ? "✅ Valid" : "❌ Invalid"
+            `Integrity check: ${
+              verificationStatus.integrityValid ? "Valid" : "Invalid"
             }`
           );
 
           if (!signatureVerified) {
-            console.warn("⚠️ Message signature verification failed");
-            msg.text = `[⚠️ UNVERIFIED MESSAGE] ${msg.text}`;
+            console.warn("Message signature verification failed");
+            msg.text = `[UNVERIFIED MESSAGE] ${msg.text}`;
           }
         } catch (error) {
           console.error("❌ Signature verification error:", error);
@@ -136,10 +134,10 @@ const GlobalMessageListener = () => {
         msg.signatureVerified = signatureVerified;
         // Insert message into database
         try {
-          console.log("💾 Inserting message into database...");
+          console.log("Inserting message into database...");
           await insertMessage(msg);
           console.log(
-            "✅ Message inserted successfully - Signature verified:",
+            "Message inserted successfully - Signature verified:",
             signatureVerified
           );
         } catch (err) {
@@ -151,7 +149,7 @@ const GlobalMessageListener = () => {
         // Auto-delete message from GunDB
         try {
           gun.get(`nodelink/${myWalletAddress}`).get(msg.id).put(null);
-          console.log(`🗑️ Auto-deleted message ${msg.id} from GunDB`);
+          console.log(`Auto-deleted message ${msg.id} from GunDB`);
         } catch (err) {
           console.warn("❌ Auto-delete failed:", err);
         }

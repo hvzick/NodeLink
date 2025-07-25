@@ -20,13 +20,13 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RouteProp, useIsFocused } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import { Video, ResizeMode } from "expo-av";
-import { FlatList } from "@stream-io/flat-list-mvcp";
 import handleAttachment from "../../utils/ChatDetailUtils/InsertAttachment";
 import { Message } from "../../backend/Local database/SQLite/MessageStructure";
 import { fetchMessagesByConversation } from "../../backend/Local database/SQLite/MessageIndex";
@@ -311,7 +311,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       try {
         await markMessagesAsRead(conversationId);
       } catch (error) {
-        console.error("❌ Failed to mark messages as read:", error);
+        console.error("Failed to mark messages as read:", error);
       }
     };
 
@@ -331,7 +331,7 @@ const ChatDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       await markMessagesAsRead(conversationId);
     } catch (error) {
-      console.error("❌ Failed to mark messages as read:", error);
+      console.error("Failed to mark messages as read:", error);
     }
   }, [conversationId]);
 

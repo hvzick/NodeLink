@@ -17,17 +17,6 @@ export class MessageVerifier {
    */
   private static compressPublicKey(publicKeyB64: string): string | null {
     try {
-      console.log("🔧 === COMPRESSION DEBUG ===");
-      console.log("📱 Platform:", Platform.OS);
-      console.log(
-        "🔧 Input public key length:",
-        publicKeyB64?.length || "undefined"
-      );
-      console.log(
-        "🔧 Input public key (first 50 chars):",
-        publicKeyB64?.substring(0, 50) + "..."
-      );
-
       if (!publicKeyB64 || typeof publicKeyB64 !== "string") {
         console.error("❌ Invalid public key input");
         return null;
@@ -98,9 +87,9 @@ export class MessageVerifier {
 
       return result;
     } catch (error) {
-      console.error("❌ === COMPRESSION ERROR ===");
-      console.error("📱 Platform:", Platform.OS);
-      console.error("❌ Error message:", error);
+      console.error("=== COMPRESSION ERROR ===");
+      console.error("Platform:", Platform.OS);
+      console.error(" Error message:", error);
       console.error("❌ Error stack:", error);
       console.error(
         "❌ Input that failed (first 100 chars):",
@@ -118,16 +107,16 @@ export class MessageVerifier {
     userAddress: string
   ): Promise<string | null> {
     try {
-      console.log("🔍 === PUBLIC KEY RETRIEVAL DEBUG (NO CACHE) ===");
-      console.log("📱 Platform:", Platform.OS);
-      console.log("🔍 Requested user address:", userAddress);
+      console.log("=== PUBLIC KEY RETRIEVAL DEBUG (NO CACHE) ===");
+      console.log("Platform:", Platform.OS);
+      console.log("Requested user address:", userAddress);
 
       const ownAddress = await AsyncStorage.getItem("walletAddress");
-      console.log("🔍 Own address:", ownAddress);
+      console.log("Own address:", ownAddress);
 
       // For own messages - load from crypto key pair
       if (userAddress === ownAddress) {
-        console.log("🔍 Loading own public key from crypto key pair");
+        console.log("Loading own public key from crypto key pair");
         const keyPair = await AsyncStorage.getItem(
           `crypto_key_pair_${ownAddress}`
         );
@@ -136,29 +125,26 @@ export class MessageVerifier {
           return null;
         }
         const { publicKey } = JSON.parse(keyPair);
-        console.log("🔍 Own public key length:", publicKey?.length);
+        console.log("Own public key length:", publicKey?.length);
         console.log(
-          "🔍 Own public key preview:",
+          "Own public key preview:",
           publicKey?.substring(0, 50) + "..."
         );
         return this.compressPublicKey(publicKey);
       }
 
       // Load directly from UserData (NO CACHE CHECK)
-      console.log("🔍 Loading fresh from UserData (no cache)");
+      console.log("Loading fresh from UserData (no cache)");
       try {
         const userData = await AsyncStorage.getItem("userData");
-        console.log("🔍 UserData exists:", !!userData);
+        console.log("UserData exists:", !!userData);
 
         if (userData) {
           const parsedUserData: UserData = JSON.parse(userData);
+          console.log("UserData wallet address:", parsedUserData.walletAddress);
+          console.log("UserData has publicKey:", !!parsedUserData.publicKey);
           console.log(
-            "🔍 UserData wallet address:",
-            parsedUserData.walletAddress
-          );
-          console.log("🔍 UserData has publicKey:", !!parsedUserData.publicKey);
-          console.log(
-            "🔍 Addresses match:",
+            "Addresses match:",
             parsedUserData.walletAddress === userAddress
           );
 
@@ -166,8 +152,8 @@ export class MessageVerifier {
             parsedUserData.walletAddress === userAddress &&
             parsedUserData.publicKey
           ) {
-            console.log("✅ Found public key in UserData");
-            console.log("📱 Current platform:", Platform.OS);
+            console.log("Found public key in UserData");
+            console.log("Current platform:", Platform.OS);
             console.log(
               "🔑 UserData raw public key length:",
               parsedUserData.publicKey.length
@@ -187,7 +173,7 @@ export class MessageVerifier {
             // Check if key looks like valid base64
             const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
             const isValidBase64 = base64Regex.test(parsedUserData.publicKey);
-            console.log("🔍 Key appears to be valid base64:", isValidBase64);
+            console.log("Key appears to be valid base64:", isValidBase64);
 
             if (!isValidBase64) {
               console.error(
@@ -204,7 +190,7 @@ export class MessageVerifier {
               console.log(
                 "✅ Successfully compressed UserData public key (fresh, no cache)"
               );
-              console.log("🔍 === END PUBLIC KEY RETRIEVAL DEBUG ===");
+              console.log("=== END PUBLIC KEY RETRIEVAL DEBUG ===");
               return compressedKey;
             } else {
               console.error("❌ Failed to compress UserData public key");
@@ -213,16 +199,15 @@ export class MessageVerifier {
         }
       } catch (userDataError) {
         console.error("❌ === USERDATA ERROR ===");
-        console.error("📱 Platform:", Platform.OS);
         console.error("❌ UserData error:", userDataError);
         console.error("❌ UserData error stack:", userDataError);
         console.error("❌ === END USERDATA ERROR ===");
-        console.warn("⚠️ UserData error, falling back to Supabase");
+        console.warn("UserData error, falling back to Supabase");
       }
 
       // Fallback to Supabase (also NO CACHING)
-      console.log("🔍 Falling back to Supabase (no cache)");
-      console.log(`🌐 Fetching public key for ${userAddress} from Supabase`);
+      console.log("Falling back to Supabase (no cache)");
+      console.log(`Fetching public key for ${userAddress} from Supabase`);
       const { data, error } = await supabase
         .from("profiles")
         .select("public_key")
@@ -239,10 +224,10 @@ export class MessageVerifier {
         return null;
       }
 
-      console.log("📦 Supabase public key found");
-      console.log("📦 Supabase key length:", data.public_key.length);
+      console.log("Supabase public key found");
+      console.log("Supabase key length:", data.public_key.length);
       console.log(
-        "📦 Supabase key preview:",
+        "Supabase key preview:",
         data.public_key.substring(0, 50) + "..."
       );
 
@@ -250,15 +235,14 @@ export class MessageVerifier {
       const compressedKey = this.compressPublicKey(data.public_key);
       if (compressedKey) {
         console.log(
-          "✅ Successfully compressed Supabase public key (fresh, no cache)"
+          "Successfully compressed Supabase public key (fresh, no cache)"
         );
       }
 
-      console.log("🔍 === END PUBLIC KEY RETRIEVAL DEBUG ===");
+      console.log("=== END PUBLIC KEY RETRIEVAL DEBUG ===");
       return compressedKey;
     } catch (error) {
       console.error("❌ === CRITICAL PUBLIC KEY ERROR ===");
-      console.error("📱 Platform:", Platform.OS);
       console.error("❌ Error getting compressed public key:", error);
       console.error("❌ Error stack:", error);
       console.error("❌ === END CRITICAL ERROR ===");
@@ -272,7 +256,6 @@ export class MessageVerifier {
   static async verifyReceivedMessage(message: Message): Promise<boolean> {
     try {
       console.log("=== SIGNATURE VERIFICATION DEBUG ===");
-      console.log("Platform:", Platform.OS);
       console.log("Message ID:", message.id);
       console.log("Sender:", message.sender);
       console.log("Receiver:", message.receiver);

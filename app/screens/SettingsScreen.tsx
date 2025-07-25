@@ -74,7 +74,7 @@ export default function SettingsScreen() {
   // Load user data function
   const loadUserData = useCallback(async () => {
     if (!walletAddress) {
-      console.warn("⚠️ No wallet address available");
+      console.warn("No wallet address available");
       return;
     }
 
@@ -93,7 +93,7 @@ export default function SettingsScreen() {
     }
 
     // If still no data, try to refresh from Supabase
-    console.log("🔄 No local data found, refreshing from Supabase...");
+    console.log("No local data found, refreshing from Supabase...");
     try {
       const refreshedData = await refreshUserDataFromSupabase();
       if (refreshedData) {
@@ -129,7 +129,6 @@ export default function SettingsScreen() {
       const refreshedData = await refreshUserDataFromSupabase();
       if (refreshedData) {
         setUserData(refreshedData as UserData);
-        console.log("✅ Profile refreshed via pull-to-refresh");
       }
     } catch (error) {
       console.error("❌ Error during pull-to-refresh:", error);

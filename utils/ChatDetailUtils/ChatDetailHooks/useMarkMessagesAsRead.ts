@@ -13,7 +13,7 @@ export function useMarkMessagesAsRead(
     const markAsRead = async () => {
       try {
         await markMessagesAsRead(conversationId);
-        // console.log(`✅ Messages marked as read for: ${conversationId}`);
+        // console.log(`Messages marked as read for: ${conversationId}`);
       } catch (error) {
         console.error("❌ Failed to mark messages as read:", error);
       }
@@ -42,7 +42,7 @@ export function useMarkMessagesAsRead(
   const onEndReached = useCallback(async () => {
     try {
       await markMessagesAsRead(conversationId);
-      // console.log("✅ Messages marked as read - reached bottom");
+      // console.log("Messages marked as read - reached bottom");
     } catch (error) {
       console.error("❌ Failed to mark messages as read:", error);
     }

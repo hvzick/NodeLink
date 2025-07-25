@@ -124,7 +124,7 @@ export default function BottomTabs() {
           await handleAndPublishKeys(walletAddress);
         }
       } catch (err) {
-        console.error("❌ Key generation error:", err);
+        console.error("Key generation error:", err);
       }
     })();
   }, []);
@@ -154,10 +154,10 @@ export default function BottomTabs() {
             `✅ Preloaded ${Object.keys(profiles).length} common profiles`
           );
         } else {
-          console.log("ℹ️ No common profiles to preload");
+          console.log("ℹNo common profiles to preload");
         }
       } catch (error) {
-        console.error("❌ Failed to preload profiles:", error);
+        console.error("Failed to preload profiles:", error);
       }
     };
 

@@ -82,13 +82,13 @@ export default function UserProfile() {
       setIsProfileLoading(true);
 
       try {
-        console.log("🔍 Loading user profile for:", walletAddress);
+        console.log("Loading user profile for:", walletAddress);
 
         const sessionData = getUserDataFromSession(walletAddress);
         if (sessionData) {
           setUserData(sessionData);
           setIsProfileLoading(false);
-          console.log("⚡ Loaded user data from session cache");
+          console.log("Loaded user data from session cache");
           return;
         }
 
@@ -96,11 +96,11 @@ export default function UserProfile() {
         if (storageData) {
           setUserData(storageData);
           setIsProfileLoading(false);
-          console.log("✅ Loaded user data from AsyncStorage");
+          console.log("Loaded user data from AsyncStorage");
           return;
         }
 
-        console.log("🔄 Fetching user data from Supabase...");
+        console.log("Fetching user data from Supabase...");
         const { data: userProfile, error } = await supabase
           .from("profiles")
           .select("*")
@@ -126,7 +126,7 @@ export default function UserProfile() {
 
           await storeUserDataInStorage(mappedUserData);
           setUserData(mappedUserData);
-          console.log("✅ User data fetched from Supabase and cached");
+          console.log("User data fetched from Supabase and cached");
         }
       } catch (error) {
         console.error("❌ Error loading user profile:", error);
@@ -159,7 +159,7 @@ export default function UserProfile() {
       return;
     }
     setIsConnecting(true);
-    console.log("🤝 Initiating connection with", userData.walletAddress);
+    console.log("Initiating connection with", userData.walletAddress);
     const success = await handleConnect(userData.walletAddress);
     setIsConnecting(false);
     if (success) {
@@ -167,7 +167,7 @@ export default function UserProfile() {
       const updatedUserData = { ...userData };
       try {
         await storeUserDataInStorage(updatedUserData);
-        console.log("✅ Updated cached user data after connection");
+        console.log("Updated cached user data after connection");
       } catch (error) {
         console.error("❌ Error updating cached user data:", error);
       }

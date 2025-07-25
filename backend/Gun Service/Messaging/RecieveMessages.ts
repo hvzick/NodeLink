@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // backend/Gun Service/Messaging/RecieveMessages.ts
 
 import { gun } from "../GunState";
@@ -24,7 +25,7 @@ export async function listenForMessages(
   const listenPath = `nodelink/${myWalletAddress}`;
   const chatRef = gun.get(listenPath);
 
-  console.log(`📡 Listening for messages at: ${listenPath}`);
+  console.log(`Listening for messages at: ${listenPath}`);
 
   // Function to check if a message is complete
   const isMessageComplete = (data: any): boolean => {
@@ -58,19 +59,16 @@ export async function listenForMessages(
       ) // SHA-256 hash is 64 hex chars
     );
 
-    console.log(
-      `🔍 Signature completeness check for ${data.id || "unknown"}:`,
-      {
-        hasSignature: !!(data.signature && data.signature.length === 128),
-        hasNonce: !!(data.signatureNonce && data.signatureNonce.length === 32),
-        hasTimestamp: !!data.signatureTimestamp,
-        hasMessageHash: !!(data.messageHash && data.messageHash.length === 64),
-        isComplete: hasCompleteSignatureData,
-        signatureLength: data.signature ? data.signature.length : 0,
-        nonceLength: data.signatureNonce ? data.signatureNonce.length : 0,
-        hashLength: data.messageHash ? data.messageHash.length : 0,
-      }
-    );
+    console.log(`Signature completeness check for ${data.id || "unknown"}:`, {
+      hasSignature: !!(data.signature && data.signature.length === 128),
+      hasNonce: !!(data.signatureNonce && data.signatureNonce.length === 32),
+      hasTimestamp: !!data.signatureTimestamp,
+      hasMessageHash: !!(data.messageHash && data.messageHash.length === 64),
+      isComplete: hasCompleteSignatureData,
+      signatureLength: data.signature ? data.signature.length : 0,
+      nonceLength: data.signatureNonce ? data.signatureNonce.length : 0,
+      hashLength: data.messageHash ? data.messageHash.length : 0,
+    });
 
     return hasCompleteSignatureData;
   };
@@ -186,7 +184,7 @@ export async function listenForMessages(
       return; // Skip objects that don't look like messages
     }
 
-    console.log(`📦 Valid GUN data for ${key}:`, {
+    console.log(`Valid GUN data for ${key}:`, {
       sender: data.sender || "undefined",
       iv: data.iv || "missing",
       signature: data.signature
@@ -216,11 +214,11 @@ export async function listenForMessages(
     // Check completeness with strict signature requirements
     if (isMessageComplete(mergedData)) {
       console.log(
-        `🎯 Message ${key} has ALL required signature data - processing immediately`
+        `Message ${key} has ALL required signature data - processing immediately`
       );
       processCompleteMessage(key, mergedData);
     } else {
-      console.log(`📦 Message ${key} missing signature data - buffering...`);
+      console.log(`Message ${key} missing signature data - buffering...`);
 
       // Set timeout if not already set
       if (!messageTimeouts.has(key)) {
@@ -230,7 +228,7 @@ export async function listenForMessages(
         );
         messageTimeouts.set(key, timeout);
         console.log(
-          `⏰ Set ${MESSAGE_TIMEOUT}ms timeout for message ${key} (will discard if incomplete)`
+          `Set ${MESSAGE_TIMEOUT}ms timeout for message ${key} (will discard if incomplete)`
         );
       }
     }
@@ -238,19 +236,19 @@ export async function listenForMessages(
 
   // Return cleanup function
   return () => {
-    console.log(`🧹 Cleaning up message listener for ${listenPath}`);
+    console.log(`Cleaning up message listener for ${listenPath}`);
 
     // Clean up all timeouts
     messageTimeouts.forEach((timeout, key) => {
       clearTimeout(timeout);
-      console.log(`⏰ Cleared timeout for message ${key}`);
+      console.log(`Cleared timeout for message ${key}`);
     });
     messageTimeouts.clear();
 
     // Clear message buffer
     const bufferedCount = messageBuffer.size;
     messageBuffer.clear();
-    console.log(`🗑️ Cleared ${bufferedCount} buffered messages`);
+    console.log(`Cleared ${bufferedCount} buffered messages`);
 
     // Stop listening to GUN
     chatRef.off();

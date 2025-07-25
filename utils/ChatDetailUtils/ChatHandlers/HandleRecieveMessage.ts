@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getGunInstance } from "../../../backend/Gun Service/GunIndex";
 import { insertMessage } from "../../../backend/Local database/SQLite/MessageIndex";
 import { Message } from "../../../backend/Local database/SQLite/MessageStructure";

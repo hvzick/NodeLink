@@ -12,7 +12,7 @@ export const insertMessage = async (message: Message): Promise<any> => {
   try {
     const db = await openDatabase();
 
-    // 🔍 Check if message already exists - EXIT EARLY
+    // Check if message already exists - EXIT EARLY
     const existing = await db.getFirstAsync(
       `SELECT id FROM messages WHERE id = ?;`,
       [message.id]
@@ -26,8 +26,8 @@ export const insertMessage = async (message: Message): Promise<any> => {
     }
 
     // Only log and process if message is truly new
-    console.log("💾 === INSERTING MESSAGE TO DATABASE ===");
-    console.log("🔍 Signature data being saved:", {
+    console.log(" === INSERTING MESSAGE TO DATABASE ===");
+    console.log("Signature data being saved:", {
       signature: message.signature
         ? `Present (${message.signature.length} chars)`
         : "Missing",
@@ -37,7 +37,7 @@ export const insertMessage = async (message: Message): Promise<any> => {
       signatureVerified: message.signatureVerified,
     });
 
-    // 💾 Insert the new message with signature fields
+    // Insert the new message with signature fields
     const result = await db.runAsync(
       `INSERT OR IGNORE INTO messages (
         id, conversationId, sender, receiver, text, timestamp, imageUrl,
@@ -78,7 +78,7 @@ export const insertMessage = async (message: Message): Promise<any> => {
     );
 
     console.log(
-      `✅ Message ${message.id} inserted successfully with signature data`
+      `Message ${message.id} inserted successfully with signature data`
     );
 
     // 🔍 Verify the insert worked by reading it back

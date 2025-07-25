@@ -20,7 +20,7 @@ export const markMessagesAsRead = async (
       [currentTime, conversationId]
     );
 
-    console.log(`✅ Messages marked as read for: ${conversationId}`);
+    console.log(`Messages marked as read for: ${conversationId}`);
   } catch (error) {
     console.error("❌ Failed to mark messages as read:", error);
   }

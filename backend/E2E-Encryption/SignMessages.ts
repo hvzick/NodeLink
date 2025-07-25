@@ -1,10 +1,10 @@
 // utils/MessageSigning/SignMessages.ts
 
 import { randomBytes, bytesToHex } from "@noble/hashes/utils";
-import { sha256 } from "@noble/hashes/sha256";
+import { sha256 } from "@noble/hashes/sha2";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { base64 } from "@scure/base";
-import { p256 } from '@noble/curves/p256';
+import { p256 } from "@noble/curves/p256";
 
 export interface SignedMessage {
   message: string;
@@ -26,7 +26,9 @@ export interface SignatureData {
 export class MessageSigner {
   // Helper: Convert Uint8Array to hex string for logging
   private static toHex = (bytes: Uint8Array): string =>
-    Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
   /**
    * Load private key from crypto key pair storage
@@ -35,16 +37,18 @@ export class MessageSigner {
     const ownAddress = await AsyncStorage.getItem("walletAddress");
     if (!ownAddress) throw new Error("Wallet address not found");
 
-    const keyPairData = await AsyncStorage.getItem(`crypto_key_pair_${ownAddress}`);
+    const keyPairData = await AsyncStorage.getItem(
+      `crypto_key_pair_${ownAddress}`
+    );
     if (!keyPairData) throw new Error("Key pair not found");
 
     const keyPair = JSON.parse(keyPairData);
     const privateKeyBytes = base64.decode(keyPair.privateKey);
-    
+
     console.log("🔐 Private key loaded successfully");
     console.log("📦 Private key length (bytes):", privateKeyBytes.length);
     console.log("🔑 Private key (hex):", this.toHex(privateKeyBytes));
-    
+
     return privateKeyBytes;
   }
 
@@ -58,7 +62,7 @@ export class MessageSigner {
     receiverAddress: string
   ): Promise<SignedMessage> {
     console.log("🚀 Starting ECDSA signing process...");
-    
+
     const timestamp = Date.now();
     const nonce = bytesToHex(randomBytes(16));
 
@@ -75,44 +79,45 @@ export class MessageSigner {
     console.log("📄 Message payload to sign:", messageToSign);
 
     const privateKeyBytes = await this.loadPrivateKey();
-    
+
     // Hash the message
     const messageHash = sha256(new TextEncoder().encode(messageToSign));
-    console.log("🧮 Message hash (hex):", this.toHex(messageHash));
+    console.log("Message hash (hex):", this.toHex(messageHash));
 
     try {
       // Generate ECDSA signature using P256 curve
-      console.log("✍️ Generating ECDSA signature...");
+      console.log("Generating ECDSA signature...");
       const signature = p256.sign(messageHash, privateKeyBytes);
-      
+
       // Convert to compact hex format - THIS IS THE KEY FIX
       const signatureHex = signature.toCompactHex();
-      
+
       // Detailed signature logging
-      console.log("🔏 === SIGNATURE DETAILS ===");
-      console.log("📏 Signature length:", signatureHex.length);
-      console.log("🔏 Full signature:", signatureHex);
-      console.log("✅ Expected length (128):", signatureHex.length === 128);
-      
+      console.log("=== SIGNATURE DETAILS ===");
+      console.log("Full signature:", signatureHex);
+      console.log("Expected length (128):", signatureHex.length === 128);
+
       // Validate the signature object
-      console.log("🔍 Signature object type:", typeof signature);
-      console.log("🔍 Signature object:", signature);
-      
+      console.log("Signature object type:", typeof signature);
+      console.log("Signature object:", signature);
+
       if (signatureHex.length !== 128) {
-        console.error("❌ CRITICAL: Signature length is not 128 characters!");
-        console.error("❌ This indicates a problem with ECDSA signature generation");
-        
+        console.error("CRITICAL: Signature length is not 128 characters!");
+        console.error(
+          "This indicates a problem with ECDSA signature generation"
+        );
+
         // Try alternative signature format
         try {
           const altSignature = signature.toDERHex();
-          console.log("🔄 Alternative DER format length:", altSignature.length);
-          console.log("🔄 Alternative DER signature:", altSignature);
+          console.log("Alternative DER format length:", altSignature.length);
+          console.log("Alternative DER signature:", altSignature);
         } catch (derError) {
-          console.error("❌ DER conversion also failed:", derError);
+          console.error("DER conversion also failed:", derError);
         }
       }
-      
-      console.log("🔏 === END SIGNATURE DETAILS ===");
+
+      console.log("=== END SIGNATURE DETAILS ===");
 
       return {
         message,
@@ -122,8 +127,12 @@ export class MessageSigner {
         signer: senderAddress,
       };
     } catch (error) {
-      console.error("❌ ECDSA signing failed:", error);
-      throw new Error(`ECDSA signing failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("ECDSA signing failed:", error);
+      throw new Error(
+        `ECDSA signing failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
 

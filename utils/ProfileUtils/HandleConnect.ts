@@ -32,7 +32,7 @@ export async function handleConnect(
       if (!sharedKey) throw new Error("Key derivation failed");
 
       await AsyncStorage.setItem(storageKey, sharedKey);
-      console.log(`💾 Saved newly derived shared key to AsyncStorage.`);
+      console.log(`Saved newly derived shared key to AsyncStorage.`);
     } else {
       console.log(`📦 Loaded shared key from AsyncStorage.`);
     }

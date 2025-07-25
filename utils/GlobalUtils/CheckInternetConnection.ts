@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Alert, Platform } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import * as Linking from "expo-linking";

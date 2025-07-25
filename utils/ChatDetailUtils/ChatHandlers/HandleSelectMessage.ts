@@ -15,7 +15,7 @@ export const handleSelectMessage = (
   setSelectedMessages(new Set([messageId]));
   Keyboard.dismiss();
 
-  console.log(`📱 Entered selection mode with message: ${messageId}`);
+  console.log(`Entered selection mode with message: ${messageId}`);
 };
 
 export const toggleMessageSelection = (

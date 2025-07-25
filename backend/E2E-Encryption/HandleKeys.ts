@@ -39,7 +39,7 @@ export const isValidECDHKeyPair = (
     const derivedPublicKey = p256.getPublicKey(privateKeyBytes, false); // 🔓 Uncompressed
 
     console.log("Stored public key (hex):", toHex(publicKeyBytes));
-    console.log("🔍 Derived public key (hex):", toHex(derivedPublicKey));
+    console.log("Derived public key (hex):", toHex(derivedPublicKey));
 
     if (publicKeyBytes.length !== derivedPublicKey.length) return false;
 
@@ -68,7 +68,7 @@ export const handleAndPublishKeys = async (
     if (keyPair) {
       console.log("Key pair found in local storage for:", walletAddress);
     } else {
-      console.log("🔐 No local keys found. Generating new key pair...");
+      console.log("No local keys found. Generating new key pair...");
       keyPair = await generateAndStoreKeys(walletAddress);
       if (keyPair) console.log("🆕 New key pair generated.");
       else console.log("❌ Key generation failed.");
@@ -79,7 +79,7 @@ export const handleAndPublishKeys = async (
     const isValid = isValidECDHKeyPair(keyPair.publicKey, keyPair.privateKey);
     if (!isValid) throw new Error("Key pair is invalid or mismatched.");
 
-    console.log("✅ Valid public key to upload:", keyPair.publicKey);
+    console.log("Valid public key to upload:", keyPair.publicKey);
 
     const { error } = await supabase.from("profiles").upsert(
       {
@@ -91,7 +91,7 @@ export const handleAndPublishKeys = async (
 
     if (error) throw error;
 
-    console.log("✅ Public key uploaded successfully.");
+    console.log("Public key uploaded successfully.");
     return true;
   } catch (error) {
     console.error("❌ handleAndPublishKeys error:", error);
@@ -129,7 +129,7 @@ export const fixKeyPair = async (walletAddress: string) => {
 
     if (error) throw error;
 
-    console.log("✅ Fixed and re-uploaded public key for:", walletAddress);
+    console.log("Fixed and re-uploaded public key for:", walletAddress);
   } catch (e) {
     console.error("❌ Failed to fix key pair:", e);
   }
