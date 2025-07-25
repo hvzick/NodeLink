@@ -440,6 +440,7 @@ const Chats = () => {
       dynamicContainer: {
         ...styles.searchResultsContainer,
         height: getContainerHeight(),
+        overflow: "hidden",
         maxHeight: searchResults.length > 5 ? 370 : undefined, // Only limit if more than 5 items
       },
     });
@@ -732,6 +733,7 @@ const createStyles = (isDarkMode: boolean) =>
         width: 0,
         height: 2,
       },
+      overflow: "hidden",
       shadowOpacity: 0.1,
       shadowRadius: 3.84,
       elevation: 5,
