@@ -39,8 +39,6 @@ export const liveSearchUsers = async (input: string, limit: number = 10) => {
     } else {
       // General search - search across name, username, and wallet address
       const searchTerm = input.trim();
-      console.log(`General search for: "${searchTerm}"`);
-
       // Search across multiple fields: name, username, and wallet_address
       const { data, error } = await supabase
         .from("profiles")
@@ -58,17 +56,6 @@ export const liveSearchUsers = async (input: string, limit: number = 10) => {
       console.log(
         `Found ${data?.length || 0} users for general search: "${searchTerm}"`
       );
-
-      if (data && data.length > 0) {
-        console.log(
-          "General search results:",
-          data.map((u) => ({
-            name: u.name,
-            username: u.username,
-            wallet: u.wallet_address?.substring(0, 10) + "...",
-          }))
-        );
-      }
 
       return data || [];
     }

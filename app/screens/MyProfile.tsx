@@ -658,7 +658,7 @@ export default function MyProfile() {
 
             <View style={styles.infoRow}>
               <Text style={styles.label}>Public Key</Text>
-              <Text style={styles.infoText} selectable>
+              <Text style={styles.publicKey} selectable>
                 {publicKey || "Loading..."}
               </Text>
             </View>
@@ -853,6 +853,11 @@ const getStyles = (isDarkMode: boolean) =>
       fontSize: 18,
       color: "#007AFF",
       fontWeight: "600",
+    },
+    publicKey: {
+      fontSize: 16,
+      color: isDarkMode ? "#fff" : "#333333",
+      fontFamily: Platform.select({ ios: "Courier", android: "monospace" }),
     },
     editableText: {
       borderBottomWidth: 1,
