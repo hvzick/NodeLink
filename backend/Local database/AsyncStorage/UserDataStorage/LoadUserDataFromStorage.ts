@@ -16,7 +16,7 @@ export async function loadUserDataFromStorage(
       const userData = JSON.parse(raw);
       if (userData.walletAddress === walletAddress) {
         setSessionUserData(userData);
-        console.log("✅ UserData loaded from AsyncStorage into session.");
+        console.log("UserData loaded from AsyncStorage into session.");
         return userData;
       } else {
         console.warn(`Stored user data is for different wallet address.`);

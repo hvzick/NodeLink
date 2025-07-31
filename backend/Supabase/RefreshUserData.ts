@@ -22,7 +22,7 @@ export const refreshUserDataFromSupabase =
         return null;
       }
 
-      console.log("🔄 Refreshing user data from Supabase...");
+      console.log("Refreshing user data from Supabase...");
 
       // Fetch fresh data from Supabase
       const { data, error } = await supabase
@@ -77,7 +77,7 @@ export const refreshSpecificUserData = async (
       return null;
     }
 
-    console.log(`🔄 Refreshing user data for wallet: ${walletAddress}`);
+    console.log(`Refreshing user data for wallet: ${walletAddress}`);
 
     // Fetch fresh data from Supabase
     const { data, error } = await supabase

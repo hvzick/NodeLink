@@ -27,16 +27,6 @@ export const insertMessage = async (message: Message): Promise<any> => {
 
     // Only log and process if message is truly new
     console.log(" === INSERTING MESSAGE TO DATABASE ===");
-    console.log("Signature data being saved:", {
-      signature: message.signature
-        ? `Present (${message.signature.length} chars)`
-        : "Missing",
-      signatureNonce: message.signatureNonce || "Missing",
-      signatureTimestamp: message.signatureTimestamp || "Missing",
-      messageHash: message.messageHash || "Missing",
-      signatureVerified: message.signatureVerified,
-    });
-
     // Insert the new message with signature fields
     const result = await db.runAsync(
       `INSERT OR IGNORE INTO messages (

@@ -31,8 +31,8 @@ export async function deriveSharedKeyWithUser(
     const ownKeyPairParsed = JSON.parse(ownKeyPairStored);
     const ownPrivateKeyBytes = base64.decode(ownKeyPairParsed.privateKey);
 
-    console.log("📦 Private key length:", ownPrivateKeyBytes.length);
-    console.log("🔐 Private key (hex):", toHex(ownPrivateKeyBytes));
+    console.log("Private key length:", ownPrivateKeyBytes.length);
+    console.log("Private key (hex):", toHex(ownPrivateKeyBytes));
 
     // 3. Fetch recipient public key from Supabase
     const { data, error } = await supabase

@@ -121,7 +121,7 @@ export const handleSendMessage = async (
   setAttachment(null);
   setReplyMessage(null);
   triggerTapHapticFeedback();
-  console.log("✅ UI updated and inputs reset");
+  console.log("UI updated and inputs reset");
 
   // Send & persist
   try {
@@ -155,7 +155,7 @@ export const handleSendMessage = async (
 
     // Save to local DB with readAt set to current time
     await insertMessage(tempMsg);
-    console.log("✅ Sent & saved to DB");
+    console.log("Sent & saved to DB");
   } catch (e) {
     console.error("❌ Send or Save error:", e);
     Alert.alert("Send Error", "Message could not be delivered.");
@@ -178,5 +178,5 @@ export const handleSendMessage = async (
 
   // Scroll to bottom (inverted FlatList: offset 0)
   flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  console.log("🔽 Chat scrolled to bottom");
+  console.log("Chat scrolled to bottom");
 };

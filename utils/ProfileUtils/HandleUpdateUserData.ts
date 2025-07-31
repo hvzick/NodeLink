@@ -17,7 +17,7 @@ export async function updateUserData(
   setSessionData: (data: UserData) => void
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log("🔄 Starting data sync with Supabase...");
+    console.log("Starting data sync with Supabase...");
 
     // 1. Update Supabase first
     if (updatedData.walletAddress) {
@@ -39,18 +39,18 @@ export async function updateUserData(
         throw new Error(error.message);
       }
 
-      console.log("✅ Supabase updated successfully");
+      console.log("Supabase updated successfully");
     }
 
     // 2. Update both AsyncStorage and session using utility function
     console.log("Updating local storage...");
     await storeUserDataInStorage(updatedData);
-    console.log("✅ Local storage updated successfully");
+    console.log("Local storage updated successfully");
 
     // 3. Update component state
     setUserData(updatedData);
     setSessionData(updatedData);
-    console.log("✅ Component state updated successfully");
+    console.log("Component state updated successfully");
 
     return { success: true };
   } catch (error) {

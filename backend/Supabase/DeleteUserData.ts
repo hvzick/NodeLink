@@ -161,7 +161,7 @@ export const deleteUserAndLogout = async (
   logoutFunction: () => void
 ): Promise<DeleteUserResult> => {
   try {
-    console.log("🔄 Starting complete user deletion and logout process...");
+    console.log("Starting complete user deletion and logout process...");
 
     // Step 1: Delete user from Supabase
     const deletionResult = await deleteUserByWallet(walletAddress);

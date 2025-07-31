@@ -17,7 +17,7 @@ export interface ChatProfile {
 export const fetchChatProfiles = async (
   conversationIds: string[]
 ): Promise<Record<string, ChatProfile>> => {
-  console.log(`🔄 Loading ${conversationIds.length} chat profiles...`);
+  console.log(`Loading ${conversationIds.length} chat profiles...`);
 
   const profiles: Record<string, ChatProfile> = {};
   const walletsToFetch: string[] = [];
@@ -81,9 +81,7 @@ export const fetchChatProfiles = async (
   }
 
   console.log(
-    `✅ Loaded ${Object.keys(profiles).length}/${
-      conversationIds.length
-    } profiles`
+    `Loaded ${Object.keys(profiles).length}/${conversationIds.length} profiles`
   );
   return profiles;
 };

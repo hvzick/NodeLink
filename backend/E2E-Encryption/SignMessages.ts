@@ -45,9 +45,9 @@ export class MessageSigner {
     const keyPair = JSON.parse(keyPairData);
     const privateKeyBytes = base64.decode(keyPair.privateKey);
 
-    console.log("🔐 Private key loaded successfully");
-    console.log("📦 Private key length (bytes):", privateKeyBytes.length);
-    console.log("🔑 Private key (hex):", this.toHex(privateKeyBytes));
+    console.log("Private key loaded successfully");
+    console.log("Private key length (bytes):", privateKeyBytes.length);
+    console.log("Private key (hex):", this.toHex(privateKeyBytes));
 
     return privateKeyBytes;
   }

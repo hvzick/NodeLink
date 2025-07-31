@@ -203,7 +203,7 @@ export default function SettingsScreen() {
 
           // Clear all local data (similar to your logout function but without the alert)
           await AsyncStorage.clear();
-          console.log("✅ All local storage cleared");
+          console.log("All local storage cleared");
 
           // You might want to call setIsLoggedIn(false) here if you have access to it
           // For now, we'll resolve and let the navigation happen
@@ -234,7 +234,7 @@ export default function SettingsScreen() {
       const result = await deleteUserByWallet(userData.walletAddress);
 
       if (result.success) {
-        console.log("✅ Account deleted successfully from Supabase");
+        console.log("Account deleted successfully from Supabase");
 
         // Clear local state immediately
         setUserData(null);

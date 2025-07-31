@@ -61,7 +61,7 @@ export class MessageVerifier {
       }
 
       const point = p256.Point.fromHex(publicKeyBytes);
-      console.log("🔧 Point creation: ✅ SUCCESS");
+      console.log("🔧 Point creation: SUCCESS");
 
       const compressedHex = point.toHex(true);
       console.log("🔧 Compressed hex length:", compressedHex.length);

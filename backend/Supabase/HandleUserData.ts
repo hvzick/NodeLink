@@ -73,7 +73,7 @@ export async function handleUserData(): Promise<UserData | null> {
         !existingUser.bio ||
         !existingUser.avatar
       ) {
-        console.log("🔄 Updating database with missing user data...");
+        console.log("Updating database with missing user data...");
         try {
           const updateData = {
             ...(!existingUser.username && { username: userData.username }),
@@ -152,7 +152,7 @@ export async function refreshUserData(
   walletAddress: string
 ): Promise<UserData | null> {
   try {
-    console.log("🔄 Refreshing user data from Supabase...");
+    console.log("Refreshing user data from Supabase...");
 
     const { data: userData, error } = await supabase
       .from("profiles")

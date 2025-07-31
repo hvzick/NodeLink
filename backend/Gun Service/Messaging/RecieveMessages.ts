@@ -75,7 +75,7 @@ export async function listenForMessages(
 
   // Function to process and forward a complete message
   const processCompleteMessage = (key: string, data: any) => {
-    console.log(`✅ Processing complete SIGNED message ${key}`);
+    console.log(`Processing complete SIGNED message ${key}`);
 
     const senderAddress = data.sender;
     const timestamp = data.timestamp
@@ -134,7 +134,7 @@ export async function listenForMessages(
 
     const bufferedData = messageBuffer.get(key);
     if (bufferedData) {
-      console.error(`📦 Incomplete message ${key} discarded:`, {
+      console.error(`Incomplete message ${key} discarded:`, {
         sender: bufferedData.sender || "missing",
         iv: bufferedData.iv || "missing",
         signature: bufferedData.signature

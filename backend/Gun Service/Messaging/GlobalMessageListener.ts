@@ -93,7 +93,7 @@ const GlobalMessageListener = () => {
           msg.text = decryptedText;
           msg.decrypted = true;
           msg.encrypted = true;
-          console.log("✅ Decrypted message:", decryptedText);
+          console.log("Decrypted message:", decryptedText);
         } catch (error) {
           msg.text = "[Unable to decrypt, Keys might have changed in transit]";
           msg.decrypted = false;

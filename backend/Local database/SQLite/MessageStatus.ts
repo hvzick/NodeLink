@@ -1,4 +1,4 @@
-import { openDatabase } from './InitialiseDatabase';
+import { openDatabase } from "./InitialiseDatabase";
 
 /**
  * Updates the status of a specific message in the local database.
@@ -7,7 +7,7 @@ import { openDatabase } from './InitialiseDatabase';
  */
 export const updateMessageStatus = async (
   messageId: string,
-  status: 'sent' | 'delivered' | 'read' | 'failed'
+  status: "sent" | "delivered" | "read" | "failed"
 ): Promise<void> => {
   try {
     const db = await openDatabase();
@@ -18,8 +18,11 @@ export const updateMessageStatus = async (
       status,
       messageId
     );
-    console.log(`✅ Updated status for message ${messageId} to "${status}"`);
+    console.log(`Updated status for message ${messageId} to "${status}"`);
   } catch (error) {
-    console.error(`❌ Failed to update status for message ${messageId}:`, error);
+    console.error(
+      `❌ Failed to update status for message ${messageId}:`,
+      error
+    );
   }
 };

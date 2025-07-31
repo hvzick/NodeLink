@@ -14,7 +14,7 @@ import { SessionKeyStore } from "../../backend/Local database/AsyncStorage/KeySt
 export async function handleConnect(
   recipientAddress: string
 ): Promise<boolean> {
-  console.log(`🤝 Initiating connection with ${recipientAddress}...`);
+  console.log(`Initiating connection with ${recipientAddress}...`);
 
   const storageKey = `shared_key_${recipientAddress}`;
 
@@ -34,12 +34,12 @@ export async function handleConnect(
       await AsyncStorage.setItem(storageKey, sharedKey);
       console.log(`Saved newly derived shared key to AsyncStorage.`);
     } else {
-      console.log(`📦 Loaded shared key from AsyncStorage.`);
+      console.log(`Loaded shared key from AsyncStorage.`);
     }
 
     // Step 3: Save to shared session store
     SessionKeyStore.set(recipientAddress, sharedKey);
-    console.log(`✅ Shared key cached in memory.`);
+    console.log(`Shared key cached in memory.`);
 
     return true;
   } catch (err) {

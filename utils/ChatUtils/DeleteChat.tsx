@@ -47,7 +47,7 @@ export const handleDeleteChat = (
             await AsyncStorage.removeItem(userProfileKey);
             console.log(`🗑️ User profile cache removed for: ${userProfileKey}`);
 
-            // ✅ Step 6: Update UI
+            // Step 6: Update UI
             deleteChatFromUI();
           } catch (error) {
             console.error("Failed to complete chat deletion process:", error);

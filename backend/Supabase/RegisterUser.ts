@@ -102,7 +102,7 @@ export async function registerUser(userInfo: UserData): Promise<{
         !existingUser.bio ||
         !existingUser.avatar
       ) {
-        console.log("🔄 Updating user with missing required fields...");
+        console.log("Updating user with missing required fields...");
         try {
           const updateData = {
             ...(!existingUser.username && { username: user.username }),
@@ -356,7 +356,7 @@ export async function updateUserProfile(
   updates: Partial<Omit<UserData, "walletAddress" | "created_at">>
 ): Promise<UserData> {
   try {
-    console.log("🔄 Updating user profile...");
+    console.log("Updating user profile...");
 
     // Validate updates
     const validation = validateUserData({ walletAddress, ...updates });

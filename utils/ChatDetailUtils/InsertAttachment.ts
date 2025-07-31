@@ -7,7 +7,7 @@ export default async function handleAttachment(): Promise<Partial<Message> | nul
     console.log("📎 Attachment pressed");
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All, // ✅ FIX: use correct enum
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: false,
       quality: 0.8,
       videoMaxDuration: 30,
