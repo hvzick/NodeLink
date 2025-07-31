@@ -63,40 +63,92 @@ function AppContent() {
     "SF-Pro-Text-Medium": require("../assets/fonts/SF-Pro-Text-Medium.otf"),
   });
 
-  const [ready, setReady] = useState(false);
+  const [isAppReady, setIsAppReady] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const { isLoggedIn, setIsLoggedIn } = useAuth();
 
   useEffect(() => {
-    const unsubscribe = onStatusChange((isConnected) => {
-      console.log(
-        `P2P Network Status: ${isConnected ? "Connected" : "Connecting..."}`
-      );
-    });
+    let networkUnsubscribe: (() => void) | undefined;
 
-    const init = async () => {
-      await initializeDatabase();
-      const walletAddress = await AsyncStorage.getItem("walletAddress");
+    const initializeApp = async () => {
+      try {
+        console.log("Starting app initialization...");
+        setIsInitializing(true);
 
-      if (walletAddress) {
-        setIsLoggedIn(true);
-        initializeGun();
-        await handleUserData();
-      } else {
+        // Step 1: Initialize database
+        console.log("Initializing local database...");
+        await initializeDatabase();
+        console.log("Database initialized");
+
+        // Step 2: Check authentication state
+        console.log("Checking authentication state...");
+        const walletAddress = await AsyncStorage.getItem("walletAddress");
+        console.log("Wallet address found:", walletAddress ? "Yes" : "No");
+
+        if (walletAddress) {
+          // Step 3: Initialize Gun network for authenticated users
+          console.log("Initializing P2P network...");
+
+          // Set up network status monitoring
+          networkUnsubscribe = onStatusChange((isConnected) => {
+            console.log(
+              `P2P Network Status: ${
+                isConnected ? "Connected" : "Connecting..."
+              }`
+            );
+          });
+
+          initializeGun();
+          console.log("P2P network initialized");
+
+          // Step 4: Load user data
+          console.log("Loading user data...");
+          await handleUserData();
+          console.log("User data loaded");
+
+          setIsLoggedIn(true);
+        } else {
+          console.log("No wallet address found - user not logged in");
+          setIsLoggedIn(false);
+        }
+
+        // Step 5: Add minimum loading time for better UX
+        const minLoadingTime = 2000; // 2 seconds minimum
+        const startTime = Date.now();
+        const elapsedTime = Date.now() - startTime;
+
+        if (elapsedTime < minLoadingTime) {
+          const remainingTime = minLoadingTime - elapsedTime;
+          console.log(`Adding ${remainingTime}ms for better UX...`);
+          await new Promise((resolve) => setTimeout(resolve, remainingTime));
+        }
+
+        console.log("App initialization completed");
+        setIsAppReady(true);
+        setIsInitializing(false);
+      } catch (error) {
+        console.error("App initialization failed:", error);
+
+        // Show error and continue with app
         setIsLoggedIn(false);
+        setIsAppReady(true);
+        setIsInitializing(false);
       }
-
-      setReady(true);
     };
 
-    if (fontsLoaded) init();
+    initializeApp();
 
+    // Cleanup function
     return () => {
+      if (networkUnsubscribe) {
+        networkUnsubscribe();
+      }
       destroyGun();
-      unsubscribe();
     };
   }, [fontsLoaded, setIsLoggedIn]);
 
-  if (!ready) {
+  // Show loading screen during initialization OR when fonts aren't loaded
+  if (!fontsLoaded || isInitializing || !isAppReady) {
     return <LoadingScreen />;
   }
 
