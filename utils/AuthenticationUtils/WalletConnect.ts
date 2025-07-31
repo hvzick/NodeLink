@@ -89,7 +89,7 @@ export const connectWallet = async (
   setIsAuthenticated: (auth: boolean) => void
 ) => {
   if (!signClient) {
-    console.warn("⚠️ WalletConnect is not initialized (ignored)");
+    console.warn("WalletConnect is not initialized (ignored)");
     return;
   }
 
@@ -147,7 +147,7 @@ export const connectWallet = async (
       }
     }
   } catch (error: any) {
-    console.warn("⚠️ Wallet connection error:", error.message);
+    console.warn("Wallet connection error:", error.message);
     Alert.alert("Connection Error", error.message);
   } finally {
     setLoading(false);

@@ -35,7 +35,6 @@ import { handleCopyUsername } from "../../utils/MyProfileUtils/CopyUsername";
 import { format } from "date-fns";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../backend/Supabase/Supabase";
-import "react-native-url-polyfill/auto";
 import {
   getUserDataFromSession,
   loadUserDataFromStorage,

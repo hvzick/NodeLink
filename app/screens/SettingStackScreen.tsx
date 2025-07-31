@@ -8,6 +8,7 @@ import AuthScreen from "./Authentication";
 import HapticFeedback from "./HapticFeedback";
 import PrivacyPolicyScreen from "./PrivacyPolicy";
 import SecurityScreen from "./Security";
+import "react-native-polyfill-globals/auto";
 
 export type SettingsStackParamList = {
   SettingsScreen: undefined;

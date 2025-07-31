@@ -1,7 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "./Supabase";
 import { Alert } from "react-native";
-import "react-native-url-polyfill/auto";
 
 export const pickAndUploadAvatar = async (
   walletAddress: string

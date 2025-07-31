@@ -24,6 +24,8 @@
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "^8.3.0",
     "@react-native-community/netinfo": "^11.4.1",
+    "@react-native-firebase/app": "^22.4.0",
+    "@react-native-firebase/auth": "^22.4.0",
     "@react-native-picker/picker": "^2.11.0",
     "@react-navigation/bottom-tabs": "^7.3.13",
     "@react-navigation/elements": "^2.4.2",
@@ -46,7 +48,7 @@
     "expo-blur": "~14.1.4",
     "expo-clipboard": "^7.1.4",
     "expo-constants": "~17.1.6",
-    "expo-dev-client": "~5.1.8",
+    "expo-dev-client": "~5.2.4",
     "expo-device": "^7.1.4",
     "expo-file-system": "~18.1.10",
     "expo-font": "~13.3.1",
@@ -66,6 +68,7 @@
     "expo-symbols": "~0.4.4",
     "expo-system-ui": "~5.0.7",
     "expo-web-browser": "~14.1.6",
+    "firebase": "^12.0.0",
     "gun": "^0.2020.1240",
     "lodash": "^4.17.21",
     "metro": "^0.82.3",
@@ -75,9 +78,11 @@
     "react-dom": "^19.0.0",
     "react-native": "0.79.2",
     "react-native-bottom-tabs": "^0.9.1",
+    "react-native-country-picker-modal": "^2.0.0",
     "react-native-crypto": "^2.2.0",
     "react-native-fast-crypto": "^2.2.1",
     "react-native-feather": "^1.1.2",
+    "react-native-fetch-api": "^3.0.0",
     "react-native-gesture-handler": "~2.25.0",
     "react-native-get-random-values": "^1.11.0",
     "react-native-haptic-feedback": "^2.3.3",
@@ -91,12 +96,13 @@
     "react-native-sqlite-storage": "^6.0.1",
     "react-native-svg": "15.12.0",
     "react-native-toast-message": "^2.3.0",
+    "react-native-url-polyfill": "^2.0.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "react-native-webview-crypto": "^0.0.27",
     "text-encoding": "^0.7.0",
-    "web-streams-polyfill": "^4.0.0"
+    "web-streams-polyfill": "^3.2.1"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",
@@ -122,5 +128,8 @@
     "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
-  "private": true
+  "private": true,
+  "resolutions": {
+    "web-streams-polyfill": "^3.2.1"
+  }
 }
