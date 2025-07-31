@@ -81,13 +81,13 @@ export const insertMessage = async (message: Message): Promise<any> => {
       `Message ${message.id} inserted successfully with signature data`
     );
 
-    // 🔍 Verify the insert worked by reading it back
+    // Verify the insert worked by reading it back
     const inserted = (await db.getFirstAsync(
       `SELECT signature, signatureNonce, signatureVerified FROM messages WHERE id = ?;`,
       [message.id]
     )) as MessageVerificationData | null;
 
-    console.log("🔍 Verification - Data actually stored in DB:", {
+    console.log("Verification - Data actually stored in DB:", {
       signature: inserted?.signature
         ? `Present (${inserted.signature.length} chars)`
         : "Missing",

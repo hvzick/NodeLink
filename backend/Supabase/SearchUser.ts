@@ -13,7 +13,7 @@ export const liveSearchUsers = async (input: string, limit: number = 10) => {
     if (input.startsWith("@")) {
       // Username search - when query starts with @
       const username = input.slice(1).toLowerCase();
-      console.log(`🔍 Username search for: "${username}"`);
+      console.log(`Username search for: "${username}"`);
 
       const { data, error } = await supabase
         .from("profiles")
@@ -27,7 +27,7 @@ export const liveSearchUsers = async (input: string, limit: number = 10) => {
       }
 
       console.log(
-        `✅ Found ${data?.length || 0} users for username: "${username}"`
+        `Found ${data?.length || 0} users for username: "${username}"`
       );
       if (data && data.length > 0) {
         console.log(
@@ -39,7 +39,7 @@ export const liveSearchUsers = async (input: string, limit: number = 10) => {
     } else {
       // General search - search across name, username, and wallet address
       const searchTerm = input.trim();
-      console.log(`🔍 General search for: "${searchTerm}"`);
+      console.log(`General search for: "${searchTerm}"`);
 
       // Search across multiple fields: name, username, and wallet_address
       const { data, error } = await supabase
@@ -56,9 +56,7 @@ export const liveSearchUsers = async (input: string, limit: number = 10) => {
       }
 
       console.log(
-        `✅ Found ${
-          data?.length || 0
-        } users for general search: "${searchTerm}"`
+        `Found ${data?.length || 0} users for general search: "${searchTerm}"`
       );
 
       if (data && data.length > 0) {

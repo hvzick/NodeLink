@@ -65,7 +65,7 @@ export const initializeWalletConnect = async (
       },
     });
 
-    console.log("✅ WalletConnect instance created");
+    // console.log("WalletConnect instance created");
 
     signClient.on("session_delete", () => {
       console.log("🔹 Session deleted");
@@ -114,7 +114,7 @@ export const connectWallet = async (
       );
 
       await approval();
-      console.log("✅ Wallet connected");
+      console.log("Wallet connected");
       await waitForActive();
 
       const session = signClient.session.getAll()[0];
@@ -144,7 +144,6 @@ export const connectWallet = async (
           index: 0,
           routes: [{ name: "Main" }],
         });
-        console.log("🔄 Navigation reset to Main flow");
       }
     }
   } catch (error: any) {

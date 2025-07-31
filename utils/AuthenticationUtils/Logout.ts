@@ -30,7 +30,7 @@ export function useLogout() {
               // Step 1: Clear SQLite database (messages)
               try {
                 await clearAllMessagesFromDB();
-                console.log("✅ Local messages cleared from SQLite");
+                console.log("Local messages cleared from SQLite");
               } catch (error) {
                 console.error("❌ Error clearing SQLite messages:", error);
               }
@@ -114,7 +114,7 @@ export function useLogout() {
               // Step 6: Final cleanup - clear any remaining data
               try {
                 await AsyncStorage.clear();
-                console.log("✅ Complete AsyncStorage cleared");
+                console.log("Complete AsyncStorage cleared");
               } catch (error) {
                 console.error(
                   "❌ Error during final AsyncStorage clear:",
@@ -124,9 +124,9 @@ export function useLogout() {
 
               // Step 7: Update authentication state
               setIsLoggedIn(false);
-              console.log("🔓 Auth context updated, user logged out");
+              console.log("Auth context updated, user logged out");
 
-              console.log("✅ Logout process completed successfully");
+              console.log("Logout process completed successfully");
             } catch (error) {
               console.error("❌ Critical error during logout:", error);
               Alert.alert(

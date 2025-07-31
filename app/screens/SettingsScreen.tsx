@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Image,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -28,6 +29,7 @@ import ProfileArrowSvg from "../../assets/images/profile-arrow-icon.svg";
 import { useLogout } from "../../utils/AuthenticationUtils/Logout";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { deleteUserByWallet } from "../../backend/Supabase/DeleteUserData";
 
 // Navigation type
 export type SettingsStackParamList = {
@@ -50,11 +52,12 @@ export default function SettingsScreen() {
   const isDarkMode = currentTheme === "dark";
   const [copied, setCopied] = useState(false);
   const navigation = useNavigation<SettingsNavigationProp>();
-  const logout = useLogout();
+  const logout = useLogout(); // Your logout function
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(true); // Add image loading state
+  const [imageLoading, setImageLoading] = useState(true);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Load wallet address first
   useEffect(() => {
@@ -147,6 +150,131 @@ export default function SettingsScreen() {
     if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "⚠️ Delete Account",
+      `This action will permanently delete your account and all associated data including:\n\n• Your profile information\n• All chat messages\n• Encryption keys\n• User preferences\n• Profile images\n\nThis action cannot be undone and you will be logged out immediately.\n\nAre you sure you want to continue?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => console.log("Account deletion cancelled"),
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            // Second confirmation with stronger warning
+            Alert.alert(
+              "🚨 Final Confirmation",
+              `This is your last chance to cancel.\n\nYour account "${
+                userData?.username || "Unknown"
+              }" will be permanently deleted and you will be logged out immediately.\n\nThis action is irreversible.\n\nAre you absolutely sure?`,
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                  onPress: () => console.log("Final confirmation cancelled"),
+                },
+                {
+                  text: "YES, DELETE FOREVER",
+                  style: "destructive",
+                  onPress: performAccountDeletion,
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  // Create a logout function without the confirmation dialog for account deletion
+  const logoutWithoutConfirmation = () => {
+    return new Promise<void>((resolve) => {
+      // We need to bypass the confirmation dialog in your logout function
+      // Since your logout function shows an Alert, we'll handle the logout manually here
+      const performLogout = async () => {
+        try {
+          console.log("🚪 Starting logout process after account deletion...");
+
+          // Clear all local data (similar to your logout function but without the alert)
+          await AsyncStorage.clear();
+          console.log("✅ All local storage cleared");
+
+          // You might want to call setIsLoggedIn(false) here if you have access to it
+          // For now, we'll resolve and let the navigation happen
+          resolve();
+        } catch (error) {
+          console.error("❌ Error during logout:", error);
+          resolve(); // Still resolve to continue the flow
+        }
+      };
+
+      performLogout();
+    });
+  };
+
+  // Account deletion function using your logout
+  const performAccountDeletion = async () => {
+    if (!userData?.walletAddress) {
+      Alert.alert("Error", "No wallet address found. Cannot delete account.");
+      return;
+    }
+
+    setIsDeletingAccount(true);
+
+    try {
+      console.log("🗑️ Starting account deletion process...");
+
+      // Step 1: Delete user from Supabase
+      const result = await deleteUserByWallet(userData.walletAddress);
+
+      if (result.success) {
+        console.log("✅ Account deleted successfully from Supabase");
+
+        // Clear local state immediately
+        setUserData(null);
+        setWalletAddress(null);
+
+        // Step 2: Show success message
+        Alert.alert(
+          "✅ Account Deleted",
+          "Your account has been permanently deleted from our servers. You will now be logged out and all local data will be cleared.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                console.log("🚪 Proceeding with logout after account deletion");
+                // Call your logout function which will handle the confirmation and cleanup
+                logout();
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      } else {
+        console.error("❌ Account deletion failed:", result.error);
+
+        Alert.alert(
+          "❌ Deletion Failed",
+          `Unable to delete your account: ${result.error}\n\nPlease try again or contact support if the problem persists.`,
+          [{ text: "OK" }]
+        );
+      }
+    } catch (error) {
+      console.error("❌ Unexpected error during account deletion:", error);
+
+      Alert.alert(
+        "❌ Deletion Error",
+        "An unexpected error occurred while deleting your account. Please check your internet connection and try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -329,17 +457,47 @@ export default function SettingsScreen() {
 
         {/* Logout / Delete */}
         <View style={styles.accountActionsContainer}>
-          <TouchableOpacity onPress={() => logout()}>
+          <TouchableOpacity onPress={logout}>
             <View style={styles.accountActionItem}>
-              <Text style={styles.deleteTitle}>Logout</Text>
+              <View style={styles.itemLeft}>
+                <Text style={[styles.itemTitle, { color: "#FF3B30" }]}>
+                  Logout
+                </Text>
+              </View>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => console.log("Delete Account")}>
-            <View style={styles.accountActionItem}>
-              <Text style={[styles.deleteTitle, { color: "#FF3B30" }]}>
-                Delete Account
-              </Text>
+
+          <TouchableOpacity
+            onPress={handleDeleteAccount}
+            disabled={isDeletingAccount}
+            style={[
+              styles.accountActionItem,
+              isDeletingAccount && styles.disabledItem,
+            ]}
+          >
+            <View style={styles.itemLeft}>
+              {isDeletingAccount ? (
+                <>
+                  <ActivityIndicator
+                    size="small"
+                    color="#FF3B30"
+                    style={{ marginRight: 12 }}
+                  />
+                  <Text style={[styles.deleteTitle, { color: "#FF3B30" }]}>
+                    Deleting Account...
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.deleteTitle, { color: "#FF3B30" }]}>
+                    Delete Account
+                  </Text>
+                </>
+              )}
             </View>
+            {!isDeletingAccount && (
+              <Ionicons name="warning-outline" size={20} color="#FF3B30" />
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -472,5 +630,8 @@ const getStyles = (isDarkMode: boolean) =>
       paddingVertical: 14,
       borderBottomWidth: 1,
       borderBottomColor: isDarkMode ? "#333" : "#EFEFEF",
+    },
+    disabledItem: {
+      opacity: 0.6,
     },
   });

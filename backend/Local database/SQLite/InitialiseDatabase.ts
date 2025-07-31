@@ -93,7 +93,7 @@ const addSignatureColumns = async (
         await db.execAsync(
           `ALTER TABLE messages ADD COLUMN ${column.name} ${column.type}`
         );
-        console.log(`✅ Added signature column: ${column.name}`);
+        console.log(`Added signature column: ${column.name}`);
       }
     }
   } catch (error) {

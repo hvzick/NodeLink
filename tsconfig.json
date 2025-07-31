@@ -24,8 +24,7 @@
     "app/**/*",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "src/types/declarations.d.ts" // ✅ added declaration file
-    ,
+    "src/types/declarations.d.ts",
     "utils/GlobalUtils/FormatDate.ts"
   ],
   "exclude": [

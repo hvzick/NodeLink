@@ -188,7 +188,7 @@ export class MessageVerifier {
             );
             if (compressedKey) {
               console.log(
-                "✅ Successfully compressed UserData public key (fresh, no cache)"
+                "Successfully compressed UserData public key (fresh, no cache)"
               );
               console.log("=== END PUBLIC KEY RETRIEVAL DEBUG ===");
               return compressedKey;

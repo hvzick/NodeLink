@@ -1,4 +1,4 @@
-// backend\Supabase\RegisterUser.ts
+// backend/Supabase/RegisterUser.ts
 
 import { supabase } from "./Supabase";
 import { storeUserDataInStorage } from "../Local database/AsyncStorage/UserDataStorage/UtilityIndex";
@@ -20,10 +20,33 @@ export const DEFAULT_USER_DATA: Omit<UserData, "walletAddress" | "created_at"> =
     name: "NodeLink User",
     bio: "Im not being spied on",
     avatar: "default",
-    username: `user${Math.random().toString(36).substring(2, 8)}${Date.now()
-      .toString(36)
-      .slice(-3)}`,
+    username: "temp_user", // Will be replaced by generateUniqueUsername()
   };
+
+/**
+ * Generate a unique username with collision checking
+ */
+export async function generateUniqueUsername(): Promise<string> {
+  let attempts = 0;
+  const maxAttempts = 5;
+
+  while (attempts < maxAttempts) {
+    const randomPart = Math.random().toString(36).substring(2, 8);
+    const timestampPart = Date.now().toString(36).slice(-3);
+    const username = `user${randomPart}${timestampPart}`;
+
+    if (await isUsernameAvailable(username)) {
+      return username;
+    }
+    attempts++;
+
+    // Small delay to ensure different timestamps
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+
+  // Final fallback with UUID-like approach
+  return `user${Date.now()}${Math.random().toString(36).substring(2, 5)}`;
+}
 
 /**
  * Registers a user if they don't already exist, and saves to storage
@@ -48,28 +71,72 @@ export async function registerUser(userInfo: UserData): Promise<{
 
     if (fetchError) {
       return {
-        error: fetchError,
+        error: {
+          message: `Database fetch error: ${fetchError.message}`,
+          code: fetchError.code,
+          details: fetchError,
+        },
         user: null,
         isNew: false,
       };
     }
 
     if (existingUser) {
-      console.log("✅ User found in database");
+      console.log("User found in database");
 
+      // Handle null values from database
       const user: UserData = {
         walletAddress: existingUser.wallet_address,
-        username: existingUser.username,
-        name: existingUser.name,
-        avatar: existingUser.avatar,
-        bio: existingUser.bio,
+        username: existingUser.username || (await generateUniqueUsername()),
+        name: existingUser.name || DEFAULT_USER_DATA.name,
+        avatar: existingUser.avatar || DEFAULT_USER_DATA.avatar,
+        bio: existingUser.bio || DEFAULT_USER_DATA.bio,
         created_at: existingUser.created_at,
-        publicKey: existingUser.public_key || existingUser.publicKey,
+        publicKey: existingUser.public_key,
       };
 
+      // If we had to generate defaults, update the database
+      if (
+        !existingUser.username ||
+        !existingUser.name ||
+        !existingUser.bio ||
+        !existingUser.avatar
+      ) {
+        console.log("🔄 Updating user with missing required fields...");
+        try {
+          const updateData = {
+            ...(!existingUser.username && { username: user.username }),
+            ...(!existingUser.name && { name: user.name }),
+            ...(!existingUser.bio && { bio: user.bio }),
+            ...(!existingUser.avatar && { avatar: user.avatar }),
+          };
+
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update(updateData)
+            .eq("wallet_address", user.walletAddress);
+
+          if (updateError) {
+            console.warn(
+              "⚠️ Failed to update user with defaults:",
+              updateError
+            );
+          } else {
+            console.log("Updated user with default values");
+          }
+        } catch (updateError) {
+          console.warn("⚠️ Error updating user defaults:", updateError);
+        }
+      }
+
       // Store using the storage utility function
-      await storeUserDataInStorage(user);
-      console.log("✅ Existing user loaded and stored:", user);
+      try {
+        await storeUserDataInStorage(user);
+        console.log("Existing user loaded and stored:", user);
+      } catch (storageError) {
+        console.warn("⚠️ Failed to store user data locally:", storageError);
+      }
+
       return {
         error: null,
         user,
@@ -79,10 +146,43 @@ export async function registerUser(userInfo: UserData): Promise<{
 
     console.log("🆕 User not found - creating new user...");
 
-    // 👤 Insert new user
+    // Validate user data before proceeding
+    const validation = validateUserData(userInfo);
+    if (!validation.isValid) {
+      return {
+        error: {
+          message: `Validation failed: ${validation.errors.join(", ")}`,
+          code: "VALIDATION_ERROR",
+        },
+        user: null,
+        isNew: false,
+      };
+    }
+
+    // Generate unique username if not provided or if it's the default
+    let finalUsername = userInfo.username;
+    if (!finalUsername || finalUsername === "temp_user") {
+      finalUsername = await generateUniqueUsername();
+    } else {
+      // Check if provided username is available
+      const isAvailable = await isUsernameAvailable(finalUsername);
+      if (!isAvailable) {
+        return {
+          error: {
+            message:
+              "Username already exists. Please choose a different username.",
+            code: "USERNAME_TAKEN",
+          },
+          user: null,
+          isNew: false,
+        };
+      }
+    }
+
+    // Insert new user
     const insertData = {
       wallet_address: userInfo.walletAddress,
-      username: userInfo.username,
+      username: finalUsername,
       name: userInfo.name,
       avatar: userInfo.avatar,
       bio: userInfo.bio,
@@ -138,12 +238,16 @@ export async function registerUser(userInfo: UserData): Promise<{
       avatar: newUser.avatar,
       bio: newUser.bio,
       created_at: newUser.created_at,
-      publicKey: newUser.public_key || newUser.publicKey,
+      publicKey: newUser.public_key,
     };
 
     // Store using the storage utility function
-    await storeUserDataInStorage(user);
-    console.log("✅ New user registered and stored:", user);
+    try {
+      await storeUserDataInStorage(user);
+      console.log("New user registered and stored:", user);
+    } catch (storageError) {
+      console.warn("⚠️ Failed to store user data locally:", storageError);
+    }
 
     return {
       error: null,
@@ -153,7 +257,6 @@ export async function registerUser(userInfo: UserData): Promise<{
   } catch (err) {
     console.error("❌ Error registering user:", err);
 
-    // Return error in consistent format
     return {
       error: {
         message: err instanceof Error ? err.message : "Unknown error occurred",
@@ -167,16 +270,7 @@ export async function registerUser(userInfo: UserData): Promise<{
 }
 
 /**
- * Generate a unique username with timestamp to avoid collisions
- */
-export function generateUniqueUsername(): string {
-  const randomPart = Math.random().toString(36).substring(2, 8);
-  const timestampPart = Date.now().toString(36).slice(-3);
-  return `user${randomPart}${timestampPart}`;
-}
-
-/**
- * Validate user data before registration
+ * Validate user data before registration with null handling
  */
 export function validateUserData(userData: Partial<UserData>): {
   isValid: boolean;
@@ -184,25 +278,50 @@ export function validateUserData(userData: Partial<UserData>): {
 } {
   const errors: string[] = [];
 
-  if (!userData.walletAddress) {
-    errors.push("Wallet address is required");
+  // Check wallet address
+  if (
+    !userData.walletAddress ||
+    typeof userData.walletAddress !== "string" ||
+    userData.walletAddress.trim() === ""
+  ) {
+    errors.push("Valid wallet address is required");
   }
 
-  if (!userData.username) {
+  // Check username with null handling
+  if (
+    !userData.username ||
+    userData.username === null ||
+    typeof userData.username !== "string" ||
+    userData.username.trim() === ""
+  ) {
     errors.push("Username is required");
   } else if (userData.username.length < 3) {
     errors.push("Username must be at least 3 characters long");
   } else if (userData.username.length > 50) {
     errors.push("Username must be less than 50 characters");
+  } else if (!/^[a-zA-Z0-9_]+$/.test(userData.username)) {
+    errors.push("Username can only contain letters, numbers, and underscores");
   }
 
-  if (!userData.name) {
+  // Check name with null handling
+  if (
+    !userData.name ||
+    userData.name === null ||
+    typeof userData.name !== "string" ||
+    userData.name.trim() === ""
+  ) {
     errors.push("Name is required");
   } else if (userData.name.length > 100) {
     errors.push("Name must be less than 100 characters");
   }
 
-  if (userData.bio && userData.bio.length > 500) {
+  // Check bio (allow null/empty)
+  if (
+    userData.bio !== null &&
+    userData.bio !== undefined &&
+    typeof userData.bio === "string" &&
+    userData.bio.length > 500
+  ) {
     errors.push("Bio must be less than 500 characters");
   }
 
@@ -215,14 +334,16 @@ export function validateUserData(userData: Partial<UserData>): {
 /**
  * Create user data with defaults
  */
-export function createUserDataWithDefaults(
+export async function createUserDataWithDefaults(
   walletAddress: string,
   overrides: Partial<UserData> = {}
-): UserData {
+): Promise<UserData> {
+  const uniqueUsername = await generateUniqueUsername();
+
   return {
     walletAddress,
     ...DEFAULT_USER_DATA,
-    username: generateUniqueUsername(),
+    username: uniqueUsername,
     ...overrides,
   };
 }
@@ -243,12 +364,22 @@ export async function updateUserProfile(
       throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
     }
 
+    // Check username availability if username is being updated
+    if (updates.username) {
+      const isAvailable = await isUsernameAvailable(updates.username);
+      if (!isAvailable) {
+        throw new Error(
+          "Username already exists. Please choose a different username."
+        );
+      }
+    }
+
     // Update in Supabase
     const updateData = {
       ...(updates.username && { username: updates.username }),
       ...(updates.name && { name: updates.name }),
       ...(updates.avatar && { avatar: updates.avatar }),
-      ...(updates.bio && { bio: updates.bio }),
+      ...(updates.bio !== undefined && { bio: updates.bio }),
       ...(updates.publicKey && { public_key: updates.publicKey }),
     };
 
@@ -274,12 +405,16 @@ export async function updateUserProfile(
       avatar: updatedUser.avatar,
       bio: updatedUser.bio,
       created_at: updatedUser.created_at,
-      publicKey: updatedUser.public_key || updatedUser.publicKey,
+      publicKey: updatedUser.public_key,
     };
 
     // Update local storage
-    await storeUserDataInStorage(user);
-    console.log("✅ User profile updated:", user);
+    try {
+      await storeUserDataInStorage(user);
+      console.log("User profile updated:", user);
+    } catch (storageError) {
+      console.warn("⚠️ Failed to update local storage:", storageError);
+    }
 
     return user;
   } catch (err) {
@@ -293,6 +428,10 @@ export async function updateUserProfile(
  */
 export async function isUsernameAvailable(username: string): Promise<boolean> {
   try {
+    if (!username || username.length < 3) {
+      return false;
+    }
+
     const { data, error } = await supabase
       .from("profiles")
       .select("username")

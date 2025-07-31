@@ -12,7 +12,7 @@ export async function storeUserDataInStorage(
     await AsyncStorage.setItem("userData", JSON.stringify(userData));
     await AsyncStorage.setItem("sessionData", JSON.stringify(userData));
 
-    console.log("✅ User data stored in both session and AsyncStorage");
+    console.log("User data stored in both session and AsyncStorage");
   } catch (err) {
     console.error("❌ Failed to store user data:", err);
     throw err;

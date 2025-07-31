@@ -70,7 +70,7 @@ export const handleAndPublishKeys = async (
     } else {
       console.log("No local keys found. Generating new key pair...");
       keyPair = await generateAndStoreKeys(walletAddress);
-      if (keyPair) console.log("🆕 New key pair generated.");
+      if (keyPair) console.log("New key pair generated.");
       else console.log("❌ Key generation failed.");
     }
 

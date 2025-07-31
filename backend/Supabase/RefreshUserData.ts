@@ -51,7 +51,7 @@ export const refreshUserDataFromSupabase =
         // Update local storage and session cache using the utility function
         await storeUserDataInStorage(refreshedUserData);
 
-        console.log("✅ User data refreshed and stored successfully");
+        console.log("User data refreshed and stored successfully");
         return refreshedUserData;
       } else {
         console.log("⚠️ No user data found in Supabase");
@@ -106,7 +106,7 @@ export const refreshSpecificUserData = async (
       // Store in local storage
       await storeUserDataInStorage(refreshedUserData);
 
-      console.log("✅ Specific user data refreshed successfully");
+      console.log("Specific user data refreshed successfully");
       return refreshedUserData;
     } else {
       console.log("⚠️ No user data found in Supabase for this wallet");

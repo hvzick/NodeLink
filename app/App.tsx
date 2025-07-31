@@ -29,7 +29,7 @@ import {
   AuthProvider,
   useAuth,
 } from "../utils/AuthenticationUtils/AuthContext";
-import GlobalMessageListener from "../backend/Gun Service/Messaging/GlobalMessageListener"; // ✅ import listener
+import GlobalMessageListener from "../backend/Gun Service/Messaging/GlobalMessageListener";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

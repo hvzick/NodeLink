@@ -151,7 +151,7 @@ export default function BottomTabs() {
 
           const profiles = await loadChatProfiles(chatItems);
           console.log(
-            `✅ Preloaded ${Object.keys(profiles).length} common profiles`
+            `Preloaded ${Object.keys(profiles).length} common profiles`
           );
         } else {
           console.log("ℹNo common profiles to preload");
