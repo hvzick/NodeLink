@@ -1,4 +1,4 @@
-NodeLink
+## NodeLink
 NodeLink is a secure decentralized messaging framework designed for privacy-preserving, censorship-resistant, and offline-first communication.
 It leverages modern cryptography, blockchain-based authentication, and peer-to-peer networking to eliminate reliance on centralized servers.
 
