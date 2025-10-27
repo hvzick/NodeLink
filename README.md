@@ -54,7 +54,7 @@ npm install
 ⚠️ If you face peer dependency conflicts, run:
 
 npm install --legacy-peer-deps
-3. Environment Variables
+Environment Variables
 Create .env in the project root:
 
 # Supabase
@@ -67,8 +67,6 @@ WALLETCONNECT_PROJECT_ID=your-walletconnect-project-id
 # GunDB
 GUN_PEERS=https://your-gun-peer-server.com/gun
 
-# Encryption Secret (32-byte secure key)
-ENCRYPTION_SECRET=your-32-byte-secret
 
 # Expo / APIs
 EXPO_PUBLIC_API_URL=https://api.yourdomain.com
@@ -169,7 +167,7 @@ npm run test
 MIT License © 2025 NodeLink Team
 
 👨‍💻 Author
-Za.i.14 - Creator and Lead Developer
+Hazik - Creator and Lead Developer
 
 🙏 Acknowledgments
 Gun.js team for the decentralized database
